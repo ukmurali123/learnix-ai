@@ -1,0 +1,10 @@
+id,title,concept_id,components,goal,starter_code,solution_code
+1,LED Blink,3,Arduino Uno; LED; 220 ohm resistor; wires,Blink an LED on and off every second,"void setup(){ pinMode(13, OUTPUT); }
+void loop(){ digitalWrite(13, HIGH); delay(1000); }","void setup(){ pinMode(13, OUTPUT); }
+void loop(){ digitalWrite(13, HIGH); delay(1000); digitalWrite(13, LOW); delay(1000); }"
+2,Buzzer + Button,5,Arduino Uno; push button; buzzer; wires,Buzzer sounds only while the button is pressed,"void setup(){ pinMode(2, INPUT_PULLUP); pinMode(8, OUTPUT); }
+void loop(){ }","void setup(){ pinMode(2, INPUT_PULLUP); pinMode(8, OUTPUT); }
+void loop(){ if(digitalRead(2)==LOW){ tone(8, 1000); } else { noTone(8); } }"
+3,Distance Alarm,8,Arduino Uno; HC-SR04 ultrasonic sensor; buzzer; wires,Beep when an object is closer than 20 cm,"void setup(){ pinMode(9, OUTPUT); pinMode(10, INPUT); pinMode(8, OUTPUT); }
+void loop(){ long d = readDistance(); }","void setup(){ pinMode(9, OUTPUT); pinMode(10, INPUT); pinMode(8, OUTPUT); }
+void loop(){ long d = readDistance(); if(d < 20){ tone(8, 1500); } else { noTone(8); } delay(100); }"

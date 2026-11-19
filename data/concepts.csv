@@ -1,0 +1,16 @@
+id,title,level,category,summary
+1,What is an LED,Beginner,Electronics,A light-emitting diode glows when current flows from anode (+) to cathode (-).
+2,Resistors and why we need them,Beginner,Electronics,A resistor limits current so components like LEDs do not burn out.
+3,Digital output pins,Beginner,Arduino,Arduino pins can be set HIGH (5V) or LOW (0V) to switch devices on and off.
+4,Loops in code,Beginner,Coding,A loop repeats instructions; Arduino's loop() runs again and again.
+5,Buttons and digital input,Intermediate,Arduino,A button changes a pin between HIGH and LOW; INPUT_PULLUP keeps it HIGH until pressed.
+6,Buzzers and sound,Beginner,Electronics,A buzzer makes sound when powered; tone() sets its pitch.
+7,If-else decisions,Beginner,Coding,If-else lets a program choose what to do based on a condition.
+8,Ultrasonic distance sensor,Intermediate,Sensors,HC-SR04 sends sound pulses and times the echo to measure distance.
+9,Variables,Beginner,Coding,"A variable is a named box that stores a value, like distance or count."
+10,Ground and complete circuits,Beginner,Electronics,Current needs a complete path back to ground (GND) for a circuit to work.
+11,Motors and motor drivers,Intermediate,Robotics,"Motors need more current than pins give, so a motor driver controls them."
+12,Line follower robot,Advanced,Robotics,IR sensors detect a dark line and the robot steers to stay on it.
+13,What is AI,Beginner,AI,AI lets computers learn patterns from examples to make decisions.
+14,Image recognition basics,Intermediate,AI,AI models learn to recognise objects in pictures from many labelled examples.
+15,Servo motors and angles,Intermediate,Robotics,A servo turns to an exact angle between 0 and 180 degrees.

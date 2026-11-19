@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Learnix AI — Virtual Lab</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <!-- Top App Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-name">
+        Learnix AI
+        <span>Virtual Lab</span>
+      </div>
+    </div>
+
+    <nav class="top-nav">
+      <a href="#" class="nav-link">Home</a>
+      <a href="#" class="nav-link">Concept Studio</a>
+      <a href="#" class="nav-link active">Virtual Lab</a>
+      <a href="#" class="nav-link">AI Coach</a>
+      <a href="#" class="nav-link">Reports</a>
+    </nav>
+
+    <div class="user-badge">
+      <div class="avatar">A</div>
+      <span>Aarav (Grade 8)</span>
+    </div>
+  </header>
+
+  <!-- Experiment Picker Bar -->
+  <section class="experiment-bar">
+    <div class="exp-picker-wrapper">
+      <label for="exp-select">🔬 Experiment:</label>
+      <select id="exp-select" class="exp-select">
+        <option value="1">1. LED Blink</option>
+        <option value="2">2. Buzzer + Button</option>
+        <option value="3">3. Distance Alarm</option>
+      </select>
+    </div>
+
+    <div class="exp-goal-pill">
+      <strong>Goal:</strong>
+      <span id="exp-goal-text">Blink an LED on and off every second</span>
+    </div>
+
+    <div class="exp-actions">
+      <button id="btn-reset" class="btn btn-reset" title="Reset code to starter code">
+        🔄 Reset
+      </button>
+      <button id="btn-run" class="btn btn-run" title="Run virtual circuit and code">
+        ▶ Run Circuit
+      </button>
+    </div>
+  </section>
+
+  <!-- Main 3-Column Lab Workspace -->
+  <main class="lab-workspace">
+    <!-- LEFT: Component Tray -->
+    <aside class="panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span>🧰</span> Component Tray
+        </div>
+        <span class="panel-subtitle">7 items</span>
+      </div>
+      <div class="panel-body">
+        <div class="component-tray-list">
+          <!-- 1. Arduino Uno -->
+          <div class="tray-item" data-component="Arduino Uno" draggable="true">
+            <div class="tray-icon">🟦</div>
+            <div class="tray-details">
+              <div class="tray-name">Arduino Uno</div>
+              <div class="tray-spec">Microcontroller board</div>
+            </div>
+            <button class="tray-add-btn" title="Add to canvas">+</button>
+          </div>
+
+          <!-- 2. LED -->
+          <div class="tray-item" data-component="LED" draggable="true">
+            <div class="tray-icon">💡</div>
+            <div class="tray-details">
+              <div class="tray-name">LED (Red)</div>
+              <div class="tray-spec">Anode (+) &amp; Cathode (-)</div>
+            </div>
+            <button class="tray-add-btn" title="Add to canvas">+</button>
+          </div>
+
+          <!-- 3. 220 ohm Resistor -->
+          <div class="tray-item" data-component="220 ohm Resistor" draggable="true">
+            <div class="tray-icon">〰️</div>
+            <div class="tray-details">
+              <div class="tray-name">220Ω Resistor</div>
+              <div class="tray-spec">Limits current</div>
+            </div>
+            <button class="tray-add-btn" title="Add to canvas">+</button>
+          </div>
+
+          <!-- 4. Push Button -->
+          <div class="tray-item" data-component="Push Button" draggable="true">
+            <div class="tray-icon">🔘</div>
+            <div class="tray-details">
+              <div class="tray-name">Push Button</div>
+              <div class="tray-spec">Momentary tactile switch</div>
+            </div>
+            <button class="tray-add-btn" title="Add to canvas">+</button>
+          </div>
+
+          <!-- 5. Buzzer -->
+          <div class="tray-item" data-component="Buzzer" draggable="true">
+            <div class="tray-icon">🔔</div>
+            <div class="tray-details">
+              <div class="tray-name">Buzzer</div>
+              <div class="tray-spec">Piezo sound generator</div>
+            </div>
+            <button class="tray-add-btn" title="Add to canvas">+</button>
+          </div>
+
+          <!-- 6. HC-SR04 Sensor -->
+          <div class="tray-item" data-component="HC-SR04 Ultrasonic Sensor" draggable="true">
+            <div class="tray-icon">🦇</div>
+            <div class="tray-details">
+              <div class="tray-name">HC-SR04 Sensor</div>
+              <div class="tray-spec">Ultrasonic distance (2-400cm)</div>
+            </div>
+            <button class="tray-add-btn" title="Add to canvas">+</button>
+          </div>
+
+          <!-- 7. Wire -->
+          <div class="tray-item" data-component="Jumper Wire" draggable="true">
+            <div class="tray-icon">➰</div>
+            <div class="tray-details">
+              <div class="tray-name">Jumper Wire</div>
+              <div class="tray-spec">Click two pins to connect</div>
+            </div>
+            <button class="tray-add-btn" title="Add to canvas">+</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTRE: Breadboard Canvas -->
+    <section class="panel canvas-panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span>🔌</span> Breadboard Canvas
+        </div>
+        <div class="canvas-controls">
+          <span id="active-comp-count" class="canvas-chip">0 placed</span>
+          <span class="canvas-chip">Grid Snap: ON</span>
+        </div>
+      </div>
+      <div class="canvas-container">
+        <div class="breadboard-workspace">
+          <div class="canvas-hint-banner">
+            <span>💡 <strong>Tip:</strong> Drag components from the left tray onto the breadboard, then click pins to connect wires.</span>
+            <span>Zoom: 100%</span>
+          </div>
+
+          <!-- SVG Breadboard Graphic -->
+          <div class="breadboard-svg-wrapper">
+            <svg id="breadboard-svg" viewBox="0 0 760 480" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id="grid-dots" width="16" height="16" patternUnits="userSpaceOnUse">
+                  <circle cx="8" cy="8" r="1.5" fill="#cbd5e1" />
+                </pattern>
+                <filter id="card-shadow" x="-5%" y="-5%" width="110%" height="110%">
+                  <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08" />
+                </filter>
+              </defs>
+
+              <!-- Canvas Background with Grid -->
+              <rect x="0" y="0" width="760" height="480" fill="#f8fafc" rx="12" />
+              <rect x="0" y="0" width="760" height="480" fill="url(#grid-dots)" rx="12" />
+
+              <!-- Arduino Uno Board Mockup (Top) -->
+              <g id="arduino-uno-mockup" transform="translate(60, 25)" filter="url(#card-shadow)">
+                <rect width="640" height="150" rx="10" fill="#0284c7" stroke="#0369a1" stroke-width="2" />
+                <rect x="15" y="15" width="50" height="40" rx="4" fill="#94a3b8" stroke="#64748b" />
+                <text x="40" y="38" font-size="10" font-family="monospace" font-weight="bold" fill="#1e293b" text-anchor="middle">USB</text>
+                <rect x="15" y="75" width="45" height="55" rx="4" fill="#1e293b" />
+                <text x="37" y="105" font-size="9" font-family="monospace" fill="#f8fafc" text-anchor="middle">PWR</text>
+                
+                <text x="320" y="45" font-size="18" font-family="sans-serif" font-weight="800" fill="#ffffff" letter-spacing="2">ARDUINO UNO</text>
+                <text x="320" y="65" font-size="11" font-family="monospace" fill="#bae6fd">POWER &bull; ANALOG &bull; DIGITAL (PWM~)</text>
+
+                <!-- Top Digital Header Pins -->
+                <rect x="240" y="100" width="370" height="24" rx="4" fill="#1e293b" />
+                <g fill="#f1f5f9" font-size="9" font-family="monospace" font-weight="bold" text-anchor="middle">
+                  <text x="260" y="92" fill="#e2e8f0">GND</text>
+                  <circle cx="260" cy="112" r="4" fill="#facc15" stroke="#ca8a04" stroke-width="1.5" />
+
+                  <text x="300" y="92" fill="#e2e8f0">D13</text>
+                  <circle cx="300" cy="112" r="4" fill="#facc15" stroke="#ca8a04" stroke-width="1.5" />
+
+                  <text x="340" y="92" fill="#e2e8f0">D10</text>
+                  <circle cx="340" cy="112" r="4" fill="#facc15" stroke="#ca8a04" stroke-width="1.5" />
+
+                  <text x="380" y="92" fill="#e2e8f0">D9</text>
+                  <circle cx="380" cy="112" r="4" fill="#facc15" stroke="#ca8a04" stroke-width="1.5" />
+
+                  <text x="420" y="92" fill="#e2e8f0">D8</text>
+                  <circle cx="420" cy="112" r="4" fill="#facc15" stroke="#ca8a04" stroke-width="1.5" />
+
+                  <text x="460" y="92" fill="#e2e8f0">D2</text>
+                  <circle cx="460" cy="112" r="4" fill="#facc15" stroke="#ca8a04" stroke-width="1.5" />
+
+                  <text x="510" y="92" fill="#38bdf8">5V</text>
+                  <circle cx="510" cy="112" r="4" fill="#38bdf8" stroke="#0284c7" stroke-width="1.5" />
+
+                  <text x="550" y="92" fill="#94a3b8">GND</text>
+                  <circle cx="550" cy="112" r="4" fill="#facc15" stroke="#ca8a04" stroke-width="1.5" />
+                </g>
+              </g>
+
+              <!-- Half-Size Breadboard (Bottom) -->
+              <g id="breadboard-body" transform="translate(60, 205)" filter="url(#card-shadow)">
+                <rect width="640" height="245" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+                
+                <!-- Power Rails -->
+                <!-- Red (+) Rail Top -->
+                <line x1="30" y1="25" x2="610" y2="25" stroke="#ef4444" stroke-width="2" stroke-dasharray="8 4" />
+                <text x="18" y="29" font-size="12" font-weight="bold" fill="#ef4444">+</text>
+                <!-- Blue (-) Rail Top -->
+                <line x1="30" y1="45" x2="610" y2="45" stroke="#3b82f6" stroke-width="2" stroke-dasharray="8 4" />
+                <text x="18" y="49" font-size="14" font-weight="bold" fill="#3b82f6">-</text>
+
+                <!-- Center Divider Groove -->
+                <rect x="25" y="125" width="590" height="8" fill="#e2e8f0" rx="3" />
+
+                <!-- Tie Points Rows (Upper A-E) -->
+                <g fill="#94a3b8">
+                  <!-- Row 1 -->
+                  <circle cx="70" cy="70" r="3" /> <circle cx="70" cy="85" r="3" /> <circle cx="70" cy="100" r="3" /> <circle cx="70" cy="115" r="3" />
+                  <!-- Row 2 -->
+                  <circle cx="110" cy="70" r="3" /> <circle cx="110" cy="85" r="3" /> <circle cx="110" cy="100" r="3" /> <circle cx="110" cy="115" r="3" />
+                  <!-- Row 3 -->
+                  <circle cx="150" cy="70" r="3" /> <circle cx="150" cy="85" r="3" /> <circle cx="150" cy="100" r="3" /> <circle cx="150" cy="115" r="3" />
+                  <!-- Row 4 -->
+                  <circle cx="190" cy="70" r="3" /> <circle cx="190" cy="85" r="3" /> <circle cx="190" cy="100" r="3" /> <circle cx="190" cy="115" r="3" />
+                  <!-- Row 5 -->
+                  <circle cx="230" cy="70" r="3" /> <circle cx="230" cy="85" r="3" /> <circle cx="230" cy="100" r="3" /> <circle cx="230" cy="115" r="3" />
+                  <!-- Row 6 -->
+                  <circle cx="270" cy="70" r="3" /> <circle cx="270" cy="85" r="3" /> <circle cx="270" cy="100" r="3" /> <circle cx="270" cy="115" r="3" />
+                  <!-- Row 7 -->
+                  <circle cx="310" cy="70" r="3" /> <circle cx="310" cy="85" r="3" /> <circle cx="310" cy="100" r="3" /> <circle cx="310" cy="115" r="3" />
+                  <!-- Row 8 -->
+                  <circle cx="350" cy="70" r="3" /> <circle cx="350" cy="85" r="3" /> <circle cx="350" cy="100" r="3" /> <circle cx="350" cy="115" r="3" />
+                  <!-- Row 9 -->
+                  <circle cx="390" cy="70" r="3" /> <circle cx="390" cy="85" r="3" /> <circle cx="390" cy="100" r="3" /> <circle cx="390" cy="115" r="3" />
+                  <!-- Row 10 -->
+                  <circle cx="430" cy="70" r="3" /> <circle cx="430" cy="85" r="3" /> <circle cx="430" cy="100" r="3" /> <circle cx="430" cy="115" r="3" />
+                  <!-- Row 11 -->
+                  <circle cx="470" cy="70" r="3" /> <circle cx="470" cy="85" r="3" /> <circle cx="470" cy="100" r="3" /> <circle cx="470" cy="115" r="3" />
+                  <!-- Row 12 -->
+                  <circle cx="510" cy="70" r="3" /> <circle cx="510" cy="85" r="3" /> <circle cx="510" cy="100" r="3" /> <circle cx="510" cy="115" r="3" />
+                  <!-- Row 13 -->
+                  <circle cx="550" cy="70" r="3" /> <circle cx="550" cy="85" r="3" /> <circle cx="550" cy="100" r="3" /> <circle cx="550" cy="115" r="3" />
+                  <!-- Row 14 -->
+                  <circle cx="590" cy="70" r="3" /> <circle cx="590" cy="85" r="3" /> <circle cx="590" cy="100" r="3" /> <circle cx="590" cy="115" r="3" />
+
+                  <!-- Tie Points Rows (Lower F-J) -->
+                  <!-- Row 1 -->
+                  <circle cx="70" cy="145" r="3" /> <circle cx="70" cy="160" r="3" /> <circle cx="70" cy="175" r="3" /> <circle cx="70" cy="190" r="3" />
+                  <!-- Row 2 -->
+                  <circle cx="110" cy="145" r="3" /> <circle cx="110" cy="160" r="3" /> <circle cx="110" cy="175" r="3" /> <circle cx="110" cy="190" r="3" />
+                  <!-- Row 3 -->
+                  <circle cx="150" cy="145" r="3" /> <circle cx="150" cy="160" r="3" /> <circle cx="150" cy="175" r="3" /> <circle cx="150" cy="190" r="3" />
+                  <!-- Row 4 -->
+                  <circle cx="190" cy="145" r="3" /> <circle cx="190" cy="160" r="3" /> <circle cx="190" cy="175" r="3" /> <circle cx="190" cy="190" r="3" />
+                  <!-- Row 5 -->
+                  <circle cx="230" cy="145" r="3" /> <circle cx="230" cy="160" r="3" /> <circle cx="230" cy="175" r="3" /> <circle cx="230" cy="190" r="3" />
+                  <!-- Row 6 -->
+                  <circle cx="270" cy="145" r="3" /> <circle cx="270" cy="160" r="3" /> <circle cx="270" cy="175" r="3" /> <circle cx="270" cy="190" r="3" />
+                  <!-- Row 7 -->
+                  <circle cx="310" cy="145" r="3" /> <circle cx="310" cy="160" r="3" /> <circle cx="310" cy="175" r="3" /> <circle cx="310" cy="190" r="3" />
+                  <!-- Row 8 -->
+                  <circle cx="350" cy="145" r="3" /> <circle cx="350" cy="160" r="3" /> <circle cx="350" cy="175" r="3" /> <circle cx="350" cy="190" r="3" />
+                  <!-- Row 9 -->
+                  <circle cx="390" cy="145" r="3" /> <circle cx="390" cy="160" r="3" /> <circle cx="390" cy="175" r="3" /> <circle cx="390" cy="190" r="3" />
+                  <!-- Row 10 -->
+                  <circle cx="430" cy="145" r="3" /> <circle cx="430" cy="160" r="3" /> <circle cx="430" cy="175" r="3" /> <circle cx="430" cy="190" r="3" />
+                  <!-- Row 11 -->
+                  <circle cx="470" cy="145" r="3" /> <circle cx="470" cy="160" r="3" /> <circle cx="470" cy="175" r="3" /> <circle cx="470" cy="190" r="3" />
+                  <!-- Row 12 -->
+                  <circle cx="510" cy="145" r="3" /> <circle cx="510" cy="160" r="3" /> <circle cx="510" cy="175" r="3" /> <circle cx="510" cy="190" r="3" />
+                  <!-- Row 13 -->
+                  <circle cx="550" cy="145" r="3" /> <circle cx="550" cy="160" r="3" /> <circle cx="550" cy="175" r="3" /> <circle cx="550" cy="190" r="3" />
+                  <!-- Row 14 -->
+                  <circle cx="590" cy="145" r="3" /> <circle cx="590" cy="160" r="3" /> <circle cx="590" cy="175" r="3" /> <circle cx="590" cy="190" r="3" />
+                </g>
+
+                <!-- Bottom Power Rails -->
+                <!-- Blue (-) Rail Bottom -->
+                <line x1="30" y1="215" x2="610" y2="215" stroke="#3b82f6" stroke-width="2" stroke-dasharray="8 4" />
+                <text x="18" y="219" font-size="14" font-weight="bold" fill="#3b82f6">-</text>
+                <!-- Red (+) Rail Bottom -->
+                <line x1="30" y1="230" x2="610" y2="230" stroke="#ef4444" stroke-width="2" stroke-dasharray="8 4" />
+                <text x="18" y="234" font-size="12" font-weight="bold" fill="#ef4444">+</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Code Editor -->
+    <aside class="panel code-panel">
+      <div class="editor-header">
+        <div class="editor-title">
+          <span>📝</span> Arduino Code Editor
+        </div>
+        <span class="file-pill">sketch.ino</span>
+      </div>
+
+      <div class="editor-container">
+        <textarea id="code-editor" class="code-textarea" spellcheck="false" placeholder="// Arduino starter code will load here..."></textarea>
+
+        <!-- Console / Status Pane -->
+        <div class="console-pane">
+          <div class="console-header">Virtual Lab Status &amp; Compiler</div>
+          <div id="console-output"></div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Controller Script -->
+  <script src="/js/virtual_lab.js"></script>
+</body>
+</html>
