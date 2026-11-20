@@ -11,7 +11,9 @@
  *  - Sleek debug panel with live JSON view, Copy to Clipboard, and Clear Wires
  *  - JavaScript Arduino Simulator: pinMode, digitalWrite, digitalRead, delay, if/else, setup(), loop()
  *  - Circuit graph analysis: LED glows when pin is HIGH and correctly wired to GND through resistor
- *  - End-to-end working LED Blink!
+ *  - AI Lab Partner Chat Bubble: If LED doesn't light as expected, calls /api/lab/check & shows praise + Socratic hint
+ *  - Web Audio tone/noTone synthesizer for Buzzer + Push Button experiment
+ *  - readDistance() with interactive slider for Distance Alarm experiment
  */
 
 // Global State
@@ -45,6 +47,17 @@ const compDrag = {
   dragOffset: { x: 0, y: 0 },
 };
 
+// Interactive Hardware State (Exp 2 Button & Exp 3 Sensor)
+const hardwareState = {
+  isButtonPressed: false,
+  sensorDistance: 15, // cm
+};
+
+// Web Audio API Context & State
+let audioCtx = null;
+let activeOscillator = null;
+let activeGainNode = null;
+
 // DOM Elements
 const expSelect = document.getElementById("exp-select");
 const expGoalText = document.getElementById("exp-goal-text");
@@ -56,6 +69,27 @@ const activeCompCount = document.getElementById("active-comp-count");
 const wireCountBadge = document.getElementById("wire-count");
 const canvasHintText = document.getElementById("canvas-hint-text");
 const wireDrawingStatus = document.getElementById("wire-drawing-status");
+
+// Interactive Hardware Bar Elements
+const interactiveHardwareBar = document.getElementById("interactive-hardware-bar");
+const distanceControlGroup = document.getElementById("distance-control-group");
+const distanceSlider = document.getElementById("distance-slider");
+const distanceValDisplay = document.getElementById("distance-val-display");
+const distanceStatusPill = document.getElementById("distance-status-pill");
+const buttonControlGroup = document.getElementById("button-control-group");
+const btnPressVirtual = document.getElementById("btn-press-virtual");
+const buttonStatePill = document.getElementById("button-state-pill");
+
+// AI Lab Partner Chat Bubble Elements
+const aiLabPartnerBubble = document.getElementById("ai-lab-partner-bubble");
+const partnerExpTitle = document.getElementById("partner-exp-title");
+const partnerPraiseText = document.getElementById("partner-praise-text");
+const partnerHintText = document.getElementById("partner-hint-text");
+const partnerFix = document.getElementById("partner-fix");
+const partnerFixText = document.getElementById("partner-fix-text");
+const btnClosePartnerBubble = document.getElementById("btn-close-partner-bubble");
+const btnAskDirectFix = document.getElementById("btn-ask-direct-fix");
+const btnGotIt = document.getElementById("btn-got-it");
 
 // SVG Canvas & Layers
 const breadboardSvg = document.getElementById("breadboard-svg");
@@ -77,11 +111,13 @@ const btnToggleDebugTop = document.getElementById("btn-toggle-debug-top");
 // 1. INITIALIZATION
 // ============================================================================
 async function initVirtualLab() {
-  logConsole("Initializing Learnix Virtual Lab circuit & simulation engine...", "ready");
+  logConsole("Initializing Learnix Virtual Lab engine...", "ready");
   setupTrayDragAndDrop();
   setupCanvasEvents();
   setupArduinoPins();
   setupDebugPanelEvents();
+  setupPartnerBubbleEvents();
+  setupHardwareControls();
   setupAppEvents();
   updateCircuitDebugView();
 
@@ -120,7 +156,6 @@ const COMPONENT_DEFS = {
     render(comp) {
       return `
         <g class="placed-comp" id="comp-${comp.id}" data-id="${comp.id}" transform="translate(${comp.x}, ${comp.y})">
-          <!-- Selection & Hit Area -->
           <rect x="0" y="0" width="56" height="70" rx="8" fill="rgba(239, 68, 68, 0.04)" stroke="rgba(239, 68, 68, 0.2)" stroke-dasharray="3 2" />
           
           <!-- Outer Radiance Glow (Active when HIGH & complete circuit) -->
@@ -143,10 +178,8 @@ const COMPONENT_DEFS = {
           <circle cx="38" cy="62" r="5" fill="#facc15" stroke="#ca8a04" stroke-width="1.5" class="pin-terminal comp-pin" data-pin-id="${comp.id}.cathode" data-pin-name="${comp.id} Cathode (-)" />
           <text x="38" y="55" font-size="7" font-weight="bold" fill="#3b82f6" text-anchor="middle">-</text>
 
-          <!-- Label -->
           <text x="28" y="10" font-size="9" font-weight="bold" fill="#0f172a" text-anchor="middle">${comp.id}</text>
 
-          <!-- Delete Button -->
           <g class="comp-del-btn" data-id="${comp.id}" transform="translate(44, 4)">
             <circle cx="6" cy="6" r="6" fill="#ef4444" />
             <text x="6" y="9" font-size="9" fill="white" font-weight="bold" text-anchor="middle">×</text>
@@ -171,11 +204,9 @@ const COMPONENT_DEFS = {
         <g class="placed-comp" id="comp-${comp.id}" data-id="${comp.id}" transform="translate(${comp.x}, ${comp.y})">
           <rect x="0" y="0" width="84" height="36" rx="6" fill="rgba(217, 119, 6, 0.05)" stroke="rgba(217, 119, 6, 0.2)" stroke-dasharray="3 2" />
           
-          <!-- Metal Leads -->
           <line x1="6" y1="18" x2="24" y2="18" stroke="#94a3b8" stroke-width="2.5" />
           <line x1="60" y1="18" x2="78" y2="18" stroke="#94a3b8" stroke-width="2.5" />
 
-          <!-- Resistor Body -->
           <rect x="24" y="9" width="36" height="18" rx="4" fill="#fde68a" stroke="#d97706" stroke-width="1.5" />
           
           <!-- Color Bands: 220Ω (Red, Red, Brown, Gold) -->
@@ -184,14 +215,11 @@ const COMPONENT_DEFS = {
           <rect x="45" y="9" width="3.5" height="18" fill="#78350f" />
           <rect x="52" y="9" width="2.5" height="18" fill="#eab308" />
 
-          <!-- Terminal Pins -->
           <circle cx="6" cy="18" r="5" fill="#facc15" stroke="#ca8a04" stroke-width="1.5" class="pin-terminal comp-pin" data-pin-id="${comp.id}.pin1" data-pin-name="${comp.id} Pin 1" />
           <circle cx="78" cy="18" r="5" fill="#facc15" stroke="#ca8a04" stroke-width="1.5" class="pin-terminal comp-pin" data-pin-id="${comp.id}.pin2" data-pin-name="${comp.id} Pin 2" />
 
-          <!-- Label -->
           <text x="42" y="32" font-size="7.5" font-weight="bold" fill="#475569" text-anchor="middle">220Ω (${comp.id})</text>
 
-          <!-- Delete Button -->
           <g class="comp-del-btn" data-id="${comp.id}" transform="translate(72, 2)">
             <circle cx="6" cy="6" r="6" fill="#ef4444" />
             <text x="6" y="9" font-size="9" fill="white" font-weight="bold" text-anchor="middle">×</text>
@@ -218,22 +246,19 @@ const COMPONENT_DEFS = {
           
           <!-- Button Body -->
           <rect x="14" y="8" width="36" height="36" rx="4" fill="#1e293b" stroke="#0f172a" stroke-width="1.5" />
-          <!-- Tactile Plunger -->
-          <circle cx="32" cy="26" r="11" fill="#ef4444" stroke="#b91c1c" stroke-width="2" />
-          <circle cx="30" cy="24" r="3" fill="#fca5a5" opacity="0.6" />
+          
+          <!-- Interactive Tactile Plunger -->
+          <circle id="btn-plunger-${comp.id}" cx="32" cy="26" r="11" fill="#ef4444" stroke="#b91c1c" stroke-width="2" class="interactive-btn-plunger" style="cursor: pointer; transition: transform 0.08s, fill 0.08s;" />
+          <circle cx="30" cy="24" r="3" fill="#fca5a5" opacity="0.6" pointer-events="none" />
 
-          <!-- Side Leads -->
           <line x1="6" y1="26" x2="14" y2="26" stroke="#94a3b8" stroke-width="2.5" />
           <line x1="50" y1="26" x2="58" y2="26" stroke="#94a3b8" stroke-width="2.5" />
 
-          <!-- Terminal Pins -->
           <circle cx="6" cy="26" r="5" fill="#facc15" stroke="#ca8a04" stroke-width="1.5" class="pin-terminal comp-pin" data-pin-id="${comp.id}.pin1" data-pin-name="${comp.id} Pin 1" />
           <circle cx="58" cy="26" r="5" fill="#facc15" stroke="#ca8a04" stroke-width="1.5" class="pin-terminal comp-pin" data-pin-id="${comp.id}.pin2" data-pin-name="${comp.id} Pin 2" />
 
-          <!-- Label -->
           <text x="32" y="49" font-size="7.5" font-weight="bold" fill="#64748b" text-anchor="middle">${comp.id}</text>
 
-          <!-- Delete Button -->
           <g class="comp-del-btn" data-id="${comp.id}" transform="translate(52, 2)">
             <circle cx="6" cy="6" r="6" fill="#ef4444" />
             <text x="6" y="9" font-size="9" fill="white" font-weight="bold" text-anchor="middle">×</text>
@@ -258,24 +283,26 @@ const COMPONENT_DEFS = {
         <g class="placed-comp" id="comp-${comp.id}" data-id="${comp.id}" transform="translate(${comp.x}, ${comp.y})">
           <rect x="0" y="0" width="64" height="68" rx="8" fill="rgba(15, 23, 42, 0.05)" stroke="rgba(15, 23, 42, 0.2)" stroke-dasharray="3 2" />
           
+          <!-- Sound Wave Ripples (Visible during tone) -->
+          <g id="buzzer-waves-${comp.id}" style="display: none;">
+            <path d="M 6 22 A 18 18 0 0 0 6 38" stroke="#38bdf8" stroke-width="2" fill="none" class="buzzer-sound-wave" />
+            <path d="M 58 22 A 18 18 0 0 1 58 38" stroke="#38bdf8" stroke-width="2" fill="none" class="buzzer-sound-wave" />
+          </g>
+
           <!-- Piezo Body -->
-          <circle cx="32" cy="30" r="22" fill="#0f172a" stroke="#334155" stroke-width="2" />
+          <circle id="buzzer-body-${comp.id}" cx="32" cy="30" r="22" fill="#0f172a" stroke="#334155" stroke-width="2" style="transition: stroke 0.15s;" />
           <circle cx="32" cy="30" r="13" fill="#1e293b" />
           <circle cx="32" cy="30" r="4" fill="#020617" />
           <text x="21" y="24" fill="#ef4444" font-size="11" font-weight="bold">+</text>
 
-          <!-- Leads -->
           <line x1="18" y1="50" x2="18" y2="62" stroke="#94a3b8" stroke-width="2.5" />
           <line x1="46" y1="50" x2="46" y2="62" stroke="#94a3b8" stroke-width="2.5" />
 
-          <!-- Terminal Pins -->
           <circle cx="18" cy="62" r="5" fill="#facc15" stroke="#ca8a04" stroke-width="1.5" class="pin-terminal comp-pin" data-pin-id="${comp.id}.positive" data-pin-name="${comp.id} Positive (+)" />
           <circle cx="46" cy="62" r="5" fill="#facc15" stroke="#ca8a04" stroke-width="1.5" class="pin-terminal comp-pin" data-pin-id="${comp.id}.negative" data-pin-name="${comp.id} Negative (-)" />
 
-          <!-- Label -->
           <text x="32" y="10" font-size="8" font-weight="bold" fill="#0f172a" text-anchor="middle">${comp.id}</text>
 
-          <!-- Delete Button -->
           <g class="comp-del-btn" data-id="${comp.id}" transform="translate(50, 2)">
             <circle cx="6" cy="6" r="6" fill="#ef4444" />
             <text x="6" y="9" font-size="9" fill="white" font-weight="bold" text-anchor="middle">×</text>
@@ -302,27 +329,22 @@ const COMPONENT_DEFS = {
         <g class="placed-comp" id="comp-${comp.id}" data-id="${comp.id}" transform="translate(${comp.x}, ${comp.y})">
           <rect x="0" y="0" width="96" height="72" rx="6" fill="rgba(2, 132, 199, 0.05)" stroke="rgba(2, 132, 199, 0.2)" stroke-dasharray="3 2" />
           
-          <!-- Blue PCB -->
           <rect x="8" y="8" width="80" height="42" rx="4" fill="#0284c7" stroke="#0369a1" stroke-width="1.5" />
           <rect x="43" y="16" width="10" height="18" rx="2" fill="#cbd5e1" stroke="#94a3b8" />
           
-          <!-- Transducer T -->
           <circle cx="26" cy="28" r="13" fill="#cbd5e1" stroke="#475569" stroke-width="1.5" />
           <circle cx="26" cy="28" r="7" fill="#64748b" />
           <text x="26" y="24" font-size="7" font-weight="bold" fill="#0f172a" text-anchor="middle">T</text>
           
-          <!-- Transducer R -->
           <circle cx="70" cy="28" r="13" fill="#cbd5e1" stroke="#475569" stroke-width="1.5" />
           <circle cx="70" cy="28" r="7" fill="#64748b" />
           <text x="70" y="24" font-size="7" font-weight="bold" fill="#0f172a" text-anchor="middle">R</text>
 
-          <!-- Pin Headers & Lines -->
           <line x1="20" y1="50" x2="20" y2="64" stroke="#94a3b8" stroke-width="2" />
           <line x1="38" y1="50" x2="38" y2="64" stroke="#94a3b8" stroke-width="2" />
           <line x1="57" y1="50" x2="57" y2="64" stroke="#94a3b8" stroke-width="2" />
           <line x1="76" y1="50" x2="76" y2="64" stroke="#94a3b8" stroke-width="2" />
 
-          <!-- Terminal Pins -->
           <circle cx="20" cy="64" r="5" fill="#38bdf8" stroke="#0284c7" stroke-width="1.5" class="pin-terminal comp-pin" data-pin-id="${comp.id}.VCC" data-pin-name="${comp.id} VCC" />
           <text x="20" y="47" font-size="6" fill="#f8fafc" text-anchor="middle">VCC</text>
 
@@ -335,10 +357,8 @@ const COMPONENT_DEFS = {
           <circle cx="76" cy="64" r="5" fill="#facc15" stroke="#ca8a04" stroke-width="1.5" class="pin-terminal comp-pin" data-pin-id="${comp.id}.GND" data-pin-name="${comp.id} GND" />
           <text x="76" y="47" font-size="6" fill="#f8fafc" text-anchor="middle">GND</text>
 
-          <!-- Label -->
           <text x="48" y="8" font-size="8" font-weight="bold" fill="#0f172a" text-anchor="middle">${comp.id}</text>
 
-          <!-- Delete Button -->
           <g class="comp-del-btn" data-id="${comp.id}" transform="translate(82, 2)">
             <circle cx="6" cy="6" r="6" fill="#ef4444" />
             <text x="6" y="9" font-size="9" fill="white" font-weight="bold" text-anchor="middle">×</text>
@@ -422,7 +442,6 @@ function removeComponent(compId) {
   updateComponentCount();
   updateCircuitDebugView();
 
-  // If simulator is running, re-check circuit
   if (arduinoSim && arduinoSim.running) {
     arduinoSim.updateVisuals();
   }
@@ -472,6 +491,19 @@ function setLEDGlow(compId, isGlowing) {
   if (shineEl) {
     shineEl.setAttribute("opacity", isGlowing ? "0.9" : "0.4");
   }
+}
+
+// Buzzer Sound Ripples Handler
+function setBuzzerBeeping(isBeeping) {
+  const buzzers = circuitState.components.filter(c => c.type === "Buzzer");
+  buzzers.forEach(b => {
+    const waveEl = document.getElementById(`buzzer-waves-${b.id}`);
+    const bodyEl = document.getElementById(`buzzer-body-${b.id}`);
+    if (waveEl) waveEl.style.display = isBeeping ? "block" : "none";
+    if (bodyEl) {
+      bodyEl.setAttribute("stroke", isBeeping ? "#38bdf8" : "#334155");
+    }
+  });
 }
 
 // ============================================================================
@@ -637,7 +669,6 @@ function handlePinClick(pinId, evt) {
   renderWires();
   updateCircuitDebugView();
 
-  // If simulator is running, re-check circuit
   if (arduinoSim && arduinoSim.running) {
     arduinoSim.updateVisuals();
   }
@@ -734,7 +765,6 @@ function deleteWireByIndex(idx) {
   renderWires();
   updateCircuitDebugView();
 
-  // If simulator is running, immediately update visuals
   if (arduinoSim && arduinoSim.running) {
     arduinoSim.updateVisuals();
   }
@@ -923,10 +953,26 @@ function bindComponentDOMEvents() {
     });
   });
 
+  // Placed Push Button Plungers
+  const plungers = placedCompsLayer.querySelectorAll(".interactive-btn-plunger");
+  plungers.forEach(plunger => {
+    plunger.addEventListener("mousedown", (e) => {
+      e.stopPropagation();
+      setButtonPressState(true);
+    });
+    plunger.addEventListener("mouseup", (e) => {
+      e.stopPropagation();
+      setButtonPressState(false);
+    });
+    plunger.addEventListener("mouseleave", () => {
+      setButtonPressState(false);
+    });
+  });
+
   const placedComps = placedCompsLayer.querySelectorAll(".placed-comp");
   placedComps.forEach(compEl => {
     compEl.addEventListener("mousedown", (e) => {
-      if (e.target.classList.contains("pin-terminal") || e.target.closest(".comp-del-btn")) {
+      if (e.target.classList.contains("pin-terminal") || e.target.classList.contains("interactive-btn-plunger") || e.target.closest(".comp-del-btn")) {
         return;
       }
       e.stopPropagation();
@@ -991,7 +1037,163 @@ function setupAppEvents() {
 }
 
 // ============================================================================
-// 10. CIRCUIT GRAPH ANALYSIS & CONNECTIVITY ENGINE
+// 10. HARDWARE CONTROLS (BUTTON & DISTANCE SENSOR)
+// ============================================================================
+function setupHardwareControls() {
+  // Push Button Controls (Exp 2)
+  if (btnPressVirtual) {
+    btnPressVirtual.addEventListener("mousedown", () => setButtonPressState(true));
+    btnPressVirtual.addEventListener("mouseup", () => setButtonPressState(false));
+    btnPressVirtual.addEventListener("mouseleave", () => setButtonPressState(false));
+
+    // Touch support for mobile / tablet
+    btnPressVirtual.addEventListener("touchstart", (e) => { e.preventDefault(); setButtonPressState(true); });
+    btnPressVirtual.addEventListener("touchend", (e) => { e.preventDefault(); setButtonPressState(false); });
+  }
+
+  // Distance Sensor Slider (Exp 3)
+  if (distanceSlider) {
+    distanceSlider.addEventListener("input", (e) => {
+      setSensorDistance(parseInt(e.target.value, 10));
+    });
+  }
+
+  // Presets buttons for Distance Sensor
+  const presetBtns = document.querySelectorAll(".preset-btn");
+  presetBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const dist = parseInt(btn.dataset.dist, 10);
+      if (!isNaN(dist)) {
+        if (distanceSlider) distanceSlider.value = dist;
+        setSensorDistance(dist);
+      }
+    });
+  });
+}
+
+function setButtonPressState(isPressed) {
+  hardwareState.isButtonPressed = isPressed;
+
+  if (buttonStatePill) {
+    if (isPressed) {
+      buttonStatePill.textContent = "Status: Pressed (LOW)";
+      buttonStatePill.className = "status-pill alert";
+    } else {
+      buttonStatePill.textContent = "Status: Released (HIGH)";
+      buttonStatePill.className = "status-pill safe";
+    }
+  }
+
+  if (btnPressVirtual) {
+    if (isPressed) btnPressVirtual.classList.add("pressed");
+    else btnPressVirtual.classList.remove("pressed");
+  }
+
+  // Animate SVG button plungers
+  const buttons = circuitState.components.filter(c => c.type === "Button");
+  buttons.forEach(b => {
+    const plunger = document.getElementById(`btn-plunger-${b.id}`);
+    if (plunger) {
+      if (isPressed) {
+        plunger.setAttribute("fill", "#dc2626");
+        plunger.setAttribute("transform", "scale(0.88)");
+        plunger.setAttribute("transform-origin", "32 26");
+      } else {
+        plunger.setAttribute("fill", "#ef4444");
+        plunger.removeAttribute("transform");
+      }
+    }
+  });
+
+  // If simulator is running, trigger immediate step check
+  if (arduinoSim && arduinoSim.running) {
+    arduinoSim.updateVisuals();
+  }
+}
+
+function setSensorDistance(distCm) {
+  hardwareState.sensorDistance = distCm;
+
+  if (distanceValDisplay) {
+    distanceValDisplay.textContent = `${distCm} cm`;
+  }
+
+  if (distanceStatusPill) {
+    if (distCm < 20) {
+      distanceStatusPill.textContent = `⚠️ Alarm Zone (${distCm} cm < 20 cm)`;
+      distanceStatusPill.className = "status-pill alert";
+    } else {
+      distanceStatusPill.textContent = `✅ Safe Zone (${distCm} cm ≥ 20 cm)`;
+      distanceStatusPill.className = "status-pill safe";
+    }
+  }
+
+  if (arduinoSim && arduinoSim.running) {
+    arduinoSim.updateVisuals();
+  }
+}
+
+// ============================================================================
+// 11. WEB AUDIO API SYNTHESIZER FOR BUZZER (tone / noTone)
+// ============================================================================
+function getAudioContext() {
+  if (!audioCtx) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      audioCtx = new AudioContextClass();
+    }
+  }
+  if (audioCtx && audioCtx.state === "suspended") {
+    audioCtx.resume();
+  }
+  return audioCtx;
+}
+
+function playBuzzerTone(freq = 1000) {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    if (!activeOscillator) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "square";
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+
+      activeOscillator = osc;
+      activeGainNode = gain;
+    } else {
+      activeOscillator.frequency.setValueAtTime(freq, ctx.currentTime);
+    }
+
+    setBuzzerBeeping(true);
+  } catch (err) {
+    console.warn("Web Audio tone play error:", err);
+  }
+}
+
+function stopBuzzerTone() {
+  try {
+    if (activeOscillator) {
+      activeOscillator.stop();
+      activeOscillator.disconnect();
+      activeOscillator = null;
+      activeGainNode = null;
+    }
+    setBuzzerBeeping(false);
+  } catch (err) {
+    console.warn("Web Audio tone stop error:", err);
+  }
+}
+
+// ============================================================================
+// 12. CIRCUIT GRAPH ANALYSIS & CONNECTIVITY ENGINE
 // ============================================================================
 function analyzeCircuit() {
   const adj = {};
@@ -1002,12 +1204,10 @@ function analyzeCircuit() {
     adj[v].add(u);
   }
 
-  // Populate graph from wires
   circuitState.wires.forEach(w => {
     addEdge(w.from, w.to);
   });
 
-  // Check direct wire connectivity (breadth-first search)
   function areWired(startNode, targetNode) {
     if (!startNode || !targetNode) return false;
     if (startNode === targetNode) return true;
@@ -1034,6 +1234,11 @@ function analyzeCircuit() {
     return gndTargets.some(g => areWired(node, g));
   }
 
+  function isConnectedTo5V(node) {
+    const pwrTargets = ["5V", "RAIL_5V_TOP"];
+    return pwrTargets.some(p => areWired(node, p));
+  }
+
   function getConnectedPin(node) {
     const pins = ["D13", "D10", "D9", "D8", "D2", "5V"];
     for (const p of pins) {
@@ -1042,6 +1247,7 @@ function analyzeCircuit() {
     return null;
   }
 
+  // 1. Analyze LEDs
   const leds = circuitState.components.filter(c => c.type === "LED");
   const resistors = circuitState.components.filter(c => c.type === "Resistor");
   const ledResults = {};
@@ -1061,7 +1267,6 @@ function analyzeCircuit() {
       message: ""
     };
 
-    // Trace Pin -> Anode -> Cathode -> Resistor -> GND
     const pinAnode = getConnectedPin(anode);
     if (pinAnode) {
       res.connectedPin = pinAnode;
@@ -1084,16 +1289,14 @@ function analyzeCircuit() {
         }
       }
 
-      // Check if cathode wired directly to GND without resistor
       if (!res.isValid && isConnectedToGND(cathode)) {
         res.hasGround = true;
         res.hasResistor = false;
         res.errorType = "missing_resistor";
-        res.message = `⚠️ Missing resistor! LED ${led.id} is connected directly between ${pinAnode} and GND.`;
+        res.message = `Missing resistor: LED ${led.id} is connected directly between ${pinAnode} and GND.`;
       }
     }
 
-    // Trace Pin -> Resistor -> Anode -> Cathode -> GND
     if (!res.isValid) {
       for (const r of resistors) {
         const r1 = `${r.id}.pin1`;
@@ -1120,33 +1323,82 @@ function analyzeCircuit() {
       }
     }
 
-    // Check Reversed Polarity (Cathode connected to Pin, Anode towards Ground)
     if (!res.isValid) {
       const pinCathode = getConnectedPin(cathode);
       if (pinCathode) {
         res.connectedPin = pinCathode;
         res.isReversePolarity = true;
         res.errorType = "reversed_polarity";
-        res.message = `⚠️ Reversed polarity: LED cathode (-) is connected to ${pinCathode}! Anode (+) must connect to the pin.`;
+        res.message = `Reversed polarity: LED cathode (-) is connected to ${pinCathode}! Anode (+) must connect to the pin.`;
       }
     }
 
-    // Check Missing Ground
     if (!res.isValid && !res.hasGround) {
       if (res.connectedPin && !isConnectedToGND(cathode) && !isConnectedToGND(anode)) {
         res.errorType = "missing_ground";
-        res.message = `⚠️ Missing ground: circuit is not connected to GND.`;
+        res.message = `Missing ground: LED circuit is not connected to GND.`;
       }
     }
 
     ledResults[led.id] = res;
   });
 
-  return { ledResults };
+  // 2. Analyze Buzzer
+  const buzzers = circuitState.components.filter(c => c.type === "Buzzer");
+  const buzzerResults = {};
+  buzzers.forEach(b => {
+    const pos = `${b.id}.positive`;
+    const neg = `${b.id}.negative`;
+    const pin = getConnectedPin(pos);
+    const hasGnd = isConnectedToGND(neg);
+    buzzerResults[b.id] = {
+      buzzerId: b.id,
+      isValid: Boolean(pin && hasGnd),
+      connectedPin: pin,
+      hasGround: hasGnd,
+      message: pin && hasGnd ? `Verified: ${pin} → ${b.id} → GND` : `Buzzer wiring incomplete (Pin: ${pin || 'none'}, GND: ${hasGnd})`,
+    };
+  });
+
+  // 3. Analyze Push Button
+  const buttons = circuitState.components.filter(c => c.type === "Button");
+  const buttonResults = {};
+  buttons.forEach(btn => {
+    const p1 = `${btn.id}.pin1`;
+    const p2 = `${btn.id}.pin2`;
+    const pin = getConnectedPin(p1) || getConnectedPin(p2);
+    const hasGnd = isConnectedToGND(p1) || isConnectedToGND(p2);
+    buttonResults[btn.id] = {
+      buttonId: btn.id,
+      isValid: Boolean(pin && hasGnd),
+      connectedPin: pin,
+      hasGround: hasGnd,
+    };
+  });
+
+  // 4. Analyze HC-SR04 Sensor
+  const sensors = circuitState.components.filter(c => c.type === "HCSR04");
+  const sensorResults = {};
+  sensors.forEach(s => {
+    const has5V = isConnectedTo5V(`${s.id}.VCC`);
+    const hasGnd = isConnectedToGND(`${s.id}.GND`);
+    const trigPin = getConnectedPin(`${s.id}.TRIG`);
+    const echoPin = getConnectedPin(`${s.id}.ECHO`);
+    sensorResults[s.id] = {
+      sensorId: s.id,
+      isValid: Boolean(has5V && hasGnd && trigPin && echoPin),
+      has5V,
+      hasGnd,
+      trigPin,
+      echoPin,
+    };
+  });
+
+  return { ledResults, buzzerResults, buttonResults, sensorResults };
 }
 
 // ============================================================================
-// 11. ARDUINO SUBSET JAVASCRIPT SIMULATOR
+// 13. ARDUINO SUBSET JAVASCRIPT SIMULATOR
 // ============================================================================
 class ArduinoSimulator {
   constructor() {
@@ -1155,6 +1407,7 @@ class ArduinoSimulator {
     this.modes = {};
     this.abortController = null;
     this.stepCount = 0;
+    this.ledHasLightedUp = false;
   }
 
   stop() {
@@ -1163,6 +1416,7 @@ class ArduinoSimulator {
       this.abortController.abort();
       this.abortController = null;
     }
+    stopBuzzerTone();
     this.resetHardwareVisuals();
     updateRunButtonState(false);
   }
@@ -1177,23 +1431,20 @@ class ArduinoSimulator {
       setLEDGlow(led.id, false);
       led._isGlowing = false;
     });
+    setBuzzerBeeping(false);
   }
 
   transpile(code) {
     let js = code;
 
-    // Remove block comments and line comments
     js = js.replace(/\/\*[\s\S]*?\*\//g, "");
     js = js.replace(/\/\/.*$/gm, "");
 
-    // C++ types to let
     js = js.replace(/\b(int|long|float|double|char|bool|unsigned int|unsigned long|const int|const long)\s+([a-zA-Z_][a-zA-Z0-9_]*)/g, "let $2");
 
-    // Replace delay(ms) with await delay(ms)
     js = js.replace(/\bawait\s+delay\s*\(/g, "delay(");
     js = js.replace(/\bdelay\s*\(/g, "await delay(");
 
-    // Transform setup() and loop() to async functions
     js = js.replace(/\bvoid\s+setup\s*\(\s*\)/g, "async function __setup()");
     js = js.replace(/\bvoid\s+loop\s*\(\s*\)/g, "async function __loop()");
 
@@ -1203,6 +1454,7 @@ class ArduinoSimulator {
   async run(rawCode) {
     this.stop();
     this.running = true;
+    this.ledHasLightedUp = false;
     this.abortController = new AbortController();
     const signal = this.abortController.signal;
     this.stepCount = 0;
@@ -1245,10 +1497,21 @@ class ArduinoSimulator {
 
     const digitalRead = (pin) => {
       const pinStr = String(pin).replace(/^D/i, "");
-      if (sim.modes[pinStr] === "INPUT_PULLUP") {
-        return sim.pins[pinStr] !== undefined ? sim.pins[pinStr] : 1;
+
+      // For Experiment 2: Check if button is pressed on D2
+      if (pinStr === "2") {
+        const { buttonResults } = analyzeCircuit();
+        const hasValidButton = Object.values(buttonResults).some(b => b.isValid);
+        if (hasValidButton && hardwareState.isButtonPressed) {
+          return LOW; // Tactile button active LOW to GND
+        }
+        return HIGH; // Pulled HIGH
       }
-      return sim.pins[pinStr] || 0;
+
+      if (sim.modes[pinStr] === "INPUT_PULLUP") {
+        return sim.pins[pinStr] !== undefined ? sim.pins[pinStr] : HIGH;
+      }
+      return sim.pins[pinStr] || LOW;
     };
 
     const delay = (ms) => {
@@ -1265,15 +1528,32 @@ class ArduinoSimulator {
       });
     };
 
-    const tone = (pin, freq) => {
-      logConsole(`🔊 Tone on pin ${pin}: ${freq}Hz`);
+    const tone = (pin, freq = 1000) => {
+      const pinStr = String(pin).replace(/^D/i, "");
+      const { buzzerResults } = analyzeCircuit();
+      const validBuzzer = Object.values(buzzerResults).find(b => b.isValid && (b.connectedPin === pinStr || b.connectedPin === `D${pinStr}`));
+
+      if (validBuzzer) {
+        playBuzzerTone(freq);
+      } else {
+        stopBuzzerTone();
+      }
     };
 
     const noTone = (pin) => {
-      logConsole(`🔇 noTone on pin ${pin}`);
+      stopBuzzerTone();
     };
 
-    const readDistance = () => 15;
+    const readDistance = () => {
+      // Experiment 3 Ultrasonic Distance
+      const { sensorResults } = analyzeCircuit();
+      const validSensor = Object.values(sensorResults).find(s => s.isValid);
+
+      if (validSensor) {
+        return hardwareState.sensorDistance;
+      }
+      return 999; // Sensor not wired
+    };
 
     try {
       const fn = new Function(
@@ -1348,6 +1628,10 @@ class ArduinoSimulator {
       const shouldGlow = Boolean(check.isValid && isPinHigh);
       setLEDGlow(led.id, shouldGlow);
 
+      if (shouldGlow) {
+        this.ledHasLightedUp = true;
+      }
+
       if (shouldGlow !== led._isGlowing) {
         led._isGlowing = shouldGlow;
         if (shouldGlow) {
@@ -1360,7 +1644,6 @@ class ArduinoSimulator {
   }
 }
 
-// Global Simulator Instance
 const arduinoSim = new ArduinoSimulator();
 
 function updateRunButtonState(isRunning) {
@@ -1377,7 +1660,121 @@ function updateRunButtonState(isRunning) {
 }
 
 // ============================================================================
-// 12. EXPERIMENTS LOADER & STARTER CIRCUITS
+// 14. AI LAB PARTNER CHAT BUBBLE & TUTORING SYSTEM
+// ============================================================================
+function showAILabPartnerBubble(praise, hint, fix = null, title = "LED Blink") {
+  if (!aiLabPartnerBubble) return;
+
+  if (partnerExpTitle) partnerExpTitle.textContent = title;
+  if (partnerPraiseText) partnerPraiseText.textContent = praise || "Good attempt at setting up the circuit!";
+  if (partnerHintText) partnerHintText.textContent = hint || "Can you check that your components are connected to GND?";
+
+  if (partnerFix && partnerFixText) {
+    if (fix && fix.trim()) {
+      partnerFixText.textContent = fix;
+      partnerFix.style.display = "block";
+    } else {
+      partnerFix.style.display = "none";
+    }
+  }
+
+  aiLabPartnerBubble.style.display = "block";
+  logConsole(`🤖 AI Lab Partner: "${hint}"`, "normal");
+}
+
+function hideAILabPartnerBubble() {
+  if (aiLabPartnerBubble) {
+    aiLabPartnerBubble.style.display = "none";
+  }
+}
+
+function setupPartnerBubbleEvents() {
+  if (btnClosePartnerBubble) {
+    btnClosePartnerBubble.addEventListener("click", hideAILabPartnerBubble);
+  }
+  if (btnGotIt) {
+    btnGotIt.addEventListener("click", hideAILabPartnerBubble);
+  }
+
+  // Ask for Direct Fix button (Rule 4: give direct fix when student asks again)
+  if (btnAskDirectFix) {
+    btnAskDirectFix.addEventListener("click", () => {
+      logConsole("🙋 Student requested direct fix from AI Lab Partner...");
+      triggerAILabPartnerCheck(true);
+    });
+  }
+}
+
+async function triggerAILabPartnerCheck(askAgain = false) {
+  const circuitJson = getCircuitJSON();
+  const code = codeEditor ? codeEditor.value : "";
+  const expTitle = currentExperiment ? currentExperiment.title : "LED Blink";
+
+  try {
+    const payload = {
+      experiment_id: currentExperimentId,
+      student_id: 1,
+      circuit: circuitJson,
+      code: code,
+      ask_again: askAgain,
+    };
+
+    const res = await fetch("/api/lab/check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      const feedback = await res.json();
+      showAILabPartnerBubble(
+        feedback.praise,
+        feedback.hint,
+        feedback.fix,
+        expTitle
+      );
+      return;
+    }
+  } catch (err) {
+    // Local fallback heuristic if network / API unavailable
+    const { ledResults, buzzerResults, sensorResults } = analyzeCircuit();
+    let praise = "You placed the components and wrote Arduino code nicely!";
+    let hint = "Which pin did you connect the component to? Check that it connects to GND.";
+    let fix = "Connect Pin D13 to LED Anode (+), LED Cathode (-) to Resistor, and the other Resistor leg to GND.";
+
+    if (currentExperimentId === 1) {
+      const ledCheck = ledResults["LED1"];
+      if (ledCheck) {
+        if (ledCheck.isReversePolarity) {
+          praise = "You have the LED wired to the circuit!";
+          hint = "Which leg of the LED did you connect to Pin 13? Did you know current only flows from Anode (+) to Cathode (-)?";
+          fix = "Swap the LED wires: connect the Anode (+) to Pin 13 and Cathode (-) to the resistor.";
+        } else if (!ledCheck.hasResistor) {
+          praise = "You wired the LED to Pin 13!";
+          hint = "Robots need resistors to protect LEDs from burning out. Can you add the 220Ω resistor between the LED and GND?";
+          fix = "Place the 220Ω resistor on the breadboard. Connect LED cathode to pin1, and pin2 to GND.";
+        } else if (!ledCheck.hasGround) {
+          praise = "The LED and resistor are on the board!";
+          hint = "Every circuit needs a complete loop. Which pin on the Arduino Uno gives zero volts ground?";
+          fix = "Draw a wire from the resistor's second leg to the Arduino GND pin.";
+        }
+      }
+    } else if (currentExperimentId === 2) {
+      praise = "You set up the buzzer experiment components!";
+      hint = "Is your buzzer's positive pin connected to D8, and the button to D2 and GND?";
+      fix = "Wire Button between D2 and GND. Wire Buzzer positive to D8 and negative to GND.";
+    } else if (currentExperimentId === 3) {
+      praise = "You added the HC-SR04 sensor!";
+      hint = "The ultrasonic sensor needs 4 wires: VCC, GND, TRIG, and ECHO. Are all 4 connected?";
+      fix = "Wire VCC to 5V, GND to GND, TRIG to D9, and ECHO to D10. Wire Buzzer to D8 and GND.";
+    }
+
+    showAILabPartnerBubble(praise, hint, askAgain ? fix : null, expTitle);
+  }
+}
+
+// ============================================================================
+// 15. EXPERIMENTS LOADER & STARTER CIRCUITS
 // ============================================================================
 async function loadExperiments() {
   try {
@@ -1408,6 +1805,8 @@ async function loadExperiments() {
 
 async function selectExperiment(expId) {
   currentExperimentId = parseInt(expId, 10);
+  hideAILabPartnerBubble();
+
   try {
     const res = await fetch(`/api/experiments/${currentExperimentId}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -1415,19 +1814,37 @@ async function selectExperiment(expId) {
 
     if (expGoalText) expGoalText.textContent = currentExperiment.goal || "Build and run the circuit.";
     if (codeEditor) {
-      // For Exp 1, provide the complete blink sketch with alternating delay
       if (currentExperimentId === 1) {
         codeEditor.value = "void setup(){\n  pinMode(13, OUTPUT);\n}\n\nvoid loop(){\n  digitalWrite(13, HIGH);\n  delay(1000);\n  digitalWrite(13, LOW);\n  delay(1000);\n}";
       } else {
-        codeEditor.value = (currentExperiment.starter_code || "").trim();
+        codeEditor.value = (currentExperiment.starter_code || currentExperiment.solution_code || "").trim();
       }
     }
 
     logConsole(`Loaded Experiment ${currentExperiment.id}: "${currentExperiment.title}"`, "ready");
     loadStarterComponentsForExperiment(currentExperimentId);
+    updateHardwareUIForExperiment(currentExperimentId);
   } catch (err) {
     console.warn(`Error loading experiment ${expId}:`, err);
     loadDefaultExperimentFallback();
+  }
+}
+
+function updateHardwareUIForExperiment(expId) {
+  if (!interactiveHardwareBar) return;
+
+  if (expId === 1) {
+    interactiveHardwareBar.style.display = "none";
+    if (distanceControlGroup) distanceControlGroup.style.display = "none";
+    if (buttonControlGroup) buttonControlGroup.style.display = "none";
+  } else if (expId === 2) {
+    interactiveHardwareBar.style.display = "flex";
+    if (buttonControlGroup) buttonControlGroup.style.display = "flex";
+    if (distanceControlGroup) distanceControlGroup.style.display = "none";
+  } else if (expId === 3) {
+    interactiveHardwareBar.style.display = "flex";
+    if (distanceControlGroup) distanceControlGroup.style.display = "flex";
+    if (buttonControlGroup) buttonControlGroup.style.display = "none";
   }
 }
 
@@ -1442,6 +1859,7 @@ function loadDefaultExperimentFallback() {
   if (expGoalText) expGoalText.textContent = currentExperiment.goal;
   if (codeEditor) codeEditor.value = currentExperiment.starter_code;
   loadStarterComponentsForExperiment(1);
+  updateHardwareUIForExperiment(1);
 }
 
 function loadStarterComponentsForExperiment(expId) {
@@ -1454,11 +1872,10 @@ function loadStarterComponentsForExperiment(expId) {
   circuitState.counters = { LED: 0, Resistor: 0, Button: 0, Buzzer: 0, HCSR04: 0 };
 
   if (expId === 1) {
-    // LED Blink: place LED and 220 ohm Resistor, and pre-connect them cleanly
+    // Exp 1: LED Blink
     addComponent("LED", 230, 270);
     addComponent("220 ohm Resistor", 370, 280);
 
-    // Wire: D13 -> LED1.anode -> LED1.cathode -> R1.pin1 -> R1.pin2 -> GND
     circuitState.wires = [
       { from: "LED1.anode", to: "D13", color: "#2563eb" },
       { from: "LED1.cathode", to: "R1.pin1", color: "#8b5cf6" },
@@ -1466,15 +1883,31 @@ function loadStarterComponentsForExperiment(expId) {
     ];
     logConsole("Placed and wired Experiment 1 starter circuit: D13 → LED1 → 220Ω Resistor → GND.");
   } else if (expId === 2) {
-    // Buzzer + Button
-    addComponent("Push Button", 230, 275);
-    addComponent("Buzzer", 380, 270);
-    logConsole("Placed starter components for Exp 2: Push Button and Buzzer.");
+    // Exp 2: Buzzer + Button
+    addComponent("Push Button", 220, 275);
+    addComponent("Buzzer", 410, 270);
+
+    circuitState.wires = [
+      { from: "Button1.pin1", to: "D2", color: "#f97316" },
+      { from: "Button1.pin2", to: "GND", color: "#1e293b" },
+      { from: "Buzzer1.positive", to: "D8", color: "#eab308" },
+      { from: "Buzzer1.negative", to: "GND", color: "#1e293b" },
+    ];
+    logConsole("Placed and wired Experiment 2 starter circuit: Button on D2/GND, Buzzer on D8/GND.");
   } else if (expId === 3) {
-    // Distance Alarm
-    addComponent("HC-SR04 Ultrasonic Sensor", 240, 270);
-    addComponent("Buzzer", 410, 275);
-    logConsole("Placed starter components for Exp 3: HC-SR04 Sensor and Buzzer.");
+    // Exp 3: Distance Alarm
+    addComponent("HC-SR04 Ultrasonic Sensor", 210, 270);
+    addComponent("Buzzer", 430, 270);
+
+    circuitState.wires = [
+      { from: "HCSR04_1.VCC", to: "5V", color: "#ef4444" },
+      { from: "HCSR04_1.GND", to: "GND", color: "#1e293b" },
+      { from: "HCSR04_1.TRIG", to: "D9", color: "#eab308" },
+      { from: "HCSR04_1.ECHO", to: "D10", color: "#10b981" },
+      { from: "Buzzer1.positive", to: "D8", color: "#eab308" },
+      { from: "Buzzer1.negative", to: "GND", color: "#1e293b" },
+    ];
+    logConsole("Placed and wired Experiment 3 starter circuit: HC-SR04 on 5V/GND/D9/D10, Buzzer on D8/GND.");
   }
 
   renderPlacedComponents();
@@ -1483,10 +1916,9 @@ function loadStarterComponentsForExperiment(expId) {
 }
 
 // ============================================================================
-// 13. RUN CIRCUIT HANDLER
+// 16. RUN CIRCUIT HANDLER & AI LAB PARTNER CHECK
 // ============================================================================
 async function handleRunCircuit() {
-  // If simulation is currently running, Stop it
   if (arduinoSim.running) {
     arduinoSim.stop();
     logConsole("⏹ Simulation stopped by user.");
@@ -1499,62 +1931,52 @@ async function handleRunCircuit() {
     return;
   }
 
-  const circuitJson = getCircuitJSON();
   logConsole("▶ Verifying circuit connections and compiling code...", "ready");
 
-  // 1. Analyze Circuit Graph
-  const { ledResults } = analyzeCircuit();
-  let anyValidCircuit = false;
+  const { ledResults, buzzerResults, buttonResults, sensorResults } = analyzeCircuit();
+  let expectedBehaviorOk = true;
 
-  Object.values(ledResults).forEach(res => {
-    if (res.isValid) {
-      anyValidCircuit = true;
-      logConsole(`✅ Circuit Check: ${res.message}`, "ready");
-    } else if (res.message) {
-      logConsole(res.message, "error");
+  // 1. Goal Check based on active experiment
+  if (currentExperimentId === 1) {
+    const ledCheck = ledResults["LED1"];
+    if (!ledCheck || !ledCheck.isValid) {
+      expectedBehaviorOk = false;
+      logConsole(ledCheck ? ledCheck.message : "⚠️ LED1 is not wired to D13 and GND through a resistor.", "error");
+    } else {
+      logConsole(`✅ Circuit Check: ${ledCheck.message}`, "ready");
     }
-  });
-
-  if (!anyValidCircuit) {
-    logConsole("⚠️ Warning: Circuit is incomplete. Check wires to Arduino pin, resistor, and GND.", "normal");
+  } else if (currentExperimentId === 2) {
+    const btnCheck = buttonResults["Button1"];
+    const buzzCheck = buzzerResults["Buzzer1"];
+    if (!btnCheck || !btnCheck.isValid || !buzzCheck || !buzzCheck.isValid) {
+      expectedBehaviorOk = false;
+      logConsole("⚠️ Buzzer or Push Button wiring is incomplete.", "error");
+    }
+  } else if (currentExperimentId === 3) {
+    const sensCheck = sensorResults["HCSR04_1"];
+    const buzzCheck = buzzerResults["Buzzer1"];
+    if (!sensCheck || !sensCheck.isValid || !buzzCheck || !buzzCheck.isValid) {
+      expectedBehaviorOk = false;
+      logConsole("⚠️ HC-SR04 Sensor or Buzzer wiring is incomplete.", "error");
+    }
   }
 
-  // 2. Call /api/lab/check in the background for AI Lab Partner hints
-  triggerAILabPartnerCheck(circuitJson, code);
-
-  // 3. Run Arduino Simulation Loop
+  // 2. Start Arduino Simulation
   arduinoSim.run(code);
-}
 
-async function triggerAILabPartnerCheck(circuitJson, code) {
-  try {
-    const payload = {
-      experiment_id: currentExperimentId,
-      student_id: 1,
-      circuit: circuitJson,
-      code: code,
-    };
-
-    const res = await fetch("/api/lab/check", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (res.ok) {
-      const feedback = await res.json();
-      if (feedback.praise) {
-        logConsole(`🌟 AI Lab Partner: "${feedback.praise}"`, "ready");
-      }
-      if (feedback.hint) {
-        logConsole(`💡 AI Lab Partner Hint: "${feedback.hint}"`, "normal");
-      }
-      if (feedback.fix) {
-        logConsole(`🔧 AI Lab Partner Direct Fix: "${feedback.fix}"`, "ready");
-      }
+  // 3. If the goal was not met immediately, call AI Lab Partner
+  if (!expectedBehaviorOk) {
+    triggerAILabPartnerCheck(false);
+  } else {
+    // If circuit was ok, verify that LED actually lights up within 2.5 seconds (in case code forgot to digitalWrite HIGH)
+    if (currentExperimentId === 1) {
+      setTimeout(() => {
+        if (arduinoSim.running && !arduinoSim.ledHasLightedUp) {
+          logConsole("⚠️ LED has not lighted up! Calling AI Lab Partner for code guidance...", "normal");
+          triggerAILabPartnerCheck(false);
+        }
+      }, 2500);
     }
-  } catch (err) {
-    // Fail silently in background
   }
 }
 
@@ -1575,6 +1997,11 @@ window.arduinoSim = arduinoSim;
 window.analyzeCircuit = analyzeCircuit;
 window.deleteWireByIndex = deleteWireByIndex;
 window.loadStarterComponentsForExperiment = loadStarterComponentsForExperiment;
+window.hardwareState = hardwareState;
+window.setButtonPressState = setButtonPressState;
+window.setSensorDistance = setSensorDistance;
+window.showAILabPartnerBubble = showAILabPartnerBubble;
+window.triggerAILabPartnerCheck = triggerAILabPartnerCheck;
 
 // Bootstrap on DOM ready
 document.addEventListener("DOMContentLoaded", initVirtualLab);

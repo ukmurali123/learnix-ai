@@ -57,6 +57,36 @@
     </div>
   </section>
 
+  <!-- Interactive Hardware Controls (Distance Slider for Exp 3, Button Trigger for Exp 2) -->
+  <section id="interactive-hardware-bar" class="interactive-hardware-bar" style="display: none;">
+    <!-- Distance Alarm Slider (Exp 3) -->
+    <div id="distance-control-group" class="hardware-control-group" style="display: none;">
+      <span class="sensor-icon">🦇</span>
+      <label for="distance-slider" class="hardware-label">
+        <strong>Obstacle Distance:</strong>
+        <span id="distance-val-display" class="distance-pill">15 cm</span>
+      </label>
+      <input type="range" id="distance-slider" min="2" max="100" value="15" step="1" class="distance-range-slider" />
+      <div class="distance-presets">
+        <button class="preset-btn alert-preset" data-dist="8">🚨 8 cm</button>
+        <button class="preset-btn alert-preset" data-dist="15">🚨 15 cm</button>
+        <button class="preset-btn safe-preset" data-dist="35">✅ 35 cm</button>
+        <button class="preset-btn safe-preset" data-dist="60">✅ 60 cm</button>
+      </div>
+      <span id="distance-status-pill" class="status-pill alert">⚠️ Alarm Zone (&lt; 20 cm)</span>
+    </div>
+
+    <!-- Push Button Trigger (Exp 2) -->
+    <div id="button-control-group" class="hardware-control-group" style="display: none;">
+      <span class="sensor-icon">🔘</span>
+      <span class="control-label"><strong>Push Button (D2):</strong></span>
+      <button id="btn-press-virtual" class="btn-tactile-press" title="Click or hold to press button">
+        👇 Press Button (Hold to sound Buzzer)
+      </button>
+      <span id="button-state-pill" class="status-pill safe">Status: Released (HIGH)</span>
+    </div>
+  </section>
+
   <!-- Main 3-Column Lab Workspace -->
   <main class="lab-workspace">
     <!-- LEFT: Component Tray -->
@@ -349,6 +379,43 @@
               <!-- Pin Indicators / Active Halo Layer -->
               <g id="pin-markers-layer" pointer-events="none"></g>
             </svg>
+          </div>
+        </div>
+
+        <!-- AI Lab Partner Friendly Chat Bubble -->
+        <div id="ai-lab-partner-bubble" class="ai-lab-partner-bubble" style="display: none;">
+          <div class="partner-bubble-header">
+            <div class="partner-avatar-group">
+              <div class="partner-avatar">🤖</div>
+              <div class="partner-info">
+                <div class="partner-name">AI Lab Partner <span class="partner-online-dot"></span></div>
+                <div class="partner-status">Helping with <span id="partner-exp-title">LED Blink</span></div>
+              </div>
+            </div>
+            <button id="btn-close-partner-bubble" class="partner-close-btn" title="Dismiss">×</button>
+          </div>
+          <div class="partner-bubble-body">
+            <!-- Praise (Rule 1: Say one thing right first) -->
+            <div id="partner-praise" class="partner-section praise-box">
+              <div class="section-badge">🌟 Good Work</div>
+              <p id="partner-praise-text">You set up the LED and starter code nicely!</p>
+            </div>
+
+            <!-- Hint as Socratic Question (Rule 4) -->
+            <div id="partner-hint" class="partner-section hint-box">
+              <div class="section-badge">💡 Lab Partner Hint</div>
+              <p id="partner-hint-text">Which pin did you connect the LED's cathode to? Can you trace the wire to GND?</p>
+            </div>
+
+            <!-- Direct Fix (Rule 4: when student asks again) -->
+            <div id="partner-fix" class="partner-section fix-box" style="display: none;">
+              <div class="section-badge">🔧 Direct Solution</div>
+              <p id="partner-fix-text"></p>
+            </div>
+          </div>
+          <div class="partner-bubble-footer">
+            <button id="btn-ask-direct-fix" class="btn-partner-action">🙋 I need a direct fix</button>
+            <button id="btn-got-it" class="btn-partner-action primary">Got it!</button>
           </div>
         </div>
 
