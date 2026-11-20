@@ -36,6 +36,11 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
   http: ^1.6.0
+  google_fonts: ^6.3.0
+  lucide_icons: ^0.257.0
+  flutter_animate: ^4.5.2
+  confetti: ^0.8.0
+  desktop_drop: ^0.7.0
 
 dev_dependencies:
   flutter_test:
