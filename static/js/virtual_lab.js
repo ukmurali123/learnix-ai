@@ -1794,7 +1794,11 @@ async function loadExperiments() {
     }
 
     if (allExperiments.length > 0) {
-      selectExperiment(allExperiments[0].id);
+      const urlParams = new URLSearchParams(window.location.search);
+      const expParam = urlParams.get("exp");
+      const targetExpId = expParam ? parseInt(expParam, 10) : allExperiments[0].id;
+      if (expSelect) expSelect.value = targetExpId;
+      selectExperiment(targetExpId);
     }
   } catch (err) {
     console.warn("Could not fetch /api/experiments from backend:", err);

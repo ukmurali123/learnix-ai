@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Learnix AI — Concept Studio</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body class="concept-studio-page">
+  <!-- Top App Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-name">
+        Learnix AI
+        <span>Concept Studio</span>
+      </div>
+    </div>
+
+    <nav class="top-nav">
+      <a href="/" class="nav-link">Home</a>
+      <a href="/concept_studio.html" class="nav-link active">Concept Studio</a>
+      <a href="/" class="nav-link">Virtual Lab</a>
+      <a href="#" class="nav-link">AI Coach</a>
+      <a href="#" class="nav-link">Reports</a>
+    </nav>
+
+    <div class="user-badge">
+      <div class="avatar">A</div>
+      <span>Aarav (Grade 8)</span>
+    </div>
+  </header>
+
+  <!-- Main Concept Studio Container -->
+  <main class="cs-container">
+    <!-- Hero / Input Section -->
+    <section class="cs-input-card">
+      <div class="cs-input-header">
+        <div class="cs-header-titles">
+          <h1>Visual Learning: Textbook to Visuals</h1>
+          <p>Snap a photo of your science textbook or type any topic. Learn through animated step-by-step diagrams, live interactive simulations, and instant quizzes!</p>
+        </div>
+
+        <!-- Mode Toggle Tabs -->
+        <div class="cs-mode-tabs" role="tablist">
+          <button id="tab-upload" class="cs-mode-tab active" role="tab" aria-selected="true">
+            <span class="tab-icon">📸</span>
+            <span>Upload Textbook Page</span>
+          </button>
+          <button id="tab-topic" class="cs-mode-tab" role="tab" aria-selected="false">
+            <span class="tab-icon">✍️</span>
+            <span>Type a Topic</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Panel 1: Upload Textbook Page -->
+      <div id="panel-upload" class="cs-panel active">
+        <input
+          type="file"
+          id="page-file-input"
+          accept="image/*,application/pdf"
+          capture="environment"
+          style="display: none;"
+        />
+        
+        <div id="dropzone" class="cs-dropzone" tabindex="0" role="button" aria-label="Upload textbook page">
+          <div class="dropzone-icon">📷</div>
+          <div class="dropzone-text">
+            <strong>Take a photo or choose an image / PDF</strong>
+            <span>Tap to open camera or browse files from your device</span>
+          </div>
+          <div class="dropzone-hints">
+            <span class="badge">JPG</span>
+            <span class="badge">PNG</span>
+            <span class="badge">WEBP</span>
+            <span class="badge">PDF</span>
+            <span class="hint-limit">Max 10MB</span>
+          </div>
+        </div>
+
+        <!-- File Preview Card (shows when file is selected) -->
+        <div id="file-preview-card" class="file-preview-card" style="display: none;">
+          <div class="file-preview-thumb">
+            <img id="file-preview-img" src="" alt="Textbook preview" />
+            <div id="file-preview-pdf" class="pdf-icon-badge" style="display: none;">📄 PDF</div>
+          </div>
+          <div class="file-preview-details">
+            <div id="file-preview-name" class="file-name">textbook_page.jpg</div>
+            <div id="file-preview-size" class="file-size">1.4 MB</div>
+          </div>
+          <button id="btn-change-file" class="btn btn-sm btn-outline">Change Photo</button>
+        </div>
+      </div>
+
+      <!-- Panel 2: Type a Topic -->
+      <div id="panel-topic" class="cs-panel" style="display: none;">
+        <div class="topic-input-wrapper">
+          <input
+            type="text"
+            id="topic-text-input"
+            class="topic-input"
+            placeholder="e.g. How does an LED glow in an electric circuit?"
+            autocomplete="off"
+          />
+        </div>
+        <div class="topic-suggestions">
+          <span class="suggestions-label">Try asking:</span>
+          <button class="topic-chip" data-topic="How does an LED glow in an electric circuit?">💡 How an LED glows</button>
+          <button class="topic-chip" data-topic="Why do we need a resistor in an LED circuit?">🛡️ Resistors & Current</button>
+          <button class="topic-chip" data-topic="How does an ultrasonic distance sensor measure distance?">🦇 Ultrasonic Sensor</button>
+          <button class="topic-chip" data-topic="How do buttons and digital inputs work in Arduino?">🔘 Buttons & Inputs</button>
+          <button class="topic-chip" data-topic="What is the difference between series and parallel circuits?">⚡ Series vs Parallel</button>
+        </div>
+      </div>
+
+      <!-- Bottom Controls Bar (Language + Generate Button) -->
+      <div class="cs-controls-bar">
+        <div class="lang-selector-group">
+          <label for="lang-select">🗣️ Learning Language:</label>
+          <select id="lang-select" class="lang-select">
+            <option value="English" selected>English</option>
+            <option value="Tamil">தமிழ் (Tamil)</option>
+            <option value="Hindi">हिन्दी (Hindi)</option>
+            <option value="Marathi">मराठी (Marathi)</option>
+            <option value="Arabic">العربية (Arabic)</option>
+          </select>
+        </div>
+
+        <button id="btn-generate" class="btn btn-generate">
+          <span class="btn-spinner" style="display: none;"></span>
+          <span class="btn-text">✨ Generate Visual Lesson</span>
+        </button>
+      </div>
+
+      <!-- Alert Banner for Blurred Photos / Warnings -->
+      <div id="cs-alert-banner" class="cs-alert-banner" style="display: none;">
+        <span class="alert-icon">⚠️</span>
+        <span id="cs-alert-text" class="alert-text">The photo seems blurred. Please upload a clearer picture of your textbook page.</span>
+        <button id="btn-close-alert" class="btn-close-alert">✕</button>
+      </div>
+    </section>
+
+    <!-- Recent Visual Lessons Bar -->
+    <section id="recent-lessons-section" class="recent-lessons-section" style="display: none;">
+      <div class="recent-header">
+        <span class="recent-title">📚 Recently Saved Lessons:</span>
+        <div id="recent-pills-list" class="recent-pills-list"></div>
+      </div>
+    </section>
+
+    <!-- Loading State Screen -->
+    <section id="cs-loading-state" class="cs-loading-card" style="display: none;">
+      <div class="loading-scanner">
+        <div class="scanner-circle"></div>
+        <div class="scanner-pulse"></div>
+        <div class="scanner-icon">⚡</div>
+      </div>
+      <h3 id="loading-title">Analyzing with Gemini AI...</h3>
+      <p id="loading-subtitle">Extracting concepts, designing animated SVG diagrams, and building interactive simulations...</p>
+      <div class="loading-progress-bar">
+        <div class="loading-bar-fill"></div>
+      </div>
+    </section>
+
+    <!-- Concepts Display Container -->
+    <section id="concepts-container" class="concepts-container">
+      <!-- Empty State Placeholder -->
+      <div id="cs-empty-state" class="cs-empty-state">
+        <div class="empty-icon-art">
+          <div class="art-bubble float-1">💡</div>
+          <div class="art-bubble main">🔬</div>
+          <div class="art-bubble float-2">⚡</div>
+        </div>
+        <h2>Ready to Explore Science Visually!</h2>
+        <p>Snap a picture of any page in your physics or robotics textbook above, or choose a topic to see it come to life with interactive animations, sliders, and quizzes.</p>
+        <div class="feature-pills">
+          <span class="feat-pill">🎬 Animated Step-by-Step</span>
+          <span class="feat-pill">🎛️ Live Sliders Simulation</span>
+          <span class="feat-pill">🏷️ Tap-to-Explain Diagrams</span>
+          <span class="feat-pill">💬 Instant Doubts Solver</span>
+          <span class="feat-pill">🏆 Visual Quizzes</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>Learnix AI Concept Studio &bull; Powered by Gemini Multimodal &amp; Google Cloud AlloyDB</p>
+  </footer>
+
+  <!-- Concept Studio Core JS -->
+  <script src="/js/concept_studio.js"></script>
+</body>
+</html>

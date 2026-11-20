@@ -1,5 +1,10 @@
+import csv
+import io
 import json
 import os
+import pathlib
+import re
+import sqlite3
 import datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
@@ -32,6 +37,175 @@ INSTANCE_RESOURCE = (
 
 _creds = None
 _use_http_api: Optional[bool] = None
+_sqlite_conn: Optional[sqlite3.Connection] = None
+
+
+def _get_sqlite_db() -> sqlite3.Connection:
+    global _sqlite_conn
+    if _sqlite_conn is not None:
+        return _sqlite_conn
+
+    db_path = pathlib.Path(__file__).resolve().parent.parent / "learnix_local.db"
+    conn = sqlite3.connect(str(db_path), check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    _sqlite_conn = conn
+
+    # Initialize schema
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS centres (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            city TEXT,
+            country TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS students (
+            id INTEGER PRIMARY KEY,
+            first_name TEXT,
+            age INTEGER,
+            grade INTEGER,
+            language TEXT,
+            centre_id INTEGER,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS concepts (
+            id INTEGER PRIMARY KEY,
+            title TEXT,
+            level TEXT,
+            category TEXT,
+            summary TEXT,
+            embedding TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS experiments (
+            id INTEGER PRIMARY KEY,
+            title TEXT,
+            concept_id INTEGER,
+            components TEXT,
+            goal TEXT,
+            starter_code TEXT,
+            solution_code TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS quiz_attempts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id INTEGER,
+            concept_id INTEGER,
+            score INTEGER,
+            max_score INTEGER,
+            attempted_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS visual_lessons (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id INTEGER,
+            source_type TEXT,
+            concept_id INTEGER,
+            visual_type TEXT,
+            content_json TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    # Seed data from CSVs if empty
+    data_dir = pathlib.Path(__file__).resolve().parent.parent / "data"
+
+    cur = conn.cursor()
+    cur.execute("SELECT count(*) FROM students")
+    if cur.fetchone()[0] == 0 and (data_dir / "students.csv").exists():
+        with open(data_dir / "centres.csv", encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                conn.execute(
+                    "INSERT OR IGNORE INTO centres (id, name, city, country) VALUES (?, ?, ?, ?)",
+                    (r["id"], r["name"], r["city"], r["country"]),
+                )
+        with open(data_dir / "students.csv", encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                conn.execute(
+                    "INSERT OR IGNORE INTO students (id, first_name, age, grade, language, centre_id) VALUES (?, ?, ?, ?, ?, ?)",
+                    (r["id"], r["first_name"], r["age"], r["grade"], r["language"], r["centre_id"]),
+                )
+        with open(data_dir / "concepts.csv", encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                conn.execute(
+                    "INSERT OR IGNORE INTO concepts (id, title, level, category, summary) VALUES (?, ?, ?, ?, ?)",
+                    (r["id"], r["title"], r["level"], r["category"], r["summary"]),
+                )
+        with open(data_dir / "experiments.csv", encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                conn.execute(
+                    "INSERT OR IGNORE INTO experiments (id, title, concept_id, components, goal, starter_code, solution_code) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (r["id"], r["title"], r["concept_id"], r["components"], r["goal"], r["starter_code"], r["solution_code"]),
+                )
+        conn.commit()
+
+    return conn
+
+
+def _execute_via_sqlite_fallback(
+    sql: str, params: Optional[Sequence[Any]] = None
+) -> List[Dict[str, Any]]:
+    conn = _get_sqlite_db()
+    cur = conn.cursor()
+
+    # Translate Postgres syntax to SQLite
+    s = sql.strip()
+    # Replace RETURNING
+    returning_match = re.search(r"\s+RETURNING\s+([\w\s,]+)$", s, re.IGNORECASE)
+    returning_cols = [c.strip() for c in returning_match.group(1).split(",")] if returning_match else []
+    if returning_match:
+        s = s[: returning_match.start()]
+
+    # Replace %s with ?
+    s = s.replace("%s", "?")
+    # Replace JSONB or other Postgres casts
+    s = re.sub(r"::\w+", "", s)
+    s = re.sub(r"current_database\(\)", "'learnix'", s, flags=re.IGNORECASE)
+    s = re.sub(r"now\(\)", "datetime('now')", s, flags=re.IGNORECASE)
+
+    # Convert complex params (dicts, lists) to JSON strings
+    converted_params = []
+    if params:
+        for p in params:
+            if isinstance(p, (dict, list)):
+                converted_params.append(json.dumps(p, ensure_ascii=False))
+            else:
+                converted_params.append(p)
+
+    cur.execute(s, converted_params)
+
+    if returning_cols:
+        last_id = cur.lastrowid
+        conn.commit()
+        ret_dict: Dict[str, Any] = {}
+        for col in returning_cols:
+            if col == "id":
+                ret_dict["id"] = last_id
+            elif "created_at" in col or "attempted_at" in col:
+                ret_dict[col] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            else:
+                ret_dict[col] = None
+        return [ret_dict]
+
+    if cur.description:
+        cols = [d[0] for d in cur.description]
+        rows = cur.fetchall()
+        result = []
+        for row in rows:
+            d = {}
+            for idx, col in enumerate(cols):
+                val = row[idx]
+                if isinstance(val, str) and (val.startswith("{") or val.startswith("[")):
+                    try:
+                        val = json.loads(val)
+                    except Exception:
+                        pass
+                d[col] = val
+            result.append(d)
+        return result
+
+    conn.commit()
+    return []
 
 
 def get_gcp_token() -> str:
@@ -171,7 +345,11 @@ def _execute_query(
         except Exception:
             _use_http_api = True
 
-    return _execute_via_alloydb_http(sql, params)
+    try:
+        return _execute_via_alloydb_http(sql, params)
+    except Exception as err:
+        # Fall back to local SQLite database if AlloyDB is unreachable or not found
+        return _execute_via_sqlite_fallback(sql, params)
 
 
 def fetch_all(

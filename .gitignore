@@ -25,3 +25,4 @@ Thumbs.db
 # Scratch & local logs
 scratch/
 *.log
+*.db
