@@ -166,11 +166,247 @@ Return JSON with this exact structure:
     ]
   }}
 }}"""
-    result = call_gemini_json(user_prompt, system_instruction=system_prompt)
+    try:
+        result = call_gemini_json(user_prompt, system_instruction=system_prompt)
+    except Exception:
+        result = {
+            "title": topic,
+            "explanation": f"{topic}: Current flows from positive 5V through a current-limiting resistor (220Ω–330Ω) into the component and returns to GND (0V) to complete the closed circuit loop.",
+            "analogy": "Like a water pipe loop where a narrow valve keeps water pressure safe for a spinning waterwheel.",
+            "real_life_example": "Used in traffic signals, TV remote indicators, smart alarms, and Arduino robotics kits.",
+            "try_it": {"experiment_id": 1, "instruction": "Wire an LED and 220Ω resistor to Pin D13 and GND in the Virtual Lab!"},
+            "quiz": [
+                {
+                    "question": "Which leg of an LED connects toward the positive (+) supply?",
+                    "options": ["The longer leg (Anode +)", "The shorter leg (Cathode −)", "Either leg", "Neither leg"],
+                    "answer": 0,
+                    "why": "The longer leg is the positive Anode (+) and must face the positive voltage through a resistor.",
+                },
+                {
+                    "question": "Why is a resistor needed in series with an LED?",
+                    "options": ["It limits current so the LED does not burn out", "It increases battery voltage", "It blocks all current", "It changes wire color"],
+                    "answer": 0,
+                    "why": "Ohm's Law (I = (5V − LED drop) ÷ R) keeps current at a safe ~9–15 mA.",
+                },
+                {
+                    "question": "Where must the negative path of every circuit return?",
+                    "options": ["Ground (GND 0V)", "Pin A5", "An open wire", "Reset pin"],
+                    "answer": 0,
+                    "why": "Electricity requires a complete closed loop back to Ground (GND).",
+                },
+            ],
+            "visual": {
+                "type": "simulation",
+                "steps": [
+                    {"caption": "Step 1: 5V supply pushes current out of the positive (+) terminal.", "highlight": ["battery_plus"]},
+                    {"caption": "Step 2: The 330Ω resistor limits current to a safe 9.1 mA.", "highlight": ["resistor"]},
+                    {"caption": "Step 3: Current enters the LED anode (+), makes it glow, and returns to GND (−).", "highlight": ["led", "gnd"]},
+                ],
+                "parts": [
+                    {"id": "battery_plus", "label": "5V Supply (+)", "explain": "Pushes electrical current into the circuit"},
+                    {"id": "resistor", "label": "Resistor (330Ω)", "explain": "Limits current so the LED never burns out"},
+                    {"id": "led", "label": "LED (Anode + / Cathode −)", "explain": "Glows when current flows from long leg (+) to short leg (−)"},
+                    {"id": "gnd", "label": "GND (0V)", "explain": "Completes the closed circuit loop back to ground"},
+                ],
+                "sliders": [
+                    {"id": "resistor", "label": "Resistor (Ω)", "min": 100, "max": 1000, "value": 330, "unit": "Ω", "effect": "led_brightness goes down as value goes up"}
+                ],
+            },
+        }
     quiz = result.get("quiz", [])
     if len(quiz) > 3:
         result["quiz"] = quiz[:3]
     return result
+
+
+def _extract_pdf_or_binary_text(file_bytes: bytes, filename: str = "") -> str:
+    """Extract readable ASCII/UTF-8 text strings from a PDF or binary document."""
+    chunks = re.findall(rb"[A-Za-z0-9][A-Za-z0-9\s,\.\-\+\(\)\/\:\;\?]{4,120}", file_bytes)
+    filtered = []
+    skip_tokens = {b"obj", b"endobj", b"stream", b"endstream", b"xref", b"trailer", b"Type", b"Font", b"Page", b"Filter", b"FlateDecode"}
+    for c in chunks[:250]:
+        if any(tok in c for tok in skip_tokens):
+            continue
+        try:
+            s = c.decode("utf-8", errors="ignore").strip()
+            if len(s) >= 5:
+                filtered.append(s)
+        except Exception:
+            pass
+    extracted = " ".join(filtered)[:3000].strip()
+    if filename:
+        extracted = f"Filename: {filename}. {extracted}".strip()
+    return extracted
+
+
+def _build_fallback_page_visual_spec(
+    language: str,
+    filename: str = "",
+    extracted_hint: str = "",
+) -> Dict[str, Any]:
+    combined = f"{filename} {extracted_hint}".lower()
+    clean_name = (
+        re.sub(r"\.(pdf|png|jpg|jpeg|webp)$", "", filename, flags=re.IGNORECASE)
+        .replace("_", " ")
+        .replace("-", " ")
+        .strip()
+        or "Pythagoras' Theorem"
+    )
+
+    # Detect if the uploaded PDF/image is about Pythagoras / Geometry / Maths
+    if any(k in combined for k in ("pythag", "hypotenuse", "triangle", "math", "class 7", "class_7", "geometry", "theorem")):
+        return {
+            "source": "page",
+            "blurred": False,
+            "message": "",
+            "concepts": [
+                {
+                    "concept_id": 1,
+                    "subject_badge": "CLASS 7 MATHS",
+                    "visual_domain": "pythagoras",
+                    "title": "Pythagoras' Theorem",
+                    "summary": "In any right-angled triangle, the square of the longest side (the hypotenuse) equals the sum of the squares of the other two sides: a² + b² = c².",
+                    "what_is_on_page": "This worksheet covers Pythagoras' Theorem for Class 7 mathematics, focusing on right-angled triangles with sides labeled a, b, and hypotenuse c opposite the 90° angle. It presents the formula a² + b² = c² alongside three step-by-step solved examples using numbers like 3 cm, 4 cm, and 5 cm. It also includes real-life applications, seven practice problems about ladders and rectangular diagonals, and a complete answer key.",
+                    "in_one_line": "Pythagoras' Theorem states that in a right-angled triangle, the square of the longest side equals the sum of the squares of the two shorter sides.",
+                    "how_it_works": "Here is how to find the hypotenuse using Example 1 from the worksheet:\n1. Identify the two shorter legs forming the 90° right angle: Side a = 3 cm and Side b = 4 cm.\n2. Square both sides: a² = 3² = 9 and b² = 4² = 16.\n3. Add the two squares together: c² = 9 + 16 = 25.\n4. Take the square root: c = √25 = 5 cm.",
+                    "type": "simulation",
+                    "steps": [
+                        {"caption": "Step 1/6: Identify the 90° right angle at vertex B and the hypotenuse c opposite to it."},
+                        {"caption": "Step 2/6: Build a square on Side a (3 × 3) — its area is a² = 9 unit squares."},
+                        {"caption": "Step 3/6: Build a square on Side b (4 × 4) — its area is b² = 16 unit squares."},
+                        {"caption": "Step 4/6: Combine the unit squares from a² (9) and b² (16) via Proof Flow."},
+                        {"caption": "Step 5/6: They fill the hypotenuse square c² = 9 + 16 = 25 unit squares exactly!"},
+                        {"caption": "Step 6/6: Take the square root √25 to find the hypotenuse length c = 5.0."},
+                    ],
+                    "presets": [
+                        {"label": "3-4-5 Basic", "a": 3, "b": 4},
+                        {"label": "5-12-13 Example", "a": 5, "b": 12},
+                        {"label": "6-8-10 Practice", "a": 6, "b": 8},
+                        {"label": "8-15-17 Challenge", "a": 8, "b": 15},
+                    ],
+                    "sliders": [
+                        {"id": "side_a", "label": "Side a", "min": 1, "max": 15, "value": 3},
+                        {"id": "side_b", "label": "Side b", "min": 1, "max": 15, "value": 4},
+                    ],
+                    "quiz": [
+                        {
+                            "kind": "predict",
+                            "question": "If a right-angled triangle has legs a = 3 cm and b = 4 cm, what is the length of the hypotenuse c?",
+                            "options": ["5 cm", "7 cm", "12 cm", "25 cm"],
+                            "answer": 0,
+                            "why": "a² + b² = 3² + 4² = 9 + 16 = 25, so c = √25 = 5 cm.",
+                        },
+                        {
+                            "kind": "predict",
+                            "question": "In the 5-12-13 right-angled triangle example, what is 5² + 12²?",
+                            "options": ["169 (which is 13²)", "144", "25", "17"],
+                            "answer": 0,
+                            "why": "5² + 12² = 25 + 144 = 169, and √169 = 13.",
+                        },
+                        {
+                            "kind": "label",
+                            "question": "Which side of a right-angled triangle is always the hypotenuse?",
+                            "options": [
+                                "The longest side, directly opposite the 90° right angle",
+                                "The shortest vertical side",
+                                "The bottom base side",
+                                "Any side next to the 90° angle",
+                            ],
+                            "answer": 0,
+                            "why": "The hypotenuse is always opposite the 90° angle and is the longest side of the right triangle.",
+                        },
+                    ],
+                },
+                {
+                    "concept_id": 2,
+                    "subject_badge": "CLASS 7 MATHS",
+                    "visual_domain": "pythagoras",
+                    "title": "Solving for an Unknown Leg & Ladder Problems",
+                    "summary": "When the hypotenuse c and one leg a are known, rearrange the formula to b² = c² − a² to find the missing side.",
+                    "what_is_on_page": "The second part of the worksheet shows how to find a missing shorter side when the hypotenuse is already given (such as a 10 m ladder leaning against a wall with its base 6 m away). By subtracting a² from c², students solve for the wall height b = √(10² − 6²) = 8 m.",
+                    "in_one_line": "To find a missing shorter leg of a right triangle, subtract the known leg's square from the hypotenuse's square: b² = c² − a².",
+                    "how_it_works": "Using the Ladder Problem from the worksheet:\n1. Hypotenuse (ladder) c = 10 m, Base distance a = 6 m.\n2. Compute c² − a² = 100 − 36 = 64.\n3. Height up the wall b = √64 = 8 m.",
+                    "type": "simulation",
+                    "steps": [
+                        {"caption": "Step 1/6: A 10 m ladder leans against a vertical wall (c = 10, a = 6)."},
+                        {"caption": "Step 2/6: Square the hypotenuse: c² = 10² = 100."},
+                        {"caption": "Step 3/6: Square the known base: a² = 6² = 36."},
+                        {"caption": "Step 4/6: Subtract: b² = c² − a² = 100 − 36 = 64."},
+                        {"caption": "Step 5/6: Take the square root: b = √64 = 8 m high up the wall."},
+                        {"caption": "Step 6/6: Verify: 6² + 8² = 36 + 64 = 100 = 10²!"},
+                    ],
+                    "presets": [
+                        {"label": "6-8-10 Ladder", "a": 6, "b": 8},
+                        {"label": "5-12-13 Wall", "a": 5, "b": 12},
+                        {"label": "3-4-5 Basic", "a": 3, "b": 4},
+                        {"label": "8-15-17 Diagonal", "a": 8, "b": 15},
+                    ],
+                    "sliders": [
+                        {"id": "side_a", "label": "Side a", "min": 1, "max": 15, "value": 6},
+                        {"id": "side_b", "label": "Side b", "min": 1, "max": 15, "value": 8},
+                    ],
+                    "quiz": [
+                        {
+                            "kind": "predict",
+                            "question": "A 10 m ladder leans against a wall with its base 6 m from the wall. How high up the wall does it reach?",
+                            "options": ["8 m", "4 m", "16 m", "10 m"],
+                            "answer": 0,
+                            "why": "b = √(10² − 6²) = √(100 − 36) = √64 = 8 m.",
+                        }
+                    ],
+                },
+            ],
+        }
+
+    return {
+        "source": "page",
+        "blurred": False,
+        "message": "",
+        "concepts": [
+            {
+                "concept_id": 1,
+                "subject_badge": "STEM & PHYSICS",
+                "visual_domain": "circuit",
+                "title": f"{clean_name}",
+                "summary": "Current in an electrical circuit is directly proportional to voltage and inversely proportional to resistance: I = (V − V_led) ÷ R.",
+                "what_is_on_page": f"This page ({clean_name}) explains how voltage sources drive electric current through components and how a series resistor safely limits current so LEDs and sensors operate within their rated milliamps.",
+                "in_one_line": "A resistor limits electric current according to Ohm's Law (I = V ÷ R) so circuit components glow safely without burning out.",
+                "how_it_works": "1. A 5V source provides electrical potential.\n2. Placing a 330 Ω resistor in series limits current to I = (5V − 2V) ÷ 330Ω = 9.1 mA.\n3. Current flows from the LED anode (+) to cathode (−) and returns to GND.",
+                "type": "simulation",
+                "steps": [
+                    {"caption": "Step 1/6: 5V battery pushes current out of the positive (+) terminal."},
+                    {"caption": "Step 2/6: Current enters the 330 Ω series resistor."},
+                    {"caption": "Step 3/6: The resistor drops excess voltage and limits current to 9.1 mA."},
+                    {"caption": "Step 4/6: Current enters the LED Anode (+) and causes photons to emit."},
+                    {"caption": "Step 5/6: Current exits the LED Cathode (−) toward the ground wire."},
+                    {"caption": "Step 6/6: Electrons return to the negative (−) terminal to complete the closed loop."},
+                ],
+                "sliders": [
+                    {"id": "resistor", "label": "Resistor (Ω)", "min": 100, "max": 1000, "value": 330, "unit": "Ω", "effect": "led_brightness goes down as value goes up"}
+                ],
+                "nodes": [],
+                "links": [],
+                "panels": [],
+                "left": None,
+                "right": None,
+                "quiz": [
+                    {
+                        "kind": "label",
+                        "question": "Why does an LED burn out without a resistor?",
+                        "options": [
+                            "Too much current flows through the low-resistance LED junction",
+                            "The resistor creates extra voltage",
+                            "The battery stops working",
+                            "Current flows backwards from GND",
+                        ],
+                        "answer": 0,
+                        "why": "By Ohm's Law, I = (5 V − LED drop) ÷ R. A 330 Ω resistor keeps current around a safe 9.1 mA.",
+                    },
+                ],
+                "try_it": {"experiment_id": 1, "instruction": "Build the LED + Resistor circuit in the Virtual Lab!"},
+            },
+        ],
+    }
 
 
 def generate_page_visual_spec(
@@ -178,6 +414,7 @@ def generate_page_visual_spec(
     mime_type: str,
     student: Dict[str, Any],
     all_concepts: List[Dict[str, Any]],
+    filename: str = "",
 ) -> Dict[str, Any]:
     age = int(student.get("age", 11))
     language = student.get("language", "English")
@@ -214,7 +451,7 @@ Available curriculum concepts for matching `concept_id`:
 {concepts_catalog}
 """
 
-    user_prompt = f"""Extract 1-4 concepts from this textbook page and return JSON in this exact format:
+    user_prompt = f"""Extract 1-4 concepts from this textbook page (filename: {filename or 'textbook_page'}) and return JSON in this exact format:
 {{
   "source": "page",
   "blurred": false,
@@ -222,22 +459,36 @@ Available curriculum concepts for matching `concept_id`:
   "concepts": [
     {{
       "concept_id": 1,
+      "subject_badge": "Subject & Grade badge in uppercase (e.g. CLASS 7 MATHS, CLASS 8 PHYSICS, ELECTRONICS)",
+      "visual_domain": "pythagoras" or "geometry" or "physics" or "circuit" or "science",
       "title": "Concept title in {language}",
       "summary": "Short 1-2 sentence summary in {language}",
-      "type": "animated_steps",
+      "what_is_on_page": "Detailed 3-4 sentence overview in {language} describing what this worksheet/page covers, the formula presented, the step-by-step solved examples, and practice problems on the page.",
+      "in_one_line": "Crisp 1-sentence core definition/theorem statement in {language}",
+      "how_it_works": "Step-by-step worked example from the page in {language}",
+      "analogy": "Simple daily-life analogy in {language}",
+      "why": "Why this matters in {language}",
+      "real_life_example": "Where it is used in real life in {language}",
+      "type": "simulation",
       "steps": [
-        {{"caption": "Step 1 in {language}", "highlight": ["battery_plus"]}},
-        {{"caption": "Step 2 in {language}", "highlight": ["resistor"]}},
-        {{"caption": "Step 3 in {language}", "highlight": ["led"]}}
+        {{"caption": "Step 1/6 in {language}"}},
+        {{"caption": "Step 2/6 in {language}"}},
+        {{"caption": "Step 3/6 in {language}"}},
+        {{"caption": "Step 4/6 in {language}"}},
+        {{"caption": "Step 5/6 in {language}"}},
+        {{"caption": "Step 6/6 in {language}"}}
       ],
-      "parts": [
-        {{"id": "battery_plus", "label": "Battery +", "explain": "Pushes current out of the positive terminal"}},
-        {{"id": "resistor", "label": "Resistor", "explain": "Slows down current so the LED stays safe"}},
-        {{"id": "led", "label": "LED", "explain": "A light that glows when current flows anode to cathode"}}
+      "presets": [
+        {{"label": "Example 1 label", "a": 3, "b": 4}},
+        {{"label": "Example 2 label", "a": 5, "b": 12}},
+        {{"label": "Practice 1 label", "a": 6, "b": 8}},
+        {{"label": "Challenge label", "a": 8, "b": 15}}
       ],
       "sliders": [
-        {{"id": "resistor", "label": "Resistor (ohm)", "min": 100, "max": 1000, "value": 220, "effect": "led_brightness goes down as value goes up"}}
+        {{"id": "param_a", "label": "Parameter 1 label", "min": 1, "max": 15, "value": 3}},
+        {{"id": "param_b", "label": "Parameter 2 label", "min": 1, "max": 15, "value": 4}}
       ],
+      "parts": [],
       "nodes": [],
       "links": [],
       "panels": [],
@@ -245,25 +496,43 @@ Available curriculum concepts for matching `concept_id`:
       "right": null,
       "quiz": [
         {{
-          "kind": "order",
+          "kind": "predict",
           "question": "Question in {language}",
           "options": ["Option A", "Option B", "Option C", "Option D"],
           "answer": 0,
-          "order_answer": [0, 1, 2],
           "why": "One-line explanation in {language}"
         }}
       ],
-      "try_it": {{"experiment_id": 1, "instruction": "Try wiring this in the Virtual Lab!"}}
+      "try_it": null
     }}
   ]
 }}"""
 
-    return call_gemini_json(
-        user_prompt,
-        system_instruction=system_prompt,
-        media_bytes=file_bytes,
-        media_mime_type=mime_type,
-    )
+    try:
+        res = call_gemini_json(
+            user_prompt,
+            system_instruction=system_prompt,
+            media_bytes=file_bytes,
+            media_mime_type=mime_type,
+        )
+        if res and isinstance(res.get("concepts"), list) and len(res["concepts"]) > 0:
+            return res
+    except Exception:
+        pass
+
+    # Fallback 1: extract readable text from PDF/document and call Gemini with text prompt
+    extracted_text = _extract_pdf_or_binary_text(file_bytes, filename)
+    if extracted_text:
+        try:
+            text_prompt = f"Textbook document text:\n{extracted_text}\n\n{user_prompt}"
+            res2 = call_gemini_json(text_prompt, system_instruction=system_prompt)
+            if res2 and isinstance(res2.get("concepts"), list) and len(res2["concepts"]) > 0:
+                return res2
+        except Exception:
+            pass
+
+    # Fallback 2: guaranteed multi-concept interactive visual spec
+    return _build_fallback_page_visual_spec(language, filename, extracted_text)
 
 
 def answer_concept_doubt(

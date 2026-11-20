@@ -146,7 +146,19 @@ async def create_visuals_from_page(
     if not file_bytes:
         raise HTTPException(status_code=400, detail="Uploaded file is empty")
 
-    mime_type = file.content_type or "image/jpeg"
+    filename_lower = (file.filename or "").lower()
+    raw_mime = (file.content_type or "").lower()
+    if file_bytes.startswith(b"%PDF") or filename_lower.endswith(".pdf") or "pdf" in raw_mime:
+        mime_type = "application/pdf"
+    elif file_bytes.startswith(b"\x89PNG") or filename_lower.endswith(".png") or "png" in raw_mime:
+        mime_type = "image/png"
+    elif file_bytes.startswith(b"GIF8") or filename_lower.endswith(".gif"):
+        mime_type = "image/gif"
+    elif file_bytes.startswith(b"RIFF") and b"WEBP" in file_bytes[:16]:
+        mime_type = "image/webp"
+    else:
+        mime_type = "image/jpeg"
+
     all_concepts = db.fetch_all(
         "SELECT id, title, level, category, summary FROM concepts ORDER BY id"
     )
@@ -156,6 +168,7 @@ async def create_visuals_from_page(
         mime_type=mime_type,
         student=student,
         all_concepts=all_concepts,
+        filename=file.filename or "textbook_page.pdf",
     )
 
     # Note: per learnix-concept-studio rule, we NEVER store the uploaded page image.
