@@ -15,8 +15,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application and static assets
+# Copy application, seed data, and static assets
 COPY app/ ./app/
+COPY data/ ./data/
+COPY sql/ ./sql/
 COPY static/ ./static/
 COPY learnix_flutter/ ./learnix_flutter/
 
