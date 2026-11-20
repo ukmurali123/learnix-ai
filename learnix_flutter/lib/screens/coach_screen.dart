@@ -43,7 +43,7 @@ class _CoachScreenState extends State<CoachScreen> {
   bool _simPulseOn = true;
   Timer? _simTimer;
 
-  // Quick Q&A with AI Tutor Alex
+  // Quick Q&A with AI Tutor Zola
   bool _isAskingTutor = false;
   Map<String, String>? _tutorAnswer;
 
@@ -371,7 +371,7 @@ void loop() {
           'code_badge': 'CODE LOGIC',
           'title': 'Loop Timing or Conditional Logic Bug',
           'frequency': '${count}x in Virtual Lab',
-          'color': const Color(0xFF2563EB),
+          'color': const Color(0xFF0077B6),
           'root_cause': 'digitalWrite(13, LOW) was followed immediately by loop restart without a second delay(), or the distance threshold condition was inverted (`d > 20` instead of `d < 20`).',
           'tip': 'Always put a delay(500) after BOTH HIGH and LOW so your eye can see the off state, and trigger the alarm when distance `d < 20`.',
           'fix_snippet': 'if (d < 20) {\n  tone(8, 1200);\n} else {\n  noTone(8);\n}',
@@ -630,7 +630,7 @@ void loop() {
           ),
         );
 
-        // RIGHT COLUMN: Recommended Curriculum Sequence + Mastery Diagnostic + Ask AI Tutor Alex
+        // RIGHT COLUMN: Recommended Curriculum Sequence + Mastery Diagnostic + Ask AI Tutor Zola
         final rightColumn = Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -683,7 +683,7 @@ void loop() {
                               color: isSelected ? const Color(0xFFEFF6FF) : tokens.surfaceBg,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: isSelected ? const Color(0xFF2563EB) : tokens.borderSubtle,
+                                color: isSelected ? const Color(0xFF0077B6) : tokens.borderSubtle,
                                 width: isSelected ? 1.5 : 1,
                               ),
                             ),
@@ -694,7 +694,7 @@ void loop() {
                                   children: [
                                     CircleAvatar(
                                       radius: 14,
-                                      backgroundColor: isSelected ? const Color(0xFF2563EB) : tokens.primaryLight,
+                                      backgroundColor: isSelected ? const Color(0xFF0077B6) : tokens.primaryLight,
                                       child: Text(
                                         '${idx + 1}',
                                         style: TextStyle(
@@ -714,7 +714,7 @@ void loop() {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                       decoration: BoxDecoration(
-                                        color: isSelected ? const Color(0xFF2563EB) : Colors.white,
+                                        color: isSelected ? const Color(0xFF0077B6) : Colors.white,
                                         borderRadius: BorderRadius.circular(20),
                                         border: Border.all(color: const Color(0xFFBFDBFE)),
                                       ),
@@ -723,7 +723,7 @@ void loop() {
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w700,
-                                          color: isSelected ? Colors.white : const Color(0xFF2563EB),
+                                          color: isSelected ? Colors.white : const Color(0xFF0077B6),
                                         ),
                                       ),
                                     ),
@@ -745,7 +745,7 @@ void loop() {
                                     ),
                                     child: Row(
                                       children: [
-                                        const Icon(LucideIcons.sparkles, size: 14, color: Color(0xFF2563EB)),
+                                        const Icon(LucideIcons.sparkles, size: 14, color: Color(0xFF0077B6)),
                                         const SizedBox(width: 6),
                                         Expanded(
                                           child: Text(
@@ -771,7 +771,7 @@ void loop() {
               ),
             ),
             SizedBox(height: tokens.space16),
-            // Weak Concept Mastery Breakdown + Ask AI Tutor Alex Direct Q&A Card
+            // Weak Concept Mastery Breakdown + Ask AI Tutor Zola Direct Q&A Card
             InteractiveCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -791,7 +791,7 @@ void loop() {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Ask AI Tutor Alex a Question', style: textTheme.titleMedium),
+                            Text('Ask AI Tutor Zola a Question', style: textTheme.titleMedium),
                             const Text(
                               'Instant Socratic help on resistors, pins, sensors, or Arduino C++',
                               style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
@@ -869,7 +869,7 @@ void loop() {
                           controller: _questionController,
                           onSubmitted: (_) => _askTutorQuestion(),
                           decoration: InputDecoration(
-                            hintText: 'Ask Alex about any circuit or code doubt...',
+                            hintText: 'Ask Zola about any circuit or code doubt...',
                             isDense: true,
                             filled: true,
                             fillColor: tokens.surfaceBg,
@@ -907,7 +907,7 @@ void loop() {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '🤖 Alex on "${_tutorAnswer!['question']}":',
+                            '🤖 Zola on "${_tutorAnswer!['question']}":',
                             style: const TextStyle(
                               fontWeight: FontWeight.w800,
                               fontSize: 12.5,
@@ -947,7 +947,7 @@ void loop() {
             children: [
               // Header
               Text(
-                '🤖 AI Tutor Alex — Diagnostic & Invention Engine',
+                '🤖 AI Tutor Zola — Diagnostic & Invention Engine',
                 style: isNarrow ? textTheme.headlineMedium : textTheme.displayLarge,
               ),
               SizedBox(height: tokens.space8),
@@ -968,7 +968,7 @@ void loop() {
                     Container(
                       padding: EdgeInsets.all(tokens.space12),
                       decoration: const BoxDecoration(
-                        color: Color(0xFF2563EB),
+                        color: Color(0xFF0077B6),
                         shape: BoxShape.circle,
                       ),
                       child: const Text('🤖', style: TextStyle(fontSize: 26)),
@@ -980,7 +980,7 @@ void loop() {
                         children: [
                           const Text(
                             'AI Tutor Summary',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2563EB)),
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0077B6)),
                           ),
                           SizedBox(height: tokens.space8),
                           Text(
@@ -996,7 +996,7 @@ void loop() {
 
               SizedBox(height: isNarrow ? tokens.space20 : tokens.space24),
 
-              // Two Columns: RCA Lab Errors & Recommended Sequence + Ask Alex
+              // Two Columns: RCA Lab Errors & Recommended Sequence + Ask Zola
               if (isNarrow)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1038,7 +1038,7 @@ void loop() {
                     ),
                     SizedBox(height: tokens.space8),
                     Text(
-                      'Tell AI Tutor Alex what you want to build (e.g., "A smart alarm that beeps faster when an intruder walks closer") or pick a preset blueprint below:',
+                      'Tell AI Tutor Zola what you want to build (e.g., "A smart alarm that beeps faster when an intruder walks closer") or pick a preset blueprint below:',
                       style: textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 12),
@@ -1318,7 +1318,7 @@ void loop() {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(LucideIcons.cpu, size: 13, color: Color(0xFF2563EB)),
+                      const Icon(LucideIcons.cpu, size: 13, color: Color(0xFF0077B6)),
                       const SizedBox(width: 6),
                       Text(c, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1E3A8A))),
                     ],
@@ -1446,7 +1446,7 @@ void loop() {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2563EB),
+                  color: const Color(0xFF0077B6),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Text(

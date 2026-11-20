@@ -1,9 +1,9 @@
 id,title,level,category,summary
-1,What is an LED,Beginner,Electronics,A light-emitting diode glows when current flows from anode (+) to cathode (-).
-2,Resistors and why we need them,Beginner,Electronics,A resistor limits current so components like LEDs do not burn out.
-3,Digital output pins,Beginner,Arduino,Arduino pins can be set HIGH (5V) or LOW (0V) to switch devices on and off.
-4,Loops in code,Beginner,Coding,A loop repeats instructions; Arduino's loop() runs again and again.
-5,Buttons and digital input,Intermediate,Arduino,A button changes a pin between HIGH and LOW; INPUT_PULLUP keeps it HIGH until pressed.
+1,Battery (DC Power & Voltage),Beginner,Electronics,A battery stores chemical energy and converts it into electrical potential (voltage) to drive direct current.
+2,LED (Light Emitting Diode),Beginner,Electronics,A light-emitting diode glows when current flows from anode (+) to cathode (-).
+3,Resistor (Current Limiter),Beginner,Electronics,A resistor limits current so components like LEDs do not burn out according to Ohm's Law.
+4,Buzzer (Piezo Sounder),Beginner,Electronics,A piezo buzzer vibrates rapidly to produce loud warning tones and musical frequencies.
+5,SSD (7-Segment Display),Beginner,Electronics,An SSD combines 7 LED segments in a figure-8 pattern to render clear digits 0 to 9.
 6,Buzzers and sound,Beginner,Electronics,A buzzer makes sound when powered; tone() sets its pitch.
 7,If-else decisions,Beginner,Coding,If-else lets a program choose what to do based on a condition.
 8,Ultrasonic distance sensor,Intermediate,Sensors,HC-SR04 sends sound pulses and times the echo to measure distance.

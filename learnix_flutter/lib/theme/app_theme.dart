@@ -123,10 +123,10 @@ extension AppThemeContext on BuildContext {
 
 class AppTheme {
   static const AppTokens defaultTokens = AppTokens(
-    primary: Color(0xFF2563EB),
-    primaryLight: Color(0xFFEFF6FF),
-    accent: Color(0xFFF97316),
-    accentLight: Color(0xFFFFF7ED),
+    primary: Color(0xFF0077B6),
+    primaryLight: Color(0xFFE6F4FB),
+    accent: Color(0xFFE65100),
+    accentLight: Color(0xFFFFF3E0),
     success: Color(0xFF16A34A),
     successLight: Color(0xFFF0FDF4),
     surfaceBg: Color(0xFFF8FAFC),
@@ -137,7 +137,7 @@ class AppTheme {
   );
 
   static ThemeData get lightTheme {
-    final baseTextTheme = GoogleFonts.plusJakartaSansTextTheme();
+    final baseTextTheme = GoogleFonts.outfitTextTheme();
 
     return ThemeData(
       useMaterial3: true,
@@ -150,30 +150,30 @@ class AppTheme {
       ),
       extensions: const [defaultTokens],
       textTheme: baseTextTheme.copyWith(
-        displayLarge: GoogleFonts.plusJakartaSans(
+        displayLarge: GoogleFonts.outfit(
           fontSize: 32,
           fontWeight: FontWeight.w800,
           color: defaultTokens.textPrimary,
           letterSpacing: -0.5,
         ),
-        headlineMedium: GoogleFonts.plusJakartaSans(
+        headlineMedium: GoogleFonts.outfit(
           fontSize: 24,
           fontWeight: FontWeight.w700,
           color: defaultTokens.textPrimary,
           letterSpacing: -0.3,
         ),
-        titleMedium: GoogleFonts.plusJakartaSans(
+        titleMedium: GoogleFonts.outfit(
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: defaultTokens.textPrimary,
         ),
-        bodyMedium: GoogleFonts.plusJakartaSans(
+        bodyMedium: GoogleFonts.outfit(
           fontSize: 15,
           fontWeight: FontWeight.w400,
           color: defaultTokens.textSecondary,
           height: 1.5,
         ),
-        labelLarge: GoogleFonts.plusJakartaSans(
+        labelLarge: GoogleFonts.outfit(
           fontSize: 15,
           fontWeight: FontWeight.w600,
           color: Colors.white,
@@ -199,7 +199,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: defaultTokens.borderRadius16,
           ),
-          textStyle: GoogleFonts.plusJakartaSans(
+          textStyle: GoogleFonts.outfit(
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
@@ -216,7 +216,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: defaultTokens.borderRadius16,
           ),
-          textStyle: GoogleFonts.plusJakartaSans(
+          textStyle: GoogleFonts.outfit(
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),

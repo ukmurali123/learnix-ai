@@ -7,6 +7,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:http/http.dart' as http;
 import 'package:lucide_icons/lucide_icons.dart';
 import '../theme/app_theme.dart';
+import 'components_catalog.dart';
+import 'component_painters.dart';
+import 'virtual_lab_screen.dart';
 
 class LearningPathScreen extends StatefulWidget {
   final String baseUrl;
@@ -39,6 +42,27 @@ class _LearningPathScreenState extends State<LearningPathScreen>
   // 0: WHAT, 1: LIKE, 2: WHY, 3: WHERE, 4: WHEN
   int _activeWhatTabIndex = 0;
 
+  // Active Core Component & Multi-Language Translation State
+  // Components: 'battery', 'led', 'resistor', 'buzzer', 'ssd'
+  String _selectedComponent = 'led';
+  String _selectedLanguage = 'en'; // 'en', 'hi', 'es', 'ta', 'te', 'fr', 'de'
+
+  // SSD (7-Segment Display) Interactive State
+  int _ssdDigit = 8;
+  List<bool> _ssdSegments = [true, true, true, true, true, true, true, false]; // A, B, C, D, E, F, G, DP
+
+  // Buzzer Interactive State
+  double _buzzerFrequency = 880.0;
+
+  // Battery Interactive State
+  double _batteryVoltage = 9.0;
+
+  // AI Tutor Doubts Chat State
+  bool _isAiTutorOpen = false;
+  final TextEditingController _tutorDoubtController = TextEditingController();
+  final List<Map<String, dynamic>> _tutorChatMessages = [];
+  bool _isTutorThinking = false;
+
   int _circuitTopology = 0; // 0: 1 LED, 1: 2 in series, 2: 2 in parallel
   double _resistorOhms = 330.0;
   int _selectedAnatomyIndex = 0; // 0..3 sub-item selector for WHAT/LIKE/WHY/WHERE/WHEN
@@ -54,6 +78,14 @@ class _LearningPathScreenState extends State<LearningPathScreen>
   double _ohmLabVolts = 9.0;
   double _ohmLabOhms = 470.0;
   int _ohmLabMode = 1; // 0 = find V, 1 = find I, 2 = find R
+
+  // Try It builder completion state (matches user Image 1)
+  bool _tryCircuitBuilderDone = false;
+  bool _tryBreadboardDone = false;
+
+  // Bug Hunt builder fix state (matches user Image 2)
+  bool _bugCircuitBuilderFixed = false;
+  bool _bugBreadboardFixed = false;
 
   // Interactive "Try it" Practical Completion State
   bool _pracStep1Power = false;
@@ -102,6 +134,7 @@ class _LearningPathScreenState extends State<LearningPathScreen>
   void dispose() {
     _electronController.dispose();
     _bugTutorInputController.dispose();
+    _tutorDoubtController.dispose();
     super.dispose();
   }
 
@@ -130,11 +163,163 @@ class _LearningPathScreenState extends State<LearningPathScreen>
         synth.cancel();
         final utterance = html.SpeechSynthesisUtterance(text);
         utterance.rate = 0.95;
+        // Native speech synthesis language mapping
+        switch (_selectedLanguage) {
+          case 'hi':
+            utterance.lang = 'hi-IN';
+            break;
+          case 'es':
+            utterance.lang = 'es-ES';
+            break;
+          case 'ta':
+            utterance.lang = 'ta-IN';
+            break;
+          case 'te':
+            utterance.lang = 'te-IN';
+            break;
+          case 'fr':
+            utterance.lang = 'fr-FR';
+            break;
+          case 'de':
+            utterance.lang = 'de-DE';
+            break;
+          case 'en':
+          default:
+            utterance.lang = 'en-US';
+            break;
+        }
         synth.speak(utterance);
       }
     } catch (e) {
       debugPrint('TTS error: $e');
     }
+  }
+
+  // Set 7-Segment SSD Digit 0 to 9
+  void _setSsdDigit(int digit) {
+    setState(() {
+      _ssdDigit = digit;
+      switch (digit) {
+        case 0:
+          _ssdSegments = [true, true, true, true, true, true, false, false];
+          break;
+        case 1:
+          _ssdSegments = [false, true, true, false, false, false, false, false];
+          break;
+        case 2:
+          _ssdSegments = [true, true, false, true, true, false, true, false];
+          break;
+        case 3:
+          _ssdSegments = [true, true, true, true, false, false, true, false];
+          break;
+        case 4:
+          _ssdSegments = [false, true, true, false, false, true, true, false];
+          break;
+        case 5:
+          _ssdSegments = [true, false, true, true, false, true, true, false];
+          break;
+        case 6:
+          _ssdSegments = [true, false, true, true, true, true, true, false];
+          break;
+        case 7:
+          _ssdSegments = [true, true, true, false, false, false, false, false];
+          break;
+        case 8:
+          _ssdSegments = [true, true, true, true, true, true, true, false];
+          break;
+        case 9:
+          _ssdSegments = [true, true, true, true, false, true, true, false];
+          break;
+        default:
+          _ssdSegments = [true, true, true, true, true, true, true, false];
+      }
+    });
+  }
+
+  void _toggleSsdSegment(int index) {
+    setState(() {
+      if (index < _ssdSegments.length) {
+        _ssdSegments[index] = !_ssdSegments[index];
+      }
+    });
+  }
+
+  // AI Tutor Doubt Clearing Action
+  void _askAiTutorDoubt(String question) {
+    if (question.trim().isEmpty) return;
+    final q = question.trim();
+    _tutorDoubtController.clear();
+
+    setState(() {
+      _tutorChatMessages.add({
+        'sender': 'student',
+        'text': q,
+        'time': 'Just now',
+      });
+      _isTutorThinking = true;
+      _isAiTutorOpen = true;
+    });
+
+    final compData = ComponentsCatalog.getData(_selectedComponent, _selectedLanguage);
+    final answers = compData['answers'] as Map<String, dynamic>? ?? {};
+    String answer = answers[q] ?? '';
+
+    if (answer.isEmpty) {
+      if (_selectedComponent == 'battery') {
+        if (_selectedLanguage == 'hi') {
+          answer = 'बैटरी डीसी वोल्टेज देती है! रासायनिक ऊर्जा इलेक्ट्रॉनों को परिपथ में धकेलती है। हमेशा सही पोलरिटी (+ और −) से जोड़ें।';
+        } else if (_selectedLanguage == 'es') {
+          answer = '¡La batería suministra voltaje continuo (DC)! La reacción química empuja electrones generando corriente estable. ¡Recuerda no cortocircuitar jamás sus polos!';
+        } else {
+          answer = 'Great question about Battery! A battery uses electrochemical potential to push electrons through closed loops. In robotics, a 9V battery or LiPo pack provides steady portable DC power for microcontrollers and motors.';
+        }
+      } else if (_selectedComponent == 'led') {
+        if (_selectedLanguage == 'hi') {
+          answer = 'एलईडी एक डायोड है जो केवल फॉरवर्ड बायस में जलती है! लंबी टांग एनोड (+) है। इसे 5V से जोड़ते समय हमेशा 330 Ω प्रतिरोधक लगाएं।';
+        } else if (_selectedLanguage == 'es') {
+          answer = '¡Un LED es un diodo semiconductor! Solo permite el paso de corriente en sentido directo (ánodo a cátodo). Requiere una resistencia de 330 Ω para no quemarse.';
+        } else {
+          answer = 'Excellent doubt about LEDs! An LED (Light Emitting Diode) is a semiconductor that emits light when electrons recombine with holes. Always place a 220Ω–330Ω resistor in series to limit forward current to a safe 9.1 mA.';
+        }
+      } else if (_selectedComponent == 'resistor') {
+        if (_selectedLanguage == 'hi') {
+          answer = 'प्रतिरोधक ओम के नियम (V = IR) से करंट को नियंत्रित करता है। 4 रंगीन पट्टियाँ इसका मान बताती हैं। उदाहरण: भूरा (1), काला (0), लाल (x100) = 1,000 Ω (1 kΩ)!';
+        } else if (_selectedLanguage == 'es') {
+          answer = '¡La resistencia frena el paso de corriente según V = I × R! Sus 4 bandas de colores indican su valor: Marrón (1), Negro (0), Rojo (x100) = 1,000 Ω (1 kΩ).';
+        } else {
+          answer = 'Great resistor question! Resistors restrict current flow to protect delicate parts according to Ohm\'s Law (I = V ÷ R). Its 4 color bands decode its value: Digit 1, Digit 2, Multiplier, and Tolerance (Gold = ±5%).';
+        }
+      } else if (_selectedComponent == 'buzzer') {
+        if (_selectedLanguage == 'hi') {
+          answer = 'पीज़ो बज़र में एक क्रिस्टल डिस्क होती है जो वोल्टेज मिलने पर तेज़ी से कंपन करती है। Arduino का tone(pin, 880) कमांड 880 Hz की चेतावनी बीप बजाता है!';
+        } else if (_selectedLanguage == 'es') {
+          answer = '¡El buzzer piezoeléctrico vibra con pulsos eléctricos! tone(pin, 880) genera una alarma aguda de 880 Hz que avisa al instante.';
+        } else {
+          answer = 'Awesome buzzer doubt! A piezo buzzer flexes rapidly when stimulated with an AC/PWM frequency. The Arduino command tone(pin, 880) produces an 880 Hz high-pitch alert chime, perfect for obstacle proximity alarms.';
+        }
+      } else {
+        if (_selectedLanguage == 'hi') {
+          answer = 'एसएसडी (7-सेगमेंट डिस्प्ले) में 7 आयताकार एलईडी बार (A से G) 8 के आकार में होते हैं। अंक 8 के लिए सभी 7 सेगमेंट जलते हैं, और 1 के लिए B और C जलते हैं!';
+        } else if (_selectedLanguage == 'es') {
+          answer = '¡El display de 7 segmentos (SSD) combina 7 barras LED (A-G)! Para el número 8 se encienden todas; para el número 1 solo se activan B y C.';
+        } else {
+          answer = 'Spot on SSD question! An SSD (Seven-Segment Display) arranges 7 LED segments in a figure-8 pattern (labeled A through G) plus a decimal point. By turning on specific segments, it clearly renders digits 0 to 9 for live sensor telemetry and counters!';
+        }
+      }
+    }
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() {
+          _isTutorThinking = false;
+          _tutorChatMessages.add({
+            'sender': 'tutor',
+            'text': answer,
+            'time': 'Just now',
+          });
+        });
+      }
+    });
   }
 
   Future<void> _completeDay(int dayNumber, int score) async {
@@ -229,14 +414,32 @@ class _LearningPathScreenState extends State<LearningPathScreen>
   }
 
   void _openDayWorkspace(Map<String, dynamic> day) {
+    final rawDay = day['day_number'] ?? 1;
+    final int dayNumber = (rawDay is int) ? rawDay : int.tryParse('$rawDay') ?? 1;
     setState(() {
       _selectedDay = day;
+      if (dayNumber == 1) {
+        _selectedComponent = 'battery';
+      } else if (dayNumber == 2) {
+        _selectedComponent = 'led';
+      } else if (dayNumber == 3) {
+        _selectedComponent = 'resistor';
+      } else if (dayNumber == 4) {
+        _selectedComponent = 'buzzer';
+      } else if (dayNumber == 5) {
+        _selectedComponent = 'ssd';
+      }
       _activeTopModeIndex = 0;
       _activeWhatTabIndex = 0;
       _circuitTopology = 0;
       _resistorOhms = 330.0;
       _selectedAnatomyIndex = 0;
       _predictChoice = null;
+
+      _tryCircuitBuilderDone = false;
+      _tryBreadboardDone = false;
+      _bugCircuitBuilderFixed = false;
+      _bugBreadboardFixed = false;
 
       _pracStep1Power = false;
       _pracStep2Resistor = false;
@@ -578,7 +781,52 @@ class _LearningPathScreenState extends State<LearningPathScreen>
     bool isCurrent,
   ) {
     final dayNum = day['day_number'] ?? 1;
-    final title = (day['title'] ?? 'Concept').toString();
+    final int dayNumber = (dayNum is int) ? dayNum : int.tryParse('$dayNum') ?? 1;
+    String title = (day['title'] ?? 'Concept').toString();
+    String tag = 'Interactive';
+    IconData compIcon = LucideIcons.box;
+
+    if (dayNumber == 1) {
+      title = 'Battery (DC Power & Voltage)';
+      tag = 'Power Source · 9V DC';
+      compIcon = LucideIcons.batteryCharging;
+    } else if (dayNumber == 2) {
+      title = 'LED (Light Emitting Diode)';
+      tag = 'Visual Output · One-Way';
+      compIcon = LucideIcons.lightbulb;
+    } else if (dayNumber == 3) {
+      title = 'Resistor (Current Limiter)';
+      tag = 'Ohm\'s Law · Safety';
+      compIcon = LucideIcons.activity;
+    } else if (dayNumber == 4) {
+      title = 'Buzzer (Piezo Sounder)';
+      tag = 'Acoustic Alert · Frequency';
+      compIcon = LucideIcons.volume2;
+    } else if (dayNumber == 5) {
+      title = 'SSD (7-Segment Display)';
+      tag = 'Digital Readout · Digits 0–9';
+      compIcon = LucideIcons.hash;
+    } else if (dayNumber == 6) {
+      title = 'Ground & Complete Loop';
+      tag = 'Circuit Foundation';
+      compIcon = LucideIcons.repeat;
+    } else if (dayNumber == 7) {
+      title = 'Digital Output & Loops';
+      tag = 'Arduino Microcontroller';
+      compIcon = LucideIcons.cpu;
+    } else if (dayNumber == 8) {
+      title = 'Ultrasonic Distance Sensor';
+      tag = 'Obstacle Detection';
+      compIcon = LucideIcons.radio;
+    } else if (dayNumber == 9) {
+      title = 'What is Artificial Intelligence';
+      tag = 'Machine Learning Models';
+      compIcon = LucideIcons.sparkles;
+    } else if (dayNumber == 10) {
+      title = 'Smart Robotics Project';
+      tag = 'Full Integration';
+      compIcon = LucideIcons.bot;
+    }
 
     List<Color> gradientColors;
     if (isDone) {
@@ -589,13 +837,16 @@ class _LearningPathScreenState extends State<LearningPathScreen>
       gradientColors = const [Color(0xFF94A3B8), Color(0xFF64748B)];
     }
 
+    final bool isLocked = !isDone && !isCurrent;
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
         Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: () => _openDayWorkspace(day),
+            onTap: isLocked ? null : () => _openDayWorkspace(day),
+            mouseCursor: isLocked ? SystemMouseCursors.basic : SystemMouseCursors.click,
             borderRadius: BorderRadius.circular(22),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 220),
@@ -673,10 +924,10 @@ class _LearningPathScreenState extends State<LearningPathScreen>
                         const SizedBox(height: 6),
                         Row(
                           children: [
-                            const Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 15),
+                            Icon(compIcon, color: Colors.white, size: 14),
                             const SizedBox(width: 5),
                             Text(
-                              'Interactive',
+                              tag,
                               style: TextStyle(
                                 color: Colors.white.withOpacity(0.95),
                                 fontSize: 11,
@@ -753,12 +1004,27 @@ class _LearningPathScreenState extends State<LearningPathScreen>
   // ===========================================================================
   Widget _buildDayWorkspaceView(BuildContext context, Map<String, dynamic> day) {
     final dayNum = day['day_number'] ?? 1;
-    final lessonData = _getDayLessonData(day);
-    final headerTitle = lessonData['headerTitle'].toString();
-    final questionText = lessonData['question'].toString();
+    final int dayNumber = (dayNum is int) ? dayNum : int.tryParse('$dayNum') ?? 1;
+
+    // Set initial component default if matched to curriculum day
+    if (dayNumber == 1) {
+      _selectedComponent = 'battery';
+    } else if (dayNumber == 2) {
+      _selectedComponent = 'led';
+    } else if (dayNumber == 3) {
+      _selectedComponent = 'resistor';
+    } else if (dayNumber == 4) {
+      _selectedComponent = 'buzzer';
+    } else if (dayNumber == 5) {
+      _selectedComponent = 'ssd';
+    }
+
+    final compData = ComponentsCatalog.getData(_selectedComponent, _selectedLanguage);
+    final headerTitle = '${compData['name']} · Day $dayNum';
+    final questionText = compData['question'].toString();
 
     final whatKeys = ['what', 'like', 'why', 'where', 'when'];
-    final activeExplanation = lessonData[whatKeys[_activeWhatTabIndex]].toString();
+    final activeExplanation = compData[whatKeys[_activeWhatTabIndex]].toString();
 
     double effectiveDrop = 2.0;
     double effectiveR = _resistorOhms;
@@ -777,9 +1043,9 @@ class _LearningPathScreenState extends State<LearningPathScreen>
           color: Colors.white,
           child: Column(
             children: [
-              // 1. Top Navigation Header Bar
+              // 1. Top Navigation Header Bar with Language Selector
               Container(
-                height: 52,
+                height: 54,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: const BoxDecoration(
                   color: Colors.white,
@@ -798,16 +1064,40 @@ class _LearningPathScreenState extends State<LearningPathScreen>
                         headerTitle,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: isNarrow ? 14 : 16,
+                          fontSize: isNarrow ? 13.5 : 16,
                           fontWeight: FontWeight.w800,
                           color: const Color(0xFF0F172A),
                         ),
                       ),
                     ),
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(LucideIcons.maximize, size: 18, color: Color(0xFF0F172A)),
-                      tooltip: 'Fullscreen',
+                    // Language Dropdown Selector (English, Hindi, Spanish, Tamil, Telugu, French, German)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedLanguage,
+                          dropdownColor: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          icon: const Icon(LucideIcons.globe, size: 15, color: Color(0xFF0284C7)),
+                          items: ComponentsCatalog.supportedLanguages.map((lang) {
+                            return DropdownMenuItem<String>(
+                              value: lang['code'],
+                              child: Text(
+                                lang['name']!,
+                                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) setState(() => _selectedLanguage = val);
+                          },
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -823,7 +1113,7 @@ class _LearningPathScreenState extends State<LearningPathScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 2. Row of 5 Interactive Activity Mode Pills (Learn, Predict, Try it, Bug hunt, Quiz)
+                      // 3. Row of 5 Interactive Activity Mode Pills (Learn, Predict, Try it, Bug hunt, Quiz)
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
@@ -840,12 +1130,12 @@ class _LearningPathScreenState extends State<LearningPathScreen>
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
                                   decoration: BoxDecoration(
                                     color: isSelected
-                                        ? const Color(0xFFEA580C)
+                                        ? const Color(0xFFE65100)
                                         : Colors.white,
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
                                       color: isSelected
-                                          ? const Color(0xFFEA580C)
+                                          ? const Color(0xFFE65100)
                                           : const Color(0xFF334155),
                                       width: 1.2,
                                     ),
@@ -882,7 +1172,7 @@ class _LearningPathScreenState extends State<LearningPathScreen>
 
                       const SizedBox(height: 16),
 
-                      // 3. Blue Question Banner with "Voice lesson" Pill + Speaker Button
+                      // 4. Blue Question Banner with "Voice lesson" Pill + Speaker Button
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -964,7 +1254,7 @@ class _LearningPathScreenState extends State<LearningPathScreen>
 
                       const SizedBox(height: 12),
 
-                      // 4. Only show WHAT / LIKE / WHY / WHERE / WHEN tabs when in "Learn" mode (idx == 0)
+                      // 5. Only show WHAT / LIKE / WHY / WHERE / WHEN tabs when in "Learn" mode (idx == 0)
                       if (_activeTopModeIndex == 0) ...[
                         _buildFiveDimensionTabs(isNarrow, activeExplanation),
                         const SizedBox(height: 10),
@@ -988,12 +1278,7 @@ class _LearningPathScreenState extends State<LearningPathScreen>
                         const SizedBox(height: 18),
                       ],
 
-                      // 5. Main Interactive Area per Top Mode:
-                      // 0 = Learn (dynamically switches animation based on WHAT / LIKE / WHY / WHERE / WHEN!)
-                      // 1 = Predict
-                      // 2 = Try it (Practical Hands-On Breadboard Build to complete!)
-                      // 3 = Bug hunt (Faulty Breadboard & Circuit Bug Hunter with AI Tutor!)
-                      // 4 = Quiz
+                      // 6. Main Interactive Area per Top Mode:
                       if (_activeTopModeIndex == 0)
                         _buildDynamicDimensionLearnWorkspace(isNarrow, currentMa, dayNum)
                       else if (_activeTopModeIndex == 1)
@@ -1005,9 +1290,12 @@ class _LearningPathScreenState extends State<LearningPathScreen>
                       else
                         _buildDayQuizMode(dayNum),
 
+                      // 7. AI Tutor Doubts Chat Panel (Context-aware for active component and language!)
+                      _buildAiTutorDoubtsWidget(compData),
+
                       const SizedBox(height: 16),
 
-                      // 6. Bottom-right "-> Next" Pill Button
+                      // 8. Bottom-right "-> Next" Pill Button
                       Align(
                         alignment: Alignment.centerRight,
                         child: ElevatedButton.icon(
@@ -1067,7 +1355,7 @@ class _LearningPathScreenState extends State<LearningPathScreen>
       {
         'label': 'WHY',
         'icon': LucideIcons.sparkles,
-        'activeBg': const Color(0xFFEA580C),
+        'activeBg': const Color(0xFFE65100),
         'inactiveBg': const Color(0xFFFFF3E0),
         'activeText': Colors.white,
         'inactiveText': const Color(0xFFD97706),
@@ -1156,22 +1444,22 @@ class _LearningPathScreenState extends State<LearningPathScreen>
   // DYNAMIC LEARN ANIMATION WORKSPACE (CHANGES BASED ON WHAT / LIKE / WHY / WHERE / WHEN & CURRENT DAY!)
   // ===========================================================================
   Widget _buildDynamicDimensionLearnWorkspace(bool isNarrow, double currentMa, int dayNum) {
-    // 1. Build the Left Animated Canvas depending on _activeWhatTabIndex and dayNum:
-    // 0 = WHAT (Technical Circuit Schematic / Ultrasonic Sensor / Button Input)
-    // 1 = LIKE (Non-technical Real-Life Water Tank / Bat Sonar / Drawbridge / Chef Analogy!)
-    // 2 = WHY  (Cause & Effect Side-by-Side: Burned vs Safe, Echo Delay, Floating vs Pullup)
-    // 3 = WHERE (Real-World Everyday Devices tailored to the Day's Topic)
-    // 4 = WHEN (Real-Time Decision & Trigger Flow Timeline)
+    // 1. Build the Left Animated Canvas depending on _activeWhatTabIndex and _selectedComponent:
+    // 0 = WHAT (Interactive Technical Component Schematic)
+    // 1 = LIKE (Real-Time Memory Analogy: Water Pump, Turnstile, Constricted Pipe, Alert Dog, Scoreboard)
+    // 2 = WHY  (Cause & Effect: Burn vs Safe / Voltage Push / 360° Sound Reach)
+    // 3 = WHERE (Real-World Everyday Devices: Rover, Traffic Light, Motherboard, Microwave, Alarm Clock)
+    // 4 = WHEN (Decision & Trigger Flow Timeline in Robotics Code)
     Widget leftAnimationCanvas;
     if (_activeWhatTabIndex == 1) {
       leftAnimationCanvas = AnimatedBuilder(
         animation: _electronController,
         builder: (context, _) => CustomPaint(
-          painter: _LikeWaterWheelAnalogyPainter(
+          painter: ComponentLikeAnalogyPainter(
+            component: _selectedComponent,
             progress: _electronController.value,
             resistorOhms: _resistorOhms.toInt(),
             selectedPart: _selectedAnatomyIndex,
-            dayNum: dayNum,
           ),
         ),
       );
@@ -1179,11 +1467,11 @@ class _LearningPathScreenState extends State<LearningPathScreen>
       leftAnimationCanvas = AnimatedBuilder(
         animation: _electronController,
         builder: (context, _) => CustomPaint(
-          painter: _WhyBurnVsSafePainter(
+          painter: ComponentWhyBurnVsSafePainter(
+            component: _selectedComponent,
             progress: _electronController.value,
             resistorOhms: _resistorOhms.toInt(),
             currentMa: currentMa,
-            dayNum: dayNum,
           ),
         ),
       );
@@ -1191,10 +1479,10 @@ class _LearningPathScreenState extends State<LearningPathScreen>
       leftAnimationCanvas = AnimatedBuilder(
         animation: _electronController,
         builder: (context, _) => CustomPaint(
-          painter: _WhereRealWorldDevicesPainter(
+          painter: ComponentWhereRealWorldPainter(
+            component: _selectedComponent,
             progress: _electronController.value,
             selectedDeviceIdx: _selectedAnatomyIndex,
-            dayNum: dayNum,
           ),
         ),
       );
@@ -1202,11 +1490,10 @@ class _LearningPathScreenState extends State<LearningPathScreen>
       leftAnimationCanvas = AnimatedBuilder(
         animation: _electronController,
         builder: (context, _) => CustomPaint(
-          painter: _WhenTimelineTriggerPainter(
+          painter: ComponentWhenTriggerPainter(
+            component: _selectedComponent,
             progress: _electronController.value,
             selectedRuleIdx: _selectedAnatomyIndex,
-            resistorOhms: _resistorOhms.toInt(),
-            dayNum: dayNum,
           ),
         ),
       );
@@ -1214,16 +1501,20 @@ class _LearningPathScreenState extends State<LearningPathScreen>
       leftAnimationCanvas = AnimatedBuilder(
         animation: _electronController,
         builder: (context, _) => CustomPaint(
-          painter: _InteractiveCircuitSchematicPainter(
+          painter: InteractiveComponentSchematicPainter(
+            component: _selectedComponent,
             progress: _electronController.value,
             resistorOhms: _resistorOhms.toInt(),
             currentMa: currentMa,
             topology: _circuitTopology,
-            dayNum: dayNum,
             resistorBand1: _resistorBand1,
             resistorBand2: _resistorBand2,
             resistorMultiplier: _resistorMultiplier,
             selectedResistorBandTab: _selectedResistorBandTab,
+            ssdSegments: _ssdSegments,
+            ssdDigit: _ssdDigit,
+            buzzerFrequency: _buzzerFrequency,
+            batteryVoltage: _batteryVoltage,
           ),
         ),
       );
@@ -1244,10 +1535,18 @@ class _LearningPathScreenState extends State<LearningPathScreen>
         ),
         const SizedBox(height: 14),
 
-        // Context-specific bottom controls under the left animation
-        if (dayNum == 2 && _activeWhatTabIndex == 0) ...[
-          // Day 2 Resistor Band Selector Pills (Band 1, Band 2, Multiplier) + Color Slider (0 to 9)
+        // Context-specific bottom controls under the left animation for WHAT tab (idx == 0)
+        if (_selectedComponent == 'resistor' && _activeWhatTabIndex == 0) ...[
           _buildResistorColorBandControls(),
+          const SizedBox(height: 12),
+        ] else if (_selectedComponent == 'ssd' && _activeWhatTabIndex == 0) ...[
+          _buildSsdControls(),
+          const SizedBox(height: 12),
+        ] else if (_selectedComponent == 'buzzer' && _activeWhatTabIndex == 0) ...[
+          _buildBuzzerControls(),
+          const SizedBox(height: 12),
+        ] else if (_selectedComponent == 'battery' && _activeWhatTabIndex == 0) ...[
+          _buildBatteryControls(),
           const SizedBox(height: 12),
         ] else if (_activeWhatTabIndex == 0) ...[
           Wrap(
@@ -1262,14 +1561,12 @@ class _LearningPathScreenState extends State<LearningPathScreen>
           const SizedBox(height: 12),
         ],
 
-        if (dayNum != 2 || _activeWhatTabIndex != 0)
+        if (_selectedComponent == 'led' && _activeWhatTabIndex == 0)
         Row(
           children: [
-            Text(
-              _activeWhatTabIndex == 1
-                  ? 'Valve Pinch (Ω)'
-                  : 'Resistor (Ω)',
-              style: const TextStyle(
+            const Text(
+              'Resistor (Ω)',
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF0F172A),
@@ -1451,524 +1748,571 @@ class _LearningPathScreenState extends State<LearningPathScreen>
   }
 
   List<Map<String, dynamic>> _getRightItemsForTab(int tabIdx, double currentMa, int dayNum) {
-    if (dayNum == 2) {
-      // Day 2: Resistors and Current Limiting (Images 1, 2, 3)
-      if (tabIdx == 0) {
-        return [
-          {
-            'label': 'Ohm Ω',
-            'symbol': 'Σ',
-            'icon': LucideIcons.gauge,
-            'badge': 'Ohm (Ω)',
-            'title': 'Ohm (Ω): how much a part squeezes the current',
-            'desc': 'Small resistance (10 Ω) allows lots of current. Big resistance (1000 Ω) lets through only a little current!',
-            'color': const Color(0xFF0284C7),
-            'cardBg': const Color(0xFFE0F2FE),
-          },
-          {
-            'label': 'Colour bands',
-            'symbol': '🎨',
-            'icon': LucideIcons.palette,
-            'badge': '4 Bands',
-            'title': '4-Band Colour Coded Resistor',
-            'desc': 'Digits 1 and 2 set the base number; Band 3 multiplies by 10^N; Band 4 (Gold) gives ±5% precision tolerance.',
-            'color': const Color(0xFFEA580C),
-            'cardBg': const Color(0xFFFFEDD5),
-          },
-          {
-            'label': 'Static',
-            'symbol': '🔒',
-            'icon': LucideIcons.lock,
-            'badge': 'Fixed Resistor',
-            'title': 'Fixed Carbon Film Resistor',
-            'desc': 'Permanent unchanging resistance (like 220 Ω, 330 Ω, or 10 kΩ) engineered for rock-solid stability.',
-            'color': const Color(0xFF16A34A),
-            'cardBg': const Color(0xFFDCFCE7),
-          },
-          {
-            'label': 'Variable',
-            'symbol': '🎚️',
-            'icon': LucideIcons.sliders,
-            'badge': 'Potentiometer',
-            'title': 'Variable Resistor (Potentiometer)',
-            'desc': 'A rotating knob or slider that adjusts resistance continuously from 0 Ω to maximum for volume or speed control.',
-            'color': const Color(0xFF7E22CE),
-            'cardBg': const Color(0xFFF3E8FF),
-          },
-        ];
-      }
+    final compData = ComponentsCatalog.getData(_selectedComponent, _selectedLanguage);
+    final selectors = (compData['rightSelectors'] as List<dynamic>?) ?? [];
+
+    Color compColor = const Color(0xFF0284C7);
+    Color cardBg = const Color(0xFFE0F2FE);
+    if (_selectedComponent == 'battery') {
+      compColor = const Color(0xFF16A34A);
+      cardBg = const Color(0xFFDCFCE7);
+    } else if (_selectedComponent == 'led') {
+      compColor = const Color(0xFFE65100);
+      cardBg = const Color(0xFFFFEDD5);
+    } else if (_selectedComponent == 'resistor') {
+      compColor = const Color(0xFF0284C7);
+      cardBg = const Color(0xFFE0F2FE);
+    } else if (_selectedComponent == 'buzzer') {
+      compColor = const Color(0xFF9333EA);
+      cardBg = const Color(0xFFF3E8FF);
+    } else if (_selectedComponent == 'ssd') {
+      compColor = const Color(0xFFE11D48);
+      cardBg = const Color(0xFFFFE4E6);
     }
 
-    if (dayNum == 9) {
-      // Day 9: What is AI (Neural Networks & Learning from Data)
-      if (tabIdx == 0) {
-        return [
-          {
-            'label': 'Inputs',
-            'symbol': '📥',
-            'icon': LucideIcons.sparkles,
-            'badge': 'Data Features',
-            'title': 'Input Features (Sensors / Images)',
-            'desc': 'Raw inputs like camera pixels, temperature, or distance readings are fed into the network.',
-            'color': const Color(0xFF0284C7),
-            'cardBg': const Color(0xFFE0F2FE),
-          },
-          {
-            'label': 'Weights',
-            'symbol': '🧠',
-            'icon': LucideIcons.cpu,
-            'badge': 'Synaptic Weights',
-            'title': 'Hidden Layers & Neuron Weights',
-            'desc': 'Connected layers multiply inputs by learnable numbers (weights) that adjust during training.',
-            'color': const Color(0xFF7E22CE),
-            'cardBg': const Color(0xFFF3E8FF),
-          },
-          {
-            'label': 'Training',
-            'symbol': '🏋️',
-            'icon': LucideIcons.repeat,
-            'badge': '10,000 Examples',
-            'title': 'Supervised Pattern Learning',
-            'desc': 'AI learns by guessing, seeing mistakes, and tuning weights until its predictions match reality.',
-            'color': const Color(0xFFEA580C),
-            'cardBg': const Color(0xFFFFEDD5),
-          },
-          {
-            'label': 'Prediction',
-            'symbol': '🎯',
-            'icon': LucideIcons.checkCircle2,
-            'badge': 'Confidence %',
-            'title': 'Decision Output (e.g. 98% Cat)',
-            'desc': 'Produces probability scores to classify objects, translate words, or decide robot maneuvers.',
-            'color': const Color(0xFF16A34A),
-            'cardBg': const Color(0xFFDCFCE7),
-          },
-        ];
-      }
+    if (selectors.isNotEmpty) {
+      final List<String> symbols = ['+', '−', '⑃', 'Σ', '⚡', '🔊', '🔢', '🔒'];
+      return List.generate(selectors.length, (idx) {
+        final sel = selectors[idx] as Map<String, dynamic>;
+        final title = sel['title']?.toString() ?? 'Item ';
+        final sub = sel['sub']?.toString() ?? '';
+        final desc = sel['desc']?.toString() ?? '';
+        final icon = sel['icon'] as IconData? ?? LucideIcons.circle;
+        final symbol = (idx < symbols.length) ? symbols[idx] : '';
+        return {
+          'label': sub.isNotEmpty ? sub.split(' ').first : title,
+          'symbol': symbol,
+          'icon': icon,
+          'badge': sub,
+          'title': title,
+          'desc': desc,
+          'color': compColor,
+          'cardBg': cardBg,
+        };
+      });
     }
 
-    if (dayNum == 8) {
-      // Day 8: Ultrasonic Distance Sensor (HC-SR04)
-      if (tabIdx == 1) {
-        return [
-          {
-            'label': 'Bat Sonar',
-            'symbol': '🦇',
-            'icon': LucideIcons.radio,
-            'badge': 'Echo Ping',
-            'title': 'Echolocation (Bat Navigation)',
-            'desc': 'Just like a bat chirps and listens for the echo bounce off cave walls, HC-SR04 pings 40 kHz sound waves!',
-            'color': const Color(0xFF0284C7),
-            'cardBg': const Color(0xFFE0F2FE),
-          },
-          {
-            'label': 'Submarine',
-            'symbol': '🚢',
-            'icon': LucideIcons.compass,
-            'badge': 'Active Sonar',
-            'title': 'Submarine Undersea Sonar',
-            'desc': 'Submarines measure distance by timing the sound pulse round trip through water to undersea obstacles.',
-            'color': const Color(0xFF0D9488),
-            'cardBg': const Color(0xFFCCFBF1),
-          },
-          {
-            'label': 'Stopwatch',
-            'symbol': '⏱️',
-            'icon': LucideIcons.timer,
-            'badge': 'Time × Speed',
-            'title': 'High-Speed Microsecond Timer',
-            'desc': 'The Arduino stopwatch counts microseconds between sending TRIG pulse and receiving ECHO back.',
-            'color': const Color(0xFFD97706),
-            'cardBg': const Color(0xFFFEF3C7),
-          },
-          {
-            'label': 'Safety Shield',
-            'symbol': '🛡️',
-            'icon': LucideIcons.shieldCheck,
-            'badge': 'Wall Buffer',
-            'title': 'Invisible Safety Cushion',
-            'desc': 'Creates an invisible 20 cm distance bubble so autonomous robot cars stop before crashing into obstacles!',
-            'color': const Color(0xFF16A34A),
-            'cardBg': const Color(0xFFDCFCE7),
-          },
-        ];
-      }
-      if (tabIdx == 3) {
-        return [
-          {
-            'label': 'Robot Vac',
-            'symbol': '🤖',
-            'icon': LucideIcons.bot,
-            'badge': 'Smart Vacuum',
-            'title': 'Autonomous Robot Vacuums',
-            'desc': 'Uses ultrasonic and infrared pings to avoid furniture legs and map room boundaries safely.',
-            'color': const Color(0xFF0284C7),
-            'cardBg': const Color(0xFFE0F2FE),
-          },
-          {
-            'label': 'Car Parking',
-            'symbol': '🚗',
-            'icon': LucideIcons.gauge,
-            'badge': 'Bumper Radar',
-            'title': 'Automobile Reverse Parking Sensors',
-            'desc': 'Ultrasonic sensors embedded in car bumpers beep faster as you reverse closer to a wall or pole.',
-            'color': const Color(0xFF16A34A),
-            'cardBg': const Color(0xFFDCFCE7),
-          },
-          {
-            'label': 'Smart Bin',
-            'symbol': '🗑️',
-            'icon': LucideIcons.trash2,
-            'badge': 'Touchless Lid',
-            'title': 'Automatic Touchless Trash Bins',
-            'desc': 'Opens the lid automatically when your hand approaches within 15 cm of the sensor.',
-            'color': const Color(0xFFD97706),
-            'cardBg': const Color(0xFFFEF3C7),
-          },
-          {
-            'label': 'Liquid Tank',
-            'symbol': '🚰',
-            'icon': LucideIcons.droplets,
-            'badge': 'Water Gauge',
-            'title': 'Water Tank Level Monitoring',
-            'desc': 'Mounted on top of water tanks to measure water height without ever touching the liquid.',
-            'color': const Color(0xFF7E22CE),
-            'cardBg': const Color(0xFFF3E8FF),
-          },
-        ];
-      }
-    }
-
-    if (dayNum == 5) {
-      // Day 5: Buttons and Digital Input
-      if (tabIdx == 1) {
-        return [
-          {
-            'label': 'Drawbridge',
-            'symbol': '🌉',
-            'icon': LucideIcons.gitFork,
-            'badge': 'Open vs Closed',
-            'title': 'Mechanical Drawbridge Analogy',
-            'desc': 'When open, electrical traffic cannot cross (HIGH/disconnected); when pressed, traffic connects to GND (LOW)!',
-            'color': const Color(0xFF0284C7),
-            'cardBg': const Color(0xFFE0F2FE),
-          },
-          {
-            'label': 'Spring Coil',
-            'symbol': '🌀',
-            'icon': LucideIcons.rotateCw,
-            'badge': 'Momentary',
-            'title': 'Tactile Spring Return',
-            'desc': 'Springs back the moment your finger releases, making it ideal for momentary pulses and triggers.',
-            'color': const Color(0xFFD97706),
-            'cardBg': const Color(0xFFFEF3C7),
-          },
-          {
-            'label': 'Tug-of-War',
-            'symbol': '🪢',
-            'icon': LucideIcons.scale,
-            'badge': 'INPUT_PULLUP',
-            'title': 'Internal Pullup Resistor Tug',
-            'desc': 'A gentle internal 20kΩ spring keeps the pin pulled HIGH until a firm press grounds it to LOW.',
-            'color': const Color(0xFF16A34A),
-            'cardBg': const Color(0xFFDCFCE7),
-          },
-          {
-            'label': 'Bell Chime',
-            'symbol': '🔔',
-            'icon': LucideIcons.bell,
-            'badge': 'Trigger Event',
-            'title': 'Action Trigger (digitalRead == LOW)',
-            'desc': 'Detects the exact microsecond when a human interacts with the physical button to fire actions!',
-            'color': const Color(0xFF7E22CE),
-            'cardBg': const Color(0xFFF3E8FF),
-          },
-        ];
-      }
-    }
-
-    if (dayNum == 6) {
-      // Day 6: Buzzers + If-Else
-      if (tabIdx == 1) {
-        return [
-          {
-            'label': 'Guard Dog',
-            'symbol': '🐕',
-            'icon': LucideIcons.alertTriangle,
-            'badge': 'if / else',
-            'title': 'Vigilant Guard Dog Analogy',
-            'desc': 'IF an intruder trips the boundary sensor, bark loudly (tone(8, 1200)); ELSE remain quietly on guard (noTone(8))!',
-            'color': const Color(0xFF0284C7),
-            'cardBg': const Color(0xFFE0F2FE),
-          },
-          {
-            'label': 'Drumhead',
-            'symbol': '🥁',
-            'icon': LucideIcons.music,
-            'badge': 'Piezo Crystal',
-            'title': 'Vibrating Ceramic Drumhead',
-            'desc': 'A piezo disc expands and flexes hundreds of times per second when energized, pumping acoustic waves through the air.',
-            'color': const Color(0xFFD97706),
-            'cardBg': const Color(0xFFFEF3C7),
-          },
-          {
-            'label': 'Pitch Dial',
-            'symbol': '🎵',
-            'icon': LucideIcons.volume2,
-            'badge': 'Hertz (Hz)',
-            'title': 'Musical Frequency Pitch',
-            'desc': '440 Hz produces musical note A4; 1400 Hz produces a piercing emergency siren that demands immediate attention.',
-            'color': const Color(0xFF16A34A),
-            'cardBg': const Color(0xFFDCFCE7),
-          },
-          {
-            'label': 'Dual Branch',
-            'symbol': '🔀',
-            'icon': LucideIcons.gitBranch,
-            'badge': 'True / False',
-            'title': 'Two-Way Decision Switch',
-            'desc': 'If-else statements guarantee your microcontroller always knows what to do in both true and false conditions.',
-            'color': const Color(0xFF7E22CE),
-            'cardBg': const Color(0xFFF3E8FF),
-          },
-        ];
-      }
-    }
-
-    // 1. LIKE: Non-technical everyday memory analogies (Default / Days 1, 2, 3, 4, 7, 9, 10)
-    if (tabIdx == 1) {
-      return [
-        {
-          'label': 'Water Pump',
-          'symbol': '💧',
-          'icon': LucideIcons.droplets,
-          'badge': 'Pump = 5V Battery',
-          'title': 'High-Pressure Water Tank (Battery)',
-          'desc': 'Just like a water pump pushes water through a pipe, the 5V battery pushes electrons around the loop!',
-          'color': const Color(0xFF0284C7),
-          'cardBg': const Color(0xFFE0F2FE),
-        },
-        {
-          'label': 'Pinch Valve',
-          'symbol': '🚧',
-          'icon': LucideIcons.gauge,
-          'badge': 'Valve = ${_resistorOhms.toInt()} Ω',
-          'title': 'Narrow Speed-Valve (Resistor)',
-          'desc': 'Pinching a garden hose slows down rushing water so it doesn\'t break the delicate waterwheel!',
-          'color': const Color(0xFFD97706),
-          'cardBg': const Color(0xFFFEF3C7),
-        },
-        {
-          'label': 'Turnstile',
-          'symbol': '🎡',
-          'icon': LucideIcons.compass,
-          'badge': 'Wheel = LED',
-          'title': 'One-Way Glowing Waterwheel (LED)',
-          'desc': 'Spins and lights up only when water flows forward (+ to −), and blocks backward flow!',
-          'color': const Color(0xFF0D9488),
-          'cardBg': const Color(0xFFCCFBF1),
-        },
-        {
-          'label': 'Return Pipe',
-          'symbol': '🔄',
-          'icon': LucideIcons.repeat,
-          'badge': 'Drain = GND',
-          'title': 'Return Pipe Back to Tank (Ground)',
-          'desc': 'Water must return to the tank to keep circulating — just like current returning to GND (0V)!',
-          'color': const Color(0xFF16A34A),
-          'cardBg': const Color(0xFFDCFCE7),
-        },
-      ];
-    }
-
-    // 2. WHY: Cause & Effect (Burnout vs Protection)
-    if (tabIdx == 2) {
-      return [
-        {
-          'label': 'No Resistor',
-          'symbol': '💥',
-          'icon': LucideIcons.flame,
-          'badge': '85.0 mA DANGER',
-          'title': 'Without Resistor: Instant Burnout!',
-          'desc': 'Connecting 5V directly to a 2V LED forces 85 mA through the tiny crystal and overheats it.',
-          'color': const Color(0xFFDC2626),
-          'cardBg': const Color(0xFFFEE2E2),
-        },
-        {
-          'label': 'With 330 Ω',
-          'symbol': '🛡️',
-          'icon': LucideIcons.shieldCheck,
-          'badge': '${currentMa.toStringAsFixed(1)} mA SAFE',
-          'title': 'With ${_resistorOhms.toInt()} Ω Resistor: Protected Glow',
-          'desc': 'The resistor absorbs 3V of excess push and limits current to a cool, safe ${currentMa.toStringAsFixed(1)} mA.',
-          'color': const Color(0xFF16A34A),
-          'cardBg': const Color(0xFFDCFCE7),
-        },
-        {
-          'label': 'Ohm\'s Law',
-          'symbol': '⚖️',
-          'icon': LucideIcons.scale,
-          'badge': 'I = (5V−2V)÷R',
-          'title': 'More Resistance = Less Current',
-          'desc': 'Slide the resistor from 100 Ω to 1000 Ω on the left to watch the safe side dim smoothly.',
-          'color': const Color(0xFF0284C7),
-          'cardBg': const Color(0xFFE0F2FE),
-        },
-        {
-          'label': 'Long Life',
-          'symbol': '🔋',
-          'icon': LucideIcons.batteryCharging,
-          'badge': '50,000 Hours',
-          'title': 'Saves Battery & Component Life',
-          'desc': 'Limiting current prevents wasted heat and lets an LED shine for over 50,000 hours!',
-          'color': const Color(0xFFEA580C),
-          'cardBg': const Color(0xFFFFEDD5),
-        },
-      ];
-    }
-
-    // 3. WHERE: Real-World Everyday Places
-    if (tabIdx == 3) {
-      return [
-        {
-          'label': 'Traffic Light',
-          'symbol': '🚦',
-          'icon': LucideIcons.alertCircle,
-          'badge': 'Street Signals',
-          'title': 'Road Traffic Signal Lights',
-          'desc': 'Hundreds of bright Red, Amber, and Green LEDs wired with resistors warn drivers day and night.',
-          'color': const Color(0xFF16A34A),
-          'cardBg': const Color(0xFFDCFCE7),
-        },
-        {
-          'label': 'TV Remote',
-          'symbol': '📺',
-          'icon': LucideIcons.tv,
-          'badge': 'Infrared LED',
-          'title': 'TV Remote Control Transmitter',
-          'desc': 'An Infrared (IR) LED at the tip of your remote flashes invisible light pulses to change channels!',
-          'color': const Color(0xFF0284C7),
-          'cardBg': const Color(0xFFE0F2FE),
-        },
-        {
-          'label': 'Phone Torch',
-          'symbol': '📱',
-          'icon': LucideIcons.smartphone,
-          'badge': 'Camera Flash',
-          'title': 'Smartphone Flashlight & Screen',
-          'desc': 'Your phone\'s camera flash uses a high-efficiency white LED driven by a current-limiting circuit.',
-          'color': const Color(0xFFD97706),
-          'cardBg': const Color(0xFFFEF3C7),
-        },
-        {
-          'label': 'Robot Car',
-          'symbol': '🤖',
-          'icon': LucideIcons.bot,
-          'badge': 'Pin 13 Status',
-          'title': 'Arduino Robot Headlights & Status',
-          'desc': 'Robots use onboard LEDs to show battery power, obstacle detection alerts, and code status.',
-          'color': const Color(0xFF7E22CE),
-          'cardBg': const Color(0xFFF3E8FF),
-        },
-      ];
-    }
-
-    // 4. WHEN: Real-Time When to Use It & Trigger Rules
-    if (tabIdx == 4) {
-      return [
-        {
-          'label': 'Pin HIGH',
-          'symbol': '🟢',
-          'icon': LucideIcons.zap,
-          'badge': 'digitalWrite HIGH',
-          'title': 'When Arduino Pin Outputs 5V (HIGH)',
-          'desc': 'Use an LED + 330 Ω resistor whenever your code sets a digital pin HIGH to signal an event.',
-          'color': const Color(0xFF16A34A),
-          'cardBg': const Color(0xFFDCFCE7),
-        },
-        {
-          'label': 'Sensor Alert',
-          'symbol': '📡',
-          'icon': LucideIcons.radio,
-          'badge': 'Distance < 20cm',
-          'title': 'When a Sensor Detects an Obstacle',
-          'desc': 'Turn the warning LED ON inside an if-statement when the ultrasonic sensor reads < 20 cm.',
-          'color': const Color(0xFFEA580C),
-          'cardBg': const Color(0xFFFFEDD5),
-        },
-        {
-          'label': '5V vs 2V',
-          'symbol': '⚡',
-          'icon': LucideIcons.shieldAlert,
-          'badge': 'V_supply > V_led',
-          'title': 'Whenever Supply Voltage Exceeds 2V',
-          'desc': 'Any time your power source (3.3V, 5V, or 9V) is higher than the LED\'s 2V rating, add a resistor!',
-          'color': const Color(0xFF0284C7),
-          'cardBg': const Color(0xFFE0F2FE),
-        },
-        {
-          'label': 'Debug Check',
-          'symbol': '🔍',
-          'icon': LucideIcons.checkCircle2,
-          'badge': 'Visual Debug',
-          'title': 'When Testing If Your Loop Is Running',
-          'desc': 'Blinking an LED is the fastest way to verify that your microcontroller code is alive and looping.',
-          'color': const Color(0xFF7E22CE),
-          'cardBg': const Color(0xFFF3E8FF),
-        },
-      ];
-    }
-
-    // 0. Default WHAT: Technical Component Anatomy
     return [
       {
-        'label': 'Long leg +',
-        'symbol': '+',
-        'icon': Icons.lightbulb_rounded,
-        'badge': '+',
-        'title': 'Anode (+) — Long Leg',
-        'desc': 'Connects to the positive (+) 5V or Arduino digital output pin through a resistor.',
-        'color': const Color(0xFFDC2626),
-        'cardBg': const Color(0xFFEBF5DF),
-      },
-      {
-        'label': 'Short leg −',
-        'symbol': '−',
-        'icon': Icons.lightbulb_rounded,
-        'badge': '−',
-        'title': 'Cathode (−) — Short Leg',
-        'desc': 'Connects to the flat edge of the LED and returns current to Ground (GND 0V).',
-        'color': const Color(0xFF1E293B),
-        'cardBg': const Color(0xFFEBF5DF),
-      },
-      {
-        'label': 'Resistor',
-        'symbol': '—',
-        'icon': Icons.lightbulb_rounded,
-        'badge': '${_resistorOhms.toInt()} Ω',
-        'title': '${_resistorOhms.toInt()} Ω Current-Limiting Resistor',
-        'desc': 'Slows down electron flow to ${currentMa.toStringAsFixed(1)} mA so the LED never overheats.',
-        'color': const Color(0xFFD97706),
-        'cardBg': const Color(0xFFEBF5DF),
-      },
-      {
-        'label': 'Series /\nParallel',
-        'symbol': '⑃',
-        'icon': Icons.lightbulb_rounded,
-        'badge': '⑃',
-        'title': _circuitTopology == 0
-            ? 'Single LED Loop'
-            : (_circuitTopology == 1 ? '2 LEDs in Series' : '2 LEDs in Parallel'),
-        'desc': _circuitTopology == 1
-            ? 'In series, both LEDs share the same current path and split the 5V supply.'
-            : (_circuitTopology == 2
-                ? 'In parallel, each LED gets its own branch across the voltage supply.'
-                : 'A single closed loop where every electron passes through the resistor and LED.'),
-        'color': const Color(0xFF0284C7),
-        'cardBg': const Color(0xFFEBF5DF),
+        'label': 'Part',
+        'symbol': '•',
+        'icon': LucideIcons.box,
+        'badge': 'Component',
+        'title': 'Robotics Component',
+        'desc': 'Interactive circuit element.',
+        'color': compColor,
+        'cardBg': cardBg,
       },
     ];
   }
+
+  // ===========================================================================
+  // SSD (7-SEGMENT DISPLAY) INTERACTIVE CONTROLS
+  // ===========================================================================
+  Widget _buildSsdControls() {
+    final segNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'DP'];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(LucideIcons.hash, size: 16, color: Color(0xFFE11D48)),
+            const SizedBox(width: 8),
+            const Text(
+              'Select Digit (0–9) or Clear:',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            ...List.generate(10, (digit) {
+              final isSelected = _ssdDigit == digit;
+              return InkWell(
+                onTap: () => _setSsdDigit(digit),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFFE11D48) : Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isSelected ? const Color(0xFFE11D48) : const Color(0xFFCBD5E1),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: isSelected ? Colors.white : const Color(0xFF0F172A),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+            InkWell(
+              onTap: () => _setSsdDigit(8),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFCBD5E1)),
+                ),
+                child: const Text(
+                  'Reset (8)',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            const Text(
+              'Manual Segment Toggle:',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: List.generate(8, (idx) {
+                  final isOn = idx < _ssdSegments.length ? _ssdSegments[idx] : false;
+                  return InkWell(
+                    onTap: () => _toggleSsdSegment(idx),
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isOn ? const Color(0xFFE11D48) : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: isOn ? const Color(0xFFE11D48) : const Color(0xFFCBD5E1),
+                        ),
+                      ),
+                      child: Text(
+                        segNames[idx],
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: isOn ? Colors.white : const Color(0xFF334155),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ===========================================================================
+  // BUZZER INTERACTIVE FREQUENCY & TONE CONTROLS
+  // ===========================================================================
+  Widget _buildBuzzerControls() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(LucideIcons.volume2, size: 16, color: Color(0xFF9333EA)),
+            const SizedBox(width: 8),
+            Text(
+              'Buzzer Tone Pitch:  Hz',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            const Text('100 Hz', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+            Expanded(
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: const Color(0xFF9333EA),
+                  inactiveTrackColor: const Color(0xFFE2E8F0),
+                  thumbColor: const Color(0xFF9333EA),
+                  trackHeight: 6,
+                ),
+                child: Slider(
+                  value: _buzzerFrequency,
+                  min: 100,
+                  max: 5000,
+                  divisions: 49,
+                  label: ' Hz',
+                  onChanged: (v) => setState(() => _buzzerFrequency = v),
+                ),
+              ),
+            ),
+            const Text('5000 Hz', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            _buildTonePresetPill(440, '🎵 440 Hz (Note A4)'),
+            _buildTonePresetPill(880, '📢 880 Hz (Alert)'),
+            _buildTonePresetPill(2500, '🚨 2500 Hz (Alarm)'),
+            _buildTonePresetPill(4000, '⚡ 4000 Hz (Sonic)'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTonePresetPill(double freq, String label) {
+    final isSelected = (_buzzerFrequency - freq).abs() < 10;
+    return InkWell(
+      onTap: () => setState(() => _buzzerFrequency = freq),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF9333EA) : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF9333EA) : const Color(0xFFCBD5E1),
+            width: 1.2,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: isSelected ? Colors.white : const Color(0xFF0F172A),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // BATTERY VOLTAGE CONTROLS
+  // ===========================================================================
+  Widget _buildBatteryControls() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(LucideIcons.batteryCharging, size: 16, color: Color(0xFF16A34A)),
+            const SizedBox(width: 8),
+            Text(
+              'Battery DC Potential:  V',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            const Text('1.5 V', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+            Expanded(
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: const Color(0xFF16A34A),
+                  inactiveTrackColor: const Color(0xFFE2E8F0),
+                  thumbColor: const Color(0xFF16A34A),
+                  trackHeight: 6,
+                ),
+                child: Slider(
+                  value: _batteryVoltage,
+                  min: 1.5,
+                  max: 12.0,
+                  divisions: 21,
+                  label: ' V',
+                  onChanged: (v) => setState(() => _batteryVoltage = v),
+                ),
+              ),
+            ),
+            const Text('12.0 V', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            _buildBatteryPresetPill(1.5, '🔋 1.5V (AA Cell)'),
+            _buildBatteryPresetPill(3.3, '⚡ 3.3V (ESP32)'),
+            _buildBatteryPresetPill(5.0, '🔌 5.0V (Arduino)'),
+            _buildBatteryPresetPill(9.0, '⚡ 9.0V (Transistor)'),
+            _buildBatteryPresetPill(11.1, '🚗 11.1V (3S LiPo)'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBatteryPresetPill(double volt, String label) {
+    final isSelected = (_batteryVoltage - volt).abs() < 0.2;
+    return InkWell(
+      onTap: () => setState(() => _batteryVoltage = volt),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF16A34A) : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF16A34A) : const Color(0xFFCBD5E1),
+            width: 1.2,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: isSelected ? Colors.white : const Color(0xFF0F172A),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // AI TUTOR DOUBTS WIDGET (INTERACTIVE DOUBT CHAT WITH SUGGESTED PROMPTS & TTS)
+  // ===========================================================================
+  Widget _buildAiTutorDoubtsWidget(Map<String, dynamic> compData) {
+    final quickDoubts = (compData['quickDoubts'] as List<dynamic>?) ?? [];
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0284C7).withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(LucideIcons.bot, size: 20, color: Color(0xFF0284C7)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'AI Robotics Tutor —  Doubts',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const Text(
+                      'Tap a quick doubt chip below or type in your language!',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Suggested doubt prompt chips:
+          if (quickDoubts.isNotEmpty) ...[
+            const Text(
+              'Frequently Asked Doubts:',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: quickDoubts.map((d) {
+                final question = d.toString();
+                return InkWell(
+                  onTap: () => _askAiTutorDoubt(question),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFF38BDF8), width: 1.2),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(LucideIcons.helpCircle, size: 14, color: Color(0xFF0284C7)),
+                        const SizedBox(width: 6),
+                        Text(
+                          question,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0284C7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Chat messages conversation history:
+          if (_tutorChatMessages.isNotEmpty) ...[
+            Container(
+              constraints: const BoxConstraints(maxHeight: 280),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: _tutorChatMessages.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (context, idx) {
+                  final msg = _tutorChatMessages[idx];
+                  final isUser = msg['sender'] == 'student';
+                  final text = msg['text'] ?? '';
+                  return Align(
+                    alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 580),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isUser ? const Color(0xFF0284C7) : Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: isUser ? null : Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                isUser ? 'You' : 'AI Tutor Zola',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: isUser ? Colors.white70 : const Color(0xFF64748B),
+                                ),
+                              ),
+                              if (!isUser) ...[
+                                const SizedBox(width: 8),
+                                InkWell(
+                                  onTap: () => _speakText(text),
+                                  child: const Icon(LucideIcons.volume2, size: 14, color: Color(0xFF0284C7)),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            text,
+                            style: TextStyle(
+                              fontSize: 13,
+                              height: 1.35,
+                              color: isUser ? Colors.white : const Color(0xFF0F172A),
+                              fontWeight: isUser ? FontWeight.w600 : FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+
+          // Chat input bar:
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _tutorDoubtController,
+                  onSubmitted: (val) {
+                    if (val.trim().isNotEmpty) {
+                      _askAiTutorDoubt(val.trim());
+                    }
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Type your doubt about ...',
+                    hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF0284C7), width: 1.5),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              ElevatedButton.icon(
+                onPressed: () {
+                  final val = _tutorDoubtController.text.trim();
+                  if (val.isNotEmpty) {
+                    _askAiTutorDoubt(val);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0284C7),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                icon: const Icon(LucideIcons.send, size: 16),
+                label: const Text('Ask', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
 
   // ===========================================================================
   // DAY 2 RESISTOR COLOR CODE & OHM LAB CONTROLS (IMAGES 1, 2, 3)
@@ -1995,10 +2339,10 @@ class _LearningPathScreenState extends State<LearningPathScreen>
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFFEA580C) : Colors.white,
+                    color: isSelected ? const Color(0xFFE65100) : Colors.white,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: isSelected ? const Color(0xFFEA580C) : const Color(0xFF334155),
+                      color: isSelected ? const Color(0xFFE65100) : const Color(0xFF334155),
                       width: 1.2,
                     ),
                   ),
@@ -2110,10 +2454,10 @@ class _LearningPathScreenState extends State<LearningPathScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFEA580C) : Colors.white,
+          color: isSelected ? const Color(0xFFE65100) : Colors.white,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? const Color(0xFFEA580C) : const Color(0xFF334155),
+            color: isSelected ? const Color(0xFFE65100) : const Color(0xFF334155),
             width: 1.2,
           ),
         ),
@@ -2218,586 +2562,510 @@ class _LearningPathScreenState extends State<LearningPathScreen>
   }
 
   // ===========================================================================
-  // MODE 2: TRY IT — HANDS-ON PRACTICAL BUILD TO COMPLETE!
+  // MODE 2: TRY IT — HANDS-ON PRACTICAL BUILD TO COMPLETE! (IMAGE 1)
   // ===========================================================================
   Widget _buildDayTryItPracticalMode(bool isNarrow, int dayNum) {
-    final completedSteps = (_pracStep1Power ? 1 : 0) +
-        (_pracStep2Resistor ? 1 : 0) +
-        (_pracStep3Led ? 1 : 0) +
-        (_pracStep4Tested ? 1 : 0);
-    final allPracticalDone = completedSteps == 4;
+    final bothDone = _tryCircuitBuilderDone && _tryBreadboardDone;
+    final compData = ComponentsCatalog.getData(_selectedComponent, _selectedLanguage);
 
-    final leftBreadboardCanvas = Column(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // 1. Orange top notice banner
         Container(
-          height: 290,
-          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           decoration: BoxDecoration(
-            color: const Color(0xFFF3EFE6),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: allPracticalDone ? const Color(0xFF16A34A) : const Color(0xFF94A3B8),
-              width: 2,
-            ),
-          ),
-          child: AnimatedBuilder(
-            animation: _electronController,
-            builder: (context, _) => CustomPaint(
-              painter: _PracticalBuildBreadboardPainter(
-                step1Power: _pracStep1Power,
-                step2Resistor: _pracStep2Resistor,
-                step3Led: _pracStep3Led,
-                step4Tested: _pracStep4Tested,
-                progress: _electronController.value,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        // AI Tutor Helper Banner for the Practical
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEFF6FF),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFBFDBFE)),
+            color: const Color(0xFFFFF7ED),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFFFEDD5), width: 1.5),
           ),
           child: Row(
             children: [
-              const Text('🤖', style: TextStyle(fontSize: 22)),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'AI Tutor Practical Guide',
-                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5, color: Color(0xFF1E40AF)),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _pracTutorMsg,
-                      style: const TextStyle(fontSize: 12.5, color: Color(0xFF1E293B)),
-                    ),
-                  ],
-                ),
-              ),
-              TextButton.icon(
-                onPressed: () => _speakText(_pracTutorMsg),
-                icon: const Icon(LucideIcons.volume2, size: 15),
-                label: const Text('Speak', style: TextStyle(fontSize: 12)),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-
-    final rightChecklistColumn = Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                '🔧 Practical Tasks to Complete',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-              ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: allPracticalDone ? const Color(0xFFDCFCE7) : const Color(0xFFFFEDD5),
-                  borderRadius: BorderRadius.circular(12),
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE65100),
+                  shape: BoxShape.circle,
                 ),
+                child: const Icon(LucideIcons.wrench, size: 18, color: Colors.white),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
                 child: Text(
-                  '$completedSteps / 4 Done',
+                  'Now build it yourself. Open each builder, finish the goal, then come back here.',
                   style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w800,
-                    color: allPracticalDone ? const Color(0xFF16A34A) : const Color(0xFFEA580C),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          _buildPracticalStepTile(
-            stepNum: 1,
-            title: 'Connect 5V & GND Rails to Breadboard',
-            subtitle: 'Wire red +5V lead to top + rail and black GND lead to top − rail.',
-            done: _pracStep1Power,
-            onTap: () {
-              setState(() {
-                _pracStep1Power = true;
-                _pracTutorMsg =
-                    '✅ Step 1 Done! 5V and GND rails are powered. Next, tap Step 2 to insert the 330 Ω current-limiting resistor!';
-              });
-            },
-          ),
-          _buildPracticalStepTile(
-            stepNum: 2,
-            title: 'Insert 330 Ω Protection Resistor',
-            subtitle: 'Bridge from positive rail column 3 to column 7 with a 330 Ω resistor.',
-            done: _pracStep2Resistor,
-            onTap: () {
-              setState(() {
-                _pracStep1Power = true;
-                _pracStep2Resistor = true;
-                _pracTutorMsg =
-                    '✅ Step 2 Done! The 330 Ω resistor is in place. Now tap Step 3 to plug in the LED Anode (+) and Cathode (−) legs!';
-              });
-            },
-          ),
-          _buildPracticalStepTile(
-            stepNum: 3,
-            title: 'Wire LED Long Leg (+) & Short Leg (−)',
-            subtitle: 'Plug Anode (+) into column 7 with the resistor and Cathode (−) to GND.',
-            done: _pracStep3Led,
-            onTap: () {
-              setState(() {
-                _pracStep1Power = true;
-                _pracStep2Resistor = true;
-                _pracStep3Led = true;
-                _pracTutorMsg =
-                    '✅ Step 3 Done! The circuit loop is complete. Now tap Step 4 to power ON and test your practical build!';
-              });
-            },
-          ),
-          _buildPracticalStepTile(
-            stepNum: 4,
-            title: 'Run Practical Test (Verify 9.1 mA Glow)',
-            subtitle: 'Close switch SW1 and verify the LED lights up safely at 9.1 mA.',
-            done: _pracStep4Tested,
-            onTap: () {
-              setState(() {
-                _pracStep1Power = true;
-                _pracStep2Resistor = true;
-                _pracStep3Led = true;
-                _pracStep4Tested = true;
-                _pracTutorMsg =
-                    '🎉 Practical Completed! Your breadboard circuit is running at a safe 9.1 mA and the LED is glowing brightly. Ready for Bug Hunt!';
-              });
-            },
-          ),
-        ],
-      ),
-    );
-
-    if (isNarrow) {
-      return Column(
-        children: [
-          leftBreadboardCanvas,
-          const SizedBox(height: 16),
-          rightChecklistColumn,
-        ],
-      );
-    }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(flex: 6, child: leftBreadboardCanvas),
-        const SizedBox(width: 24),
-        Expanded(flex: 5, child: rightChecklistColumn),
-      ],
-    );
-  }
-
-  Widget _buildPracticalStepTile({
-    required int stepNum,
-    required String title,
-    required String subtitle,
-    required bool done,
-    required VoidCallback onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: done ? const Color(0xFFF0FDF4) : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: done ? const Color(0xFF16A34A) : const Color(0xFFCBD5E1),
-              width: done ? 1.6 : 1.0,
-            ),
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 14,
-                backgroundColor: done ? const Color(0xFF16A34A) : const Color(0xFF0284C7),
-                child: done
-                    ? const Icon(Icons.check_rounded, color: Colors.white, size: 16)
-                    : Text(
-                        '$stepNum',
-                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: done ? const Color(0xFF166534) : const Color(0xFF0F172A),
-                      ),
-                    ),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: done ? const Color(0xFF16A34A) : const Color(0xFFEA580C),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  done ? 'Done' : 'Complete',
-                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ===========================================================================
-  // MODE 3: BUG HUNT — IDENTIFY & FIX CIRCUIT / BREADBOARD BUGS WITH AI TUTOR!
-  // ===========================================================================
-  Widget _buildDayBugHuntMode(bool isNarrow) {
-    final fixedCount = (_bug1ResistorFixed ? 1 : 0) +
-        (_bug2PolarityFixed ? 1 : 0) +
-        (_bug3GroundFixed ? 1 : 0);
-    final allBugsFixed = fixedCount == 3;
-
-    final leftFaultyBreadboard = Column(
-      children: [
-        Container(
-          height: 290,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF3EFE6),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: allBugsFixed ? const Color(0xFF16A34A) : const Color(0xFFEA580C),
-              width: 2,
-            ),
-          ),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: AnimatedBuilder(
-                  animation: _electronController,
-                  builder: (context, _) => CustomPaint(
-                    painter: _BugHuntBreadboardPainter(
-                      bug1ResistorFixed: _bug1ResistorFixed,
-                      bug2PolarityFixed: _bug2PolarityFixed,
-                      bug3GroundFixed: _bug3GroundFixed,
-                      progress: _electronController.value,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 10,
-                left: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: allBugsFixed ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    allBugsFixed
-                        ? '✅ ALL 3 BREADBOARD BUGS FIXED (9.1 mA SAFE GLOW)'
-                        : '🐞 ${3 - fixedCount} HARDWARE BUG(S) ACTIVE ON BREADBOARD',
-                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
                   ),
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 20),
 
-        // AI Tutor Bug Detective Panel
+        // 2. White Card with 2 builders
         Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: const Color(0xFFEFF6FF),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFF93C5FD)),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(color: Color(0xFF2563EB), shape: BoxShape.circle),
-                    child: const Text('🤖', style: TextStyle(fontSize: 16)),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'AI Tutor Bug Detective: $_bugTutorPraise',
-                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF1E40AF)),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _bugTutorHint,
-                          style: const TextStyle(fontSize: 12.5, color: Color(0xFF0F172A)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              Text(
+                ': light it safely',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Goal: Power an LED through a resistor at a safe current.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 36,
-                      child: TextField(
-                        controller: _bugTutorInputController,
-                        onSubmitted: (_) => _askBugHuntAiTutor(),
-                        style: const TextStyle(fontSize: 12),
-                        decoration: InputDecoration(
-                          hintText: 'Ask AI Tutor to help find a bug on this breadboard...',
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(18),
-                            borderSide: const BorderSide(color: Color(0xFF93C5FD)),
-                          ),
-                        ),
+              const Text(
+                'Do it both ways. Both must be finished to unlock the next day.',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFFE65100),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // 1. Circuit builder
+              _buildTryItBuilderRow(
+                number: 1,
+                title: 'Circuit builder',
+                icon: Icons.cable,
+                isDone: _tryCircuitBuilderDone,
+                onTap: () async {
+                  final res = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => VirtualLabScreen(
+                        baseUrl: widget.baseUrl,
+                        initialSection: 0,
+                        isBugHunt: false,
+                        goalTitle: 'Power an LED through a resistor at a safe current.',
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    onPressed: _isAskingBugTutor ? null : () => _askBugHuntAiTutor(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2563EB),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  );
+                  if (res == true) {
+                    setState(() => _tryCircuitBuilderDone = true);
+                  }
+                },
+              ),
+              const SizedBox(height: 14),
+
+              // 2. Breadboard
+              _buildTryItBuilderRow(
+                number: 2,
+                title: 'Breadboard',
+                icon: LucideIcons.layoutGrid,
+                isDone: _tryBreadboardDone,
+                onTap: () async {
+                  final res = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => VirtualLabScreen(
+                        baseUrl: widget.baseUrl,
+                        initialSection: 2,
+                        isBugHunt: false,
+                        goalTitle: 'Power an LED through a resistor on the breadboard.',
+                      ),
                     ),
-                    icon: const Icon(LucideIcons.sparkles, size: 14),
-                    label: Text(
-                      _isAskingBugTutor ? 'Scanning...' : 'Ask AI Tutor Hint',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ],
+                  );
+                  if (res == true) {
+                    setState(() => _tryBreadboardDone = true);
+                  }
+                },
               ),
             ],
           ),
         ),
-      ],
-    );
 
-    final rightBugsList = Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF7ED),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFFED7AA)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                '🐞 Circuit & Breadboard Bugs',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF9A3412)),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: allBugsFixed ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '$fixedCount / 3 Fixed',
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w800,
-                    color: allBugsFixed ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Inspect the breadboard on the left and tap each identified hardware bug below to repair the circuit:',
-            style: TextStyle(fontSize: 12.5, color: Color(0xFF7C2D12)),
-          ),
-          const SizedBox(height: 12),
-
-          _buildBugFixCard(
-            bugNumber: 1,
-            title: 'Bug #1: Missing 330 Ω Resistor (Direct 5V Short)',
-            symptom: 'Red jumper bypasses resistance — 85 mA overcurrent will burn LED1!',
-            fixed: _bug1ResistorFixed,
-            onFix: () {
-              setState(() {
-                _bug1ResistorFixed = true;
-                _bugTutorPraise = 'Nice save! You inserted the 330 Ω resistor in series.';
-                _bugTutorHint = _getNextLocalBugHint();
-              });
-            },
-          ),
-          _buildBugFixCard(
-            bugNumber: 2,
-            title: 'Bug #2: Reversed LED Polarity (Cathode K at +)',
-            symptom: 'Short leg (−) is wired to resistor and Long leg (+) is wired toward GND.',
-            fixed: _bug2PolarityFixed,
-            onFix: () {
-              setState(() {
-                _bug2PolarityFixed = true;
-                _bugTutorPraise = 'Spot on! You flipped the LED so Anode (+) faces the resistor.';
-                _bugTutorHint = _getNextLocalBugHint();
-              });
-            },
-          ),
-          _buildBugFixCard(
-            bugNumber: 3,
-            title: 'Bug #3: Disconnected GND Return Jumper Wire',
-            symptom: 'Black jumper wire lands in an isolated row instead of the top − GND rail.',
-            fixed: _bug3GroundFixed,
-            onFix: () {
-              setState(() {
-                _bug3GroundFixed = true;
-                _bugTutorPraise = 'Awesome debugging! The ground return loop is now closed.';
-                _bugTutorHint = _getNextLocalBugHint();
-              });
-            },
-          ),
-        ],
-      ),
-    );
-
-    if (isNarrow) {
-      return Column(
-        children: [
-          leftFaultyBreadboard,
+        if (bothDone) ...[
           const SizedBox(height: 16),
-          rightBugsList,
+          const Text(
+            'Practical complete. Well done!',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF16A34A),
+            ),
+          ),
         ],
-      );
-    }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(flex: 6, child: leftFaultyBreadboard),
-        const SizedBox(width: 24),
-        Expanded(flex: 5, child: rightBugsList),
       ],
     );
   }
 
-  Widget _buildBugFixCard({
-    required int bugNumber,
+  Widget _buildTryItBuilderRow({
+    required int number,
     required String title,
-    required String symptom,
-    required bool fixed,
-    required VoidCallback onFix,
+    required IconData icon,
+    required bool isDone,
+    required VoidCallback onTap,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        onTap: onFix,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: fixed ? const Color(0xFFF0FDF4) : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: fixed ? const Color(0xFF16A34A) : const Color(0xFFFCA5A5),
-              width: 1.5,
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isDone ? const Color(0xFF16A34A) : Colors.transparent,
+              border: Border.all(
+                color: isDone ? const Color(0xFF16A34A) : const Color(0xFF94A3B8),
+                width: 2,
+              ),
             ),
+            child: isDone
+                ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Icon(icon, size: 18, color: const Color(0xFF475569)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '. ',
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF0F172A),
+              ),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: onTap,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isDone ? const Color(0xFF475569) : const Color(0xFFE65100),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            ),
+            icon: Icon(isDone ? LucideIcons.rotateCcw : LucideIcons.play, size: 14),
+            label: Text(
+              isDone ? 'Redo' : 'Build in Lab',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // MODE 3: BUG HUNT — FIX CIRCUIT & BREADBOARD BUGS (IMAGE 2)
+  // ===========================================================================
+  Widget _buildDayBugHuntMode(bool isNarrow) {
+    final compData = ComponentsCatalog.getData(_selectedComponent, _selectedLanguage);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // 1. Big Red Header Box
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFDC2626),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFDC2626).withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Row(
             children: [
-              Icon(
-                fixed ? LucideIcons.checkCircle2 : LucideIcons.bug,
-                color: fixed ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
-                size: 20,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(LucideIcons.bug, size: 22, color: Color(0xFFDC2626)),
               ),
-              const SizedBox(width: 10),
-              Expanded(
+              const SizedBox(width: 14),
+              const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      title,
+                      'BUG HUNT',
                       style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: fixed ? const Color(0xFF166534) : const Color(0xFF991B1B),
+                        color: Colors.white70,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.0,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
-                      symptom,
-                      style: const TextStyle(fontSize: 11.5, color: Color(0xFF475569)),
+                      'LED stays dark',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: fixed ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  fixed ? 'Fixed ✓' : 'Fix Bug #$bugNumber',
-                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800),
                 ),
               ),
             ],
           ),
         ),
+        const SizedBox(height: 14),
+
+        // 2. Alert Box
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF1F2),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFFECDD3)),
+          ),
+          child: const Row(
+            children: [
+              Icon(LucideIcons.search, size: 18, color: Color(0xFFE11D48)),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'The LED does not light. Look at how it is connected, then fix it and press Start.',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+
+        // 3. Card Box
+        Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Fix it both ways: first in the circuit builder, then on the breadboard. Both are needed to unlock the next day.',
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 18),
+
+              // 1. Circuit builder
+              _buildBugHuntBuilderRow(
+                number: 1,
+                title: 'Circuit builder',
+                icon: Icons.cable,
+                isFixed: _bugCircuitBuilderFixed,
+                onTap: () async {
+                  final res = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => VirtualLabScreen(
+                        baseUrl: widget.baseUrl,
+                        initialSection: 0,
+                        isBugHunt: true,
+                        goalTitle: 'LED stays dark. Fix missing resistor and start circuit!',
+                      ),
+                    ),
+                  );
+                  if (res == true) {
+                    setState(() => _bugCircuitBuilderFixed = true);
+                  }
+                },
+              ),
+              const SizedBox(height: 14),
+
+              // 2. Breadboard
+              _buildBugHuntBuilderRow(
+                number: 2,
+                title: 'Breadboard',
+                icon: LucideIcons.layoutGrid,
+                isFixed: _bugBreadboardFixed,
+                onTap: () async {
+                  final res = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => VirtualLabScreen(
+                        baseUrl: widget.baseUrl,
+                        initialSection: 2,
+                        isBugHunt: true,
+                        goalTitle: 'LED stays dark on breadboard. Fix connections and press Start!',
+                      ),
+                    ),
+                  );
+                  if (res == true) {
+                    setState(() => _bugBreadboardFixed = true);
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // 4. Bottom action links
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            InkWell(
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('💡 AI Tutor Hint: In the lab, check if the 330 Ω resistor is missing in series with the LED, and ensure the slide switch is closed!'),
+                    backgroundColor: Color(0xFF0284C7),
+                  ),
+                );
+              },
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(LucideIcons.lightbulb, size: 16, color: Color(0xFF0284C7)),
+                  SizedBox(width: 6),
+                  Text(
+                    'Stuck? Get a hint',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0284C7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            InkWell(
+              onTap: () {
+                setState(() {
+                  _bugCircuitBuilderFixed = true;
+                  _bugBreadboardFixed = true;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Staff bypass: Both bug hunt builders completed!'),
+                    backgroundColor: Color(0xFF16A34A),
+                  ),
+                );
+              },
+              child: const Text(
+                'Staff: skip the bug hunt',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0284C7),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBugHuntBuilderRow({
+    required int number,
+    required String title,
+    required IconData icon,
+    required bool isFixed,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isFixed ? const Color(0xFF16A34A) : Colors.transparent,
+              border: Border.all(
+                color: isFixed ? const Color(0xFF16A34A) : const Color(0xFF94A3B8),
+                width: 2,
+              ),
+            ),
+            child: isFixed
+                ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Icon(icon, size: 18, color: const Color(0xFF475569)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '. ',
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF0F172A),
+              ),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: onTap,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            ),
+            icon: Icon(isFixed ? LucideIcons.check : LucideIcons.wrench, size: 14),
+            label: Text(
+              isFixed ? 'Fixed (Redo)' : 'Fix it',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
       ),
     );
   }
+
 
   // ===========================================================================
   // MODE 4: QUIZ
@@ -3088,7 +3356,7 @@ class _InteractiveCircuitSchematicPainter extends CustomPainter {
     for (int i = -1; i <= 1; i++) {
       canvas.drawRect(
         Rect.fromCenter(center: Offset(resCenterX + (i * 11), top), width: 4, height: 16),
-        Paint()..color = i == 0 ? const Color(0xFF78350F) : const Color(0xFFEA580C),
+        Paint()..color = i == 0 ? const Color(0xFF78350F) : const Color(0xFFE65100),
       );
     }
     _drawText(canvas, '$resistorOhms Ω', Offset(resCenterX - 20, top - 32), const Color(0xFF0F172A), 13, FontWeight.w800);
@@ -3226,10 +3494,10 @@ class _InteractiveCircuitSchematicPainter extends CustomPainter {
       const Color(0xFF000000), // 0 Black
       const Color(0xFF78350F), // 1 Brown
       const Color(0xFFDC2626), // 2 Red
-      const Color(0xFFEA580C), // 3 Orange
+      const Color(0xFFE65100), // 3 Orange
       const Color(0xFFFACC15), // 4 Yellow
       const Color(0xFF16A34A), // 5 Green
-      const Color(0xFF2563EB), // 6 Blue
+      const Color(0xFF0077B6), // 6 Blue
       const Color(0xFF7C3AED), // 7 Violet
       const Color(0xFF6B7280), // 8 Grey
       const Color(0xFFFFFFFF), // 9 White
@@ -3995,7 +4263,7 @@ class _WhereRealWorldDevicesPainter extends CustomPainter {
         Rect.fromCenter(center: Offset(cx, cy), width: 140, height: 64),
         const Radius.circular(14),
       );
-      canvas.drawRRect(bodyRect, Paint()..color = const Color(0xFF2563EB));
+      canvas.drawRRect(bodyRect, Paint()..color = const Color(0xFF0077B6));
       canvas.drawCircle(Offset(cx - 42, cy + 34), 16, Paint()..color = const Color(0xFF1E293B));
       canvas.drawCircle(Offset(cx + 42, cy + 34), 16, Paint()..color = const Color(0xFF1E293B));
       canvas.drawCircle(Offset(cx + 70, cy - 10), 10, Paint()..color = const Color(0xFFFACC15));

@@ -1,3 +1,4 @@
+import '../widgets/bubble_background.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -8,8 +9,17 @@ import '../theme/app_theme.dart';
 
 class VirtualLabScreen extends StatefulWidget {
   final String baseUrl;
+  final int initialSection; // 0 = Schematic (Circuit builder), 2 = Breadboard
+  final bool isBugHunt;
+  final String? goalTitle;
 
-  const VirtualLabScreen({super.key, required this.baseUrl});
+  const VirtualLabScreen({
+    super.key,
+    required this.baseUrl,
+    this.initialSection = 2,
+    this.isBugHunt = false,
+    this.goalTitle,
+  });
 
   @override
   State<VirtualLabScreen> createState() => _VirtualLabScreenState();
@@ -74,6 +84,13 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
   @override
   void initState() {
     super.initState();
+    _activeSectionTab = widget.initialSection;
+    if (widget.isBugHunt) {
+      _hasResistor = false; // The bug! Missing resistor
+      _switchClosed = true;
+      _tutorPraise = 'Bug Hunt Mission: The LED does not light safely! Inspect the missing component.';
+      _tutorHint = 'Add the 330 Ω resistor to protect the circuit and press "Start"!';
+    }
     _electronController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2400),
@@ -199,16 +216,111 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
+    // Material ancestor: this screen is also pushed as its own route from the
+    // Learning Path, where there is no Scaffold above it.
+    // Own bubble background too, because the Learning Path opens this screen as a separate page.
+    return BubbleBackground(
+      child: Material(
+      color: Colors.transparent,
+      child: LayoutBuilder(
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 900;
 
         return Container(
-          color: Colors.white,
+          color: Colors.transparent,
           child: Column(
             children: [
               // 1. Top 4-Tab Section Bar (Schematic | Real components | Breadboard | IoT app)
               _buildTopSectionTabBar(isNarrow),
+
+              // Try It & Bug Hunt Mission Goal & Achievement Bar
+              if (widget.goalTitle != null || widget.isBugHunt)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: _isLedGlowing
+                        ? const Color(0xFFDCFCE7)
+                        : (widget.isBugHunt ? const Color(0xFFFEE2E2) : const Color(0xFFFEF3C7)),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: _isLedGlowing
+                            ? const Color(0xFF16A34A)
+                            : (widget.isBugHunt ? const Color(0xFFDC2626) : const Color(0xFFD97706)),
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _isLedGlowing
+                            ? Icons.check_circle_rounded
+                            : (widget.isBugHunt ? LucideIcons.bug : LucideIcons.target),
+                        color: _isLedGlowing
+                            ? const Color(0xFF16A34A)
+                            : (widget.isBugHunt ? const Color(0xFFDC2626) : const Color(0xFFD97706)),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _isLedGlowing
+                              ? (widget.isBugHunt
+                                  ? '🎉 Bug Solved! The circuit is running safely at ${_currentMa.toStringAsFixed(1)} mA.'
+                                  : '🎉 Practical Goal Complete! Current is safe at ${_currentMa.toStringAsFixed(1)} mA.')
+                              : (widget.goalTitle ??
+                                  (widget.isBugHunt
+                                      ? 'LED stays dark. Fix missing resistor or connections and press Start!'
+                                      : 'Power an LED through a resistor at a safe current.')),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: _isLedGlowing
+                                ? const Color(0xFF166534)
+                                : (widget.isBugHunt ? const Color(0xFF991B1B) : const Color(0xFF92400E)),
+                          ),
+                        ),
+                      ),
+                      if (_isLedGlowing) ...[
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF16A34A),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                          icon: const Icon(Icons.check_rounded, size: 16),
+                          label: const Text('Finish Goal & Return ✓', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                        ),
+                      ] else ...[
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _hasResistor = true;
+                              _switchClosed = true;
+                              _isRunning = true;
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: widget.isBugHunt ? const Color(0xFFDC2626) : const Color(0xFFE65100),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                          icon: const Icon(Icons.flash_on_rounded, size: 15),
+                          label: Text(
+                            widget.isBugHunt ? 'Auto-Fix & Test' : 'Connect & Test',
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
 
               // 2. Context-Sensitive Sub-Toolbar (matches Image 1, Image 2, or Image 3)
               _buildSectionSubToolbar(isNarrow),
@@ -224,6 +336,8 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
           ),
         );
       },
+      ),
+      ),
     );
   }
 
@@ -248,12 +362,14 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
         children: [
           IconButton(
             onPressed: () {
-              if (_activeSectionTab > 0) {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else if (_activeSectionTab > 0) {
                 setState(() => _activeSectionTab--);
               }
             },
             icon: const Icon(LucideIcons.arrowLeft, size: 18, color: Color(0xFF0F172A)),
-            tooltip: 'Previous Section',
+            tooltip: 'Back',
           ),
           Expanded(
             child: Row(
@@ -313,7 +429,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
                 decoration: BoxDecoration(
                   color: _showAiTutorPanel ? const Color(0xFFEFF6FF) : Colors.white,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFF2563EB)),
+                  border: Border.all(color: const Color(0xFF0077B6)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -323,7 +439,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
                       const SizedBox(width: 4),
                       const Text(
                         'AI Tutor',
-                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF2563EB)),
+                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF0077B6)),
                       ),
                     ],
                   ],
@@ -461,7 +577,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
                   width: 34,
                   height: 34,
                   decoration: const BoxDecoration(
-                    color: Color(0xFFEA580C),
+                    color: Color(0xFFE65100),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(LucideIcons.lightbulb, color: Colors.white, size: 17),
@@ -568,7 +684,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
                   setState(() => _showAiTutorPanel = true);
                   _askAiTutor();
                 },
-                icon: const Icon(LucideIcons.lightbulb, size: 18, color: Color(0xFFEA580C)),
+                icon: const Icon(LucideIcons.lightbulb, size: 18, color: Color(0xFFE65100)),
                 tooltip: 'AI Tutor Hint',
               ),
               IconButton(
@@ -660,10 +776,10 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: active ? const Color(0xFFEA580C) : Colors.white,
+          color: active ? const Color(0xFFE65100) : Colors.white,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: active ? const Color(0xFFEA580C) : const Color(0xFF334155),
+            color: active ? const Color(0xFFE65100) : const Color(0xFF334155),
           ),
         ),
         child: Row(
@@ -696,7 +812,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: active ? const Color(0xFFEA580C) : Colors.white,
+          color: active ? const Color(0xFFE65100) : Colors.white,
           borderRadius: BorderRadius.horizontal(
             left: isFirst ? const Radius.circular(19) : Radius.zero,
             right: isLast ? const Radius.circular(19) : Radius.zero,
@@ -722,7 +838,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: active ? const Color(0xFFEA580C) : Colors.transparent,
+          color: active ? const Color(0xFFE65100) : Colors.transparent,
           borderRadius: BorderRadius.circular(18),
         ),
         child: Row(
@@ -767,7 +883,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: const BoxDecoration(
-                  color: Color(0xFF2563EB),
+                  color: Color(0xFF0077B6),
                   shape: BoxShape.circle,
                 ),
                 child: const Text('🤖', style: TextStyle(fontSize: 15)),
@@ -778,7 +894,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'AI Tutor Alex: $_tutorPraise',
+                      'AI Tutor Zola: $_tutorPraise',
                       style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF1E40AF)),
                     ),
                     Text(
@@ -816,7 +932,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
               ElevatedButton(
                 onPressed: _isAskingTutor ? null : () => _askAiTutor(),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2563EB),
+                  backgroundColor: const Color(0xFF0077B6),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   minimumSize: const Size(60, 34),
                 ),
@@ -888,7 +1004,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
                   bottom: 14,
                   child: FloatingActionButton.small(
                     heroTag: 'schematic_help',
-                    backgroundColor: const Color(0xFF2563EB),
+                    backgroundColor: const Color(0xFF0077B6),
                     onPressed: () {
                       setState(() => _showAiTutorPanel = true);
                       _askAiTutor(customQuestion: 'How do I wire the schematic so the LED does not burn out?');
@@ -1168,7 +1284,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
                 const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(LucideIcons.box, size: 16, color: Color(0xFFEA580C)),
+                    Icon(LucideIcons.box, size: 16, color: Color(0xFFE65100)),
                     SizedBox(width: 8),
                     Text(
                       '3D Isometric Breadboard View — Drag on board or use sliders to rotate 3D angle:',
@@ -1186,7 +1302,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
                         value: _rotX,
                         min: -0.85,
                         max: 0.0,
-                        activeColor: const Color(0xFFEA580C),
+                        activeColor: const Color(0xFFE65100),
                         onChanged: (v) => setState(() => _rotX = v),
                       ),
                     ),
@@ -1197,7 +1313,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
                         value: _rotZ,
                         min: -0.6,
                         max: 0.6,
-                        activeColor: const Color(0xFFEA580C),
+                        activeColor: const Color(0xFFE65100),
                         onChanged: (v) => setState(() => _rotZ = v),
                       ),
                     ),
@@ -1358,7 +1474,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
                         const Spacer(),
                         Text(
                           _is3DMode ? '🧊 3D Active' : '⊞ 2D Active',
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFEA580C)),
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFE65100)),
                         ),
                         const SizedBox(height: 6),
                         Text(
@@ -1585,10 +1701,10 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFFEA580C) : Colors.white,
+                        color: isSelected ? const Color(0xFFE65100) : Colors.white,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: isSelected ? const Color(0xFFEA580C) : const Color(0xFF334155),
+                          color: isSelected ? const Color(0xFFE65100) : const Color(0xFF334155),
                         ),
                       ),
                       child: Row(
@@ -1742,7 +1858,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
           color: highlighted ? const Color(0xFFFFF7ED) : const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: highlighted ? const Color(0xFFEA580C) : const Color(0xFFE2E8F0),
+            color: highlighted ? const Color(0xFFE65100) : const Color(0xFFE2E8F0),
             width: highlighted ? 1.8 : 1.0,
           ),
         ),
@@ -2123,7 +2239,7 @@ class _RealComponentsTabPainter extends CustomPainter {
         canvas,
         'I = ${currentMa.toStringAsFixed(1)} mA',
         Offset((left + right) / 2 - 36, midY),
-        const Color(0xFFEA580C),
+        const Color(0xFFE65100),
         14,
       );
     }

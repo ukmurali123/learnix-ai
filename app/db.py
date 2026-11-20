@@ -148,21 +148,25 @@ def _get_sqlite_db() -> sqlite3.Connection:
 
     # Seed 10 Learning Path Days
     days_data = [
-        (1, 'What is an LED', 1, None, 'animated_steps'),
-        (2, 'Resistors', 2, None, 'simulation'),
-        (3, 'Ground and complete circuits', 10, None, 'labelled_diagram'),
-        (4, 'Digital output pins + loops', 3, 1, 'animated_steps'),
-        (5, 'Buttons and digital input', 5, None, 'animated_steps'),
-        (6, 'Buzzers + if-else', 6, 2, 'simulation'),
-        (7, 'Variables', 9, None, 'story_comic'),
+        (1, 'Battery (DC Power & Voltage)', 1, None, 'animated_steps'),
+        (2, 'LED (Light Emitting Diode)', 2, None, 'simulation'),
+        (3, 'Resistor (Current Limiter)', 3, None, 'labelled_diagram'),
+        (4, 'Buzzer (Piezo Sounder)', 4, 2, 'animated_steps'),
+        (5, 'SSD (7-Segment Display)', 5, None, 'animated_steps'),
+        (6, 'Ground and complete circuits', 10, None, 'simulation'),
+        (7, 'Digital output pins + loops', 9, 1, 'story_comic'),
         (8, 'Ultrasonic distance sensor', 8, 3, 'simulation'),
         (9, 'What is AI', 13, None, 'story_comic'),
-        (10, 'Image recognition basics', 14, None, 'comparison'),
+        (10, 'Smart Robotics Project', 14, None, 'comparison'),
     ]
     for d in days_data:
         conn.execute(
             "INSERT OR IGNORE INTO course_days (day_number, title, concept_id, experiment_id, visual_type) VALUES (?, ?, ?, ?, ?)",
             d,
+        )
+        conn.execute(
+            "UPDATE course_days SET title = ?, visual_type = ? WHERE day_number = ?",
+            (d[1], d[4], d[0]),
         )
     conn.commit()
 

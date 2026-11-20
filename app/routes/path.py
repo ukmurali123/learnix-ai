@@ -17,16 +17,36 @@ class DayCompleteRequest(BaseModel):
 DAY_QUIZZES = {
     1: [
         {
+            "question": "What kind of current is supplied by a standard chemical battery?",
+            "options": ["Direct Current (DC)", "Alternating Current (AC)", "Static Magnetic Flux", "Pulsed Radio Signal"],
+            "answer": 0,
+            "why": "Batteries supply steady Direct Current (DC), where electrons flow in one continuous direction."
+        },
+        {
+            "question": "What is the primary function of electrical voltage (V) in a circuit?",
+            "options": ["Electrical potential pressure that pushes electrons", "Resistance that slows current", "Light emitted by photons", "Sound waves in air"],
+            "answer": 0,
+            "why": "Voltage is electric potential difference — the push or pressure that forces electrons through a circuit."
+        },
+        {
+            "question": "What happens if you connect a battery's (+) terminal directly to its (−) terminal without any load?",
+            "options": ["A dangerous short circuit with extreme heat", "The battery charges instantly", "The voltage doubles", "Nothing happens"],
+            "answer": 0,
+            "why": "Zero resistance creates a short circuit: huge current rushes through, rapidly heating the battery and wires."
+        }
+    ],
+    2: [
+        {
             "question": "Which leg of an LED is the positive Anode?",
             "options": ["The longer leg", "The shorter leg", "Either leg", "The bent leg"],
             "answer": 0,
             "why": "The longer leg of an LED is always the positive Anode (+) and must face positive voltage."
         },
         {
-            "question": "What happens if you connect an LED backwards in a DC circuit?",
+            "question": "What happens if you connect an LED backwards (reverse bias) in a DC circuit?",
             "options": ["It stays off and blocks current", "It glows brighter", "It catches fire", "It beeps"],
             "answer": 0,
-            "why": "A diode only allows current to flow in one direction (forward bias). In reverse bias, it blocks current."
+            "why": "A diode only allows current to flow in forward bias (anode to cathode). In reverse bias, it blocks current."
         },
         {
             "question": "What does LED stand for?",
@@ -35,84 +55,64 @@ DAY_QUIZZES = {
             "why": "LED stands for Light Emitting Diode."
         }
     ],
-    2: [
-        {
-            "question": "Why is a resistor mandatory when connecting an LED to 5V?",
-            "options": ["It limits current so the LED won't burn out", "It increases voltage", "It stores electric charge", "It converts AC to DC"],
-            "answer": 0,
-            "why": "An LED has very low internal resistance. Without a resistor, excessive current will destroy the semiconductor junction."
-        },
-        {
-            "question": "If you increase the resistor from 220Ω to 1000Ω, what happens to the LED?",
-            "options": ["It glows dimmer because current decreases", "It glows brighter", "It flashes rapidly", "Nothing changes"],
-            "answer": 0,
-            "why": "Ohm's Law (I = V/R) means higher resistance reduces current, making the LED dimmer."
-        },
-        {
-            "question": "What is the unit used to measure electrical resistance?",
-            "options": ["Ohms (Ω)", "Volts (V)", "Amperes (A)", "Watts (W)"],
-            "answer": 0,
-            "why": "Resistance is measured in Ohms, symbolized by the Greek letter Omega (Ω)."
-        }
-    ],
     3: [
         {
-            "question": "What happens if a circuit wire to Ground (GND) is disconnected?",
-            "options": ["The circuit is open and no current flows", "Current speeds up", "The battery charges itself", "Only half the light glows"],
+            "question": "Why is a resistor mandatory when connecting an LED to a 5V source?",
+            "options": ["It limits current so the LED won't burn out", "It increases voltage", "It stores electric charge", "It converts AC to DC"],
             "answer": 0,
-            "why": "Electric current must have an unbroken, closed loop from power back to GND for electrons to move."
+            "why": "An LED has very low internal resistance. Without a resistor, 85+ mA forces through and overheats the semiconductor."
         },
         {
-            "question": "In standard circuit wiring, which terminal has zero electrical potential?",
-            "options": ["GND (Ground / 0V)", "5V Power rail", "Anode (+)", "Digital Pin HIGH"],
+            "question": "According to Ohm's Law (I = V ÷ R), if you increase resistance from 220 Ω to 1,000 Ω, current will:",
+            "options": ["Decrease, making the circuit cooler and dimmer", "Increase rapidly", "Double in speed", "Drop to absolute zero instantly"],
             "answer": 0,
-            "why": "Ground (GND) is the 0V reference point that completes the return path of any circuit."
+            "why": "Current is inversely proportional to resistance. Higher Ohms = lower mA flow."
         },
         {
-            "question": "What creates a dangerous 'short circuit'?",
-            "options": ["Connecting 5V directly to GND without any load", "Using a 1000Ω resistor", "Placing an LED in reverse", "Connecting to pin 13"],
+            "question": "On a 4-band resistor with Brown (1), Black (0), Red (×100), Gold (±5%), what is its resistance?",
+            "options": ["1,000 Ω (1.00 kΩ)", "102 Ω", "10,000 Ω", "100 Ω"],
             "answer": 0,
-            "why": "A direct connection between power and ground with zero resistance causes an infinite current spike."
+            "why": "Digits 1 and 0 combined give 10, multiplied by 10^2 (100) equals 1,000 Ω (1 kΩ) with ±5% tolerance."
         }
     ],
     4: [
         {
-            "question": "In Arduino code, which function sets a pin to supply 5V?",
-            "options": ["digitalWrite(pin, HIGH);", "digitalRead(pin);", "pinMode(pin, INPUT);", "analogRead(pin);"],
+            "question": "Which Arduino command generates a musical alarm tone on a piezo buzzer?",
+            "options": ["tone(pin, frequency);", "sound(pin, volume);", "buzz(pin, HIGH);", "digitalWrite(pin, 440);"],
             "answer": 0,
-            "why": "digitalWrite(pin, HIGH) applies 5 volts to the specified output pin."
+            "why": "tone(pin, frequency) oscillates the pin at the specified audio frequency in Hertz."
         },
         {
-            "question": "How often does Arduino execute the code inside loop()?",
-            "options": ["Repeatedly in an endless loop", "Only once when powered on", "Only when a button is pressed", "Every 10 minutes"],
+            "question": "How does a piezoelectric buzzer generate audible sound waves?",
+            "options": ["A piezo ceramic disc rapidly flexes and vibrates air molecules", "A tiny speaker cone with paper tape", "Chemical combustion pulses", "Spinning mechanical wheels"],
             "answer": 0,
-            "why": "The loop() function runs over and over continuously while the Arduino has power."
+            "why": "A piezoelectric crystal flexes mechanically when voltage pulses are applied, vibrating air into acoustic sound waves."
         },
         {
-            "question": "What does delay(1000); do in an Arduino sketch?",
-            "options": ["Pauses execution for 1000 milliseconds (1 second)", "Increases speed by 1000%", "Repeats code 1000 times", "Turns off pin 10"],
+            "question": "How do you silence an active buzzer in Arduino code?",
+            "options": ["noTone(pin);", "digitalWrite(pin, LOW);", "tone(pin, 0);", "delay(0);"],
             "answer": 0,
-            "why": "delay(ms) halts the microcontroller for the given number of milliseconds."
+            "why": "noTone(pin) completely stops square wave frequency oscillation on that buzzer pin."
         }
     ],
     5: [
         {
-            "question": "What mode keeps a push button pin HIGH until pressed?",
-            "options": ["pinMode(pin, INPUT_PULLUP);", "pinMode(pin, OUTPUT);", "pinMode(pin, HIGH);", "analogMode(pin);"],
+            "question": "In a 7-Segment Display (SSD), how many LED segments are turned ON to display digit '8'?",
+            "options": ["All 7 segments (A, B, C, D, E, F, G)", "Only 5 segments", "Only 3 segments", "0 segments"],
             "answer": 0,
-            "why": "INPUT_PULLUP activates Arduino's internal pull-up resistor, keeping the input HIGH until pressed to GND."
+            "why": "Digit 8 uses every single segment (A through G) in the figure-8 array."
         },
         {
-            "question": "When a button wired with INPUT_PULLUP is pressed down to GND, digitalRead() returns:",
-            "options": ["LOW (0)", "HIGH (1)", "5V", "1023"],
+            "question": "Which two segments light up to display the number '1' on an SSD?",
+            "options": ["B and C (the two rightmost vertical bars)", "A and D", "F and E", "G and DP"],
             "answer": 0,
-            "why": "Pressing the button connects the pin to GND, pulling its voltage down to LOW (0)."
+            "why": "Segments B (top-right) and C (bottom-right) illuminate to render the vertical digit 1."
         },
         {
-            "question": "Which component is an active digital input sensor?",
-            "options": ["Tactile Push Button", "Buzzer", "Red LED", "Resistor"],
+            "question": "What is the primary benefit of using an SSD in robotics projects?",
+            "options": ["Provides clear numeric telemetry (scores, distances, timers)", "Speeds up motor rotation", "Filters electrical noise", "Provides high-power battery storage"],
             "answer": 0,
-            "why": "A push button inputs user physical contact signals into the microcontroller."
+            "why": "7-Segment Displays provide instant human-readable numeric readout of sensor telemetry and counters."
         }
     ],
     6: [

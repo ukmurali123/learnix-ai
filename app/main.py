@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app import db
-from app.routes import coach, concept_studio, lab, path, reports, students
+from app.routes import coach, concept_studio, concept_visual, lab, path, reports, students
 
 app = FastAPI(
     title="Learnix AI",
@@ -32,6 +32,7 @@ def health_check():
 
 
 app.include_router(students.router)
+app.include_router(concept_visual.router)
 app.include_router(concept_studio.router)
 app.include_router(lab.router)
 app.include_router(coach.router)

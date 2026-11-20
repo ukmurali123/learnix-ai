@@ -342,42 +342,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ).animate().fadeIn(delay: 150.ms, duration: 400.ms),
                     ],
                   ),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: tokens.space16,
-                      vertical: tokens.space8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: tokens.accentLight,
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: tokens.accent.withOpacity(0.3), width: 1.5),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('🔥', style: TextStyle(fontSize: 20)),
-                        SizedBox(width: tokens.space8),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '5-DAY STREAK',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: tokens.accent,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            Text(
-                              'Mastery on fire!',
-                              style: TextStyle(fontSize: 12, color: tokens.textPrimary, fontWeight: FontWeight.w600),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ).animate().fadeIn(duration: 500.ms).scale(begin: const Offset(0.9, 0.9)),
                 ],
               ),
 
@@ -433,7 +397,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               Text(
-                                'AI Tutor Alex — Diagnostic Feedback',
+                                'AI Tutor Zola — Diagnostic Feedback',
                                 style: textTheme.titleMedium?.copyWith(color: tokens.accent),
                               ),
                               TextButton.icon(

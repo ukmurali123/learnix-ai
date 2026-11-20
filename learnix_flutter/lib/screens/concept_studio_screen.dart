@@ -1567,7 +1567,7 @@ class _ConceptStudioScreenState extends State<ConceptStudioScreen>
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
-                                      color: selected == answerIdx ? const Color(0xFF16A34A) : const Color(0xFFEA580C),
+                                      color: selected == answerIdx ? const Color(0xFF16A34A) : const Color(0xFFE65100),
                                     ),
                                   ),
                                 ],
