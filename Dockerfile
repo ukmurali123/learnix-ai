@@ -18,6 +18,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application and static assets
 COPY app/ ./app/
 COPY static/ ./static/
+COPY learnix_flutter/ ./learnix_flutter/
 
 EXPOSE 8080
 
