@@ -27,7 +27,6 @@ class _LearningPathScreenState extends State<LearningPathScreen> {
   bool _isLoading = true;
   List<dynamic> _days = [];
   int _completedCount = 0;
-  int _currentDay = 1;
 
   @override
   void initState() {
@@ -43,7 +42,6 @@ class _LearningPathScreenState extends State<LearningPathScreen> {
         final data = jsonDecode(res.body);
         _days = data['days'] ?? [];
         _completedCount = data['completed_count'] ?? 0;
-        _currentDay = data['current_day'] ?? 1;
       }
     } catch (e) {
       debugPrint('Error fetching path: $e');
@@ -68,7 +66,7 @@ class _LearningPathScreenState extends State<LearningPathScreen> {
         final revision = data['revision'];
         if (revision != null && revision['needed'] == true) {
           _showRevisionDialog(revision);
-        } else {
+        } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               backgroundColor: const Color(0xFF16A34A),
@@ -91,40 +89,42 @@ class _LearningPathScreenState extends State<LearningPathScreen> {
           children: [
             Text('🤖', style: TextStyle(fontSize: 24)),
             SizedBox(width: 12),
-            Text('AI Tutor: Quick Revision Step'),
+            Expanded(child: Text('AI Tutor: Quick Revision Step')),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(revision['recap'] ?? 'Let\'s reinforce this concept together!'),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade50,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  const Text('💡', style: TextStyle(fontSize: 20)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      revision['analogy'] ?? '',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(revision['recap'] ?? 'Let\'s reinforce this concept together!'),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Text('💡', style: TextStyle(fontSize: 20)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        revision['analogy'] ?? '',
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Tutor Tip: ${revision['coach_tip'] ?? ''}',
-              style: const TextStyle(fontSize: 13, color: Colors.blueGrey, fontStyle: FontStyle.italic),
-            ),
-          ],
+              const SizedBox(height: 12),
+              Text(
+                'Tutor Tip: ${revision['coach_tip'] ?? ''}',
+                style: const TextStyle(fontSize: 13, color: Colors.blueGrey, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
         ),
         actions: [
           ElevatedButton(
@@ -146,91 +146,73 @@ class _LearningPathScreenState extends State<LearningPathScreen> {
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Container(
-          width: 720,
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2563EB),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          'DAY $dayNum',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        title,
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    icon: const Icon(LucideIcons.x),
-                  ),
-                ],
-              ),
-              const Divider(height: 32),
-
-              // Step 1: Learn
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Icon(LucideIcons.bookOpen, color: Color(0xFF2563EB)),
-                    const SizedBox(width: 12),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Wrap(
+                        spacing: 12,
+                        runSpacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          const Text('Step 1: Learn with Visual Diagram', style: TextStyle(fontWeight: FontWeight.bold)),
-                          Text(conceptSummary, style: const TextStyle(fontSize: 13, color: Colors.black87)),
-                          const SizedBox(height: 4),
-                          Text('Visual Model Type: [$vType]', style: const TextStyle(fontSize: 11, color: Colors.blueGrey, fontWeight: FontWeight.w600)),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2563EB),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'DAY $dayNum',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                          ),
+                          Text(
+                            title,
+                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
                         ],
                       ),
                     ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      icon: const Icon(LucideIcons.x),
+                    ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 16),
+                const Divider(height: 28),
 
-              // Step 2: Try in Lab (if exists)
-              if (exp != null) ...[
+                // Step 1: Learn
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF7ED),
+                    color: const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(LucideIcons.flaskConical, color: Color(0xFFF97316)),
+                      const Icon(LucideIcons.bookOpen, color: Color(0xFF2563EB)),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Step 2: Try in Virtual Lab — ${exp['title']}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            Text(exp['goal'] ?? '', style: const TextStyle(fontSize: 13, color: Colors.black87)),
+                            const Text('Step 1: Learn with Visual Diagram', style: TextStyle(fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 4),
+                            Text(conceptSummary, style: const TextStyle(fontSize: 13, color: Colors.black87)),
+                            const SizedBox(height: 4),
+                            Text('Visual Model Type: [$vType]', style: const TextStyle(fontSize: 11, color: Colors.blueGrey, fontWeight: FontWeight.w600)),
                           ],
                         ),
                       ),
@@ -238,54 +220,86 @@ class _LearningPathScreenState extends State<LearningPathScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-              ],
 
-              // Step 3: Check Quiz
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDF4),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(LucideIcons.checkSquare, color: Color(0xFF16A34A)),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Step 3: Check Mastery with 3-Question Quiz', style: TextStyle(fontWeight: FontWeight.bold)),
-                          Text('Score 3/3 to unlock the next day, or receive encouragement and hints from AI Tutor Alex.', style: TextStyle(fontSize: 13, color: Colors.black87)),
-                        ],
+                // Step 2: Try in Lab (if exists)
+                if (exp != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF7ED),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(LucideIcons.flaskConical, color: Color(0xFFF97316)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Step 2: Try in Virtual Lab — ${exp['title']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 4),
+                              Text(exp['goal'] ?? '', style: const TextStyle(fontSize: 13, color: Colors.black87)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Step 3: Check Quiz
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(LucideIcons.checkSquare, color: Color(0xFF16A34A)),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Step 3: Check Mastery with 3-Question Quiz', style: TextStyle(fontWeight: FontWeight.bold)),
+                            SizedBox(height: 4),
+                            Text('Score 3/3 to unlock the next day, or receive encouragement and hints from AI Tutor Alex.', style: TextStyle(fontSize: 13, color: Colors.black87)),
+                          ],
+                        ),
                       ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Action buttons
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  alignment: WrapAlignment.end,
+                  children: [
+                    OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Close'),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _completeDay(dayNum, 3);
+                      },
+                      icon: const Icon(LucideIcons.checkCheck, size: 18),
+                      label: const Text('Finish Mission & Quiz (3/3)'),
                     ),
                   ],
                 ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Action buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('Close'),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      _completeDay(dayNum, 3);
-                    },
-                    icon: const Icon(LucideIcons.checkCheck, size: 18),
-                    label: const Text('Finish Mission & Quiz (Score: 3/3)'),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -301,54 +315,64 @@ class _LearningPathScreenState extends State<LearningPathScreen> {
       return Center(child: CircularProgressIndicator(color: tokens.primary));
     }
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(tokens.space32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 700;
+        final pad = isNarrow ? tokens.space16 : tokens.space32;
+        final crossAxisCount = constraints.maxWidth > 1100 ? 3 : (constraints.maxWidth > 700 ? 2 : 1);
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(pad),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // Header
+              Wrap(
+                spacing: tokens.space16,
+                runSpacing: tokens.space12,
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Text('🗺️ 10-Day Robotics Curriculum Roadmap', style: textTheme.displayLarge),
-                  SizedBox(height: tokens.space8),
-                  Text('Progress along the connected journey path. Master each day to unlock the next.', style: textTheme.bodyMedium),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '🗺️ 10-Day Robotics Curriculum Roadmap',
+                        style: isNarrow ? textTheme.headlineMedium : textTheme.displayLarge,
+                      ),
+                      SizedBox(height: tokens.space8),
+                      Text(
+                        'Progress along the connected journey path. Master each day to unlock the next.',
+                        style: textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: tokens.space16, vertical: tokens.space8),
+                    decoration: BoxDecoration(
+                      color: tokens.primaryLight,
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: tokens.primary.withOpacity(0.3)),
+                    ),
+                    child: Text(
+                      '$_completedCount of ${_days.length} Days Mastered (${((_completedCount / (_days.isEmpty ? 1 : _days.length)) * 100).toInt()}%)',
+                      style: TextStyle(color: tokens.primary, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
                 ],
               ),
-              // Progress pill
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: tokens.space16, vertical: tokens.space8),
-                decoration: BoxDecoration(
-                  color: tokens.primaryLight,
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: tokens.primary.withOpacity(0.3)),
-                ),
-                child: Text(
-                  '$_completedCount of ${_days.length} Days Mastered (${((_completedCount / (_days.isEmpty ? 1 : _days.length)) * 100).toInt()}%)',
-                  style: TextStyle(color: tokens.primary, fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-              ),
-            ],
-          ),
 
-          SizedBox(height: tokens.space32),
+              SizedBox(height: isNarrow ? tokens.space20 : tokens.space32),
 
-          // Journey Grid with Connecting Visual Flow
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final crossAxisCount = constraints.maxWidth > 1100 ? 3 : (constraints.maxWidth > 700 ? 2 : 1);
-
-              return GridView.builder(
+              // Journey Grid
+              GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: tokens.space24,
-                  mainAxisSpacing: tokens.space24,
-                  childAspectRatio: 1.35,
+                  crossAxisSpacing: tokens.space20,
+                  mainAxisSpacing: tokens.space20,
+                  mainAxisExtent: 235,
                 ),
                 itemCount: _days.length,
                 itemBuilder: (context, index) {
@@ -372,11 +396,10 @@ class _LearningPathScreenState extends State<LearningPathScreen> {
                     backgroundColor: cardBg,
                     borderColor: borderColor,
                     onTap: isLocked ? null : () => _openMissionModal(day),
-                    padding: EdgeInsets.all(tokens.space24),
+                    padding: EdgeInsets.all(tokens.space20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Card Top Bar
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -430,20 +453,16 @@ class _LearningPathScreenState extends State<LearningPathScreen> {
                           ],
                         ),
                         SizedBox(height: tokens.space12),
-
-                        // Title
                         Text(
                           day['title'] ?? '',
                           style: textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                             color: isLocked ? Colors.grey : tokens.textPrimary,
                           ),
-                          maxLines: 2,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         SizedBox(height: tokens.space8),
-
-                        // Summary
                         Text(
                           day['concept']?['summary'] ?? '',
                           style: textTheme.bodyMedium?.copyWith(
@@ -453,10 +472,7 @@ class _LearningPathScreenState extends State<LearningPathScreen> {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-
                         const Spacer(),
-
-                        // Footer Tags & Action
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -478,7 +494,7 @@ class _LearningPathScreenState extends State<LearningPathScreen> {
                                   backgroundColor: tokens.accent,
                                   padding: EdgeInsets.symmetric(horizontal: tokens.space16, vertical: tokens.space8),
                                 ),
-                                child: const Text('Start &rarr;', style: TextStyle(fontSize: 12)),
+                                child: const Text('Start →', style: TextStyle(fontSize: 12)),
                               )
                             else if (isDone)
                               TextButton(
@@ -491,11 +507,11 @@ class _LearningPathScreenState extends State<LearningPathScreen> {
                     ),
                   ).animate().fadeIn(delay: (index * 40).ms, duration: 300.ms).slideY(begin: 0.05, end: 0);
                 },
-              );
-            },
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

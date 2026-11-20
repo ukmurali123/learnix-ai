@@ -60,21 +60,20 @@ class _MainShellScreenState extends State<MainShellScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth > 900;
+        final isCompactHeader = constraints.maxWidth < 680;
 
         return Scaffold(
-          appBar: _buildAppBar(context, tokens, isWide),
+          appBar: _buildAppBar(context, tokens, isWide, isCompactHeader),
           drawer: isWide ? null : _buildDrawer(tokens),
           bottomNavigationBar: isWide ? null : _buildBottomNavigationBar(tokens),
           body: Stack(
             children: [
               Row(
                 children: [
-                  // Wide Screen Navigation Rail / Sidebar
                   if (isWide) ...[
                     _buildSidebar(tokens),
                     VerticalDivider(thickness: 1, width: 1, color: tokens.borderSubtle),
                   ],
-                  // Main Content View
                   Expanded(
                     child: Container(
                       color: tokens.surfaceBg,
@@ -83,7 +82,6 @@ class _MainShellScreenState extends State<MainShellScreen> {
                   ),
                 ],
               ),
-              // Confetti Overlay
               Align(
                 alignment: Alignment.topCenter,
                 child: ConfettiWidget(
@@ -110,11 +108,17 @@ class _MainShellScreenState extends State<MainShellScreen> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context, AppTokens tokens, bool isWide) {
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+    AppTokens tokens,
+    bool isWide,
+    bool isCompactHeader,
+  ) {
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
       scrolledUnderElevation: 1,
+      titleSpacing: isCompactHeader ? 4 : 16,
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
         child: Container(color: tokens.borderSubtle, height: 1),
@@ -128,9 +132,10 @@ class _MainShellScreenState extends State<MainShellScreen> {
               ),
             ),
       title: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [tokens.primary, const Color(0xFF1D4ED8)],
@@ -139,26 +144,32 @@ class _MainShellScreenState extends State<MainShellScreen> {
               ),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(LucideIcons.zap, color: Colors.white, size: 18),
+            child: const Icon(LucideIcons.zap, color: Colors.white, size: 17),
           ),
-          SizedBox(width: tokens.space12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Learnix AI',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: tokens.textPrimary,
-                  letterSpacing: -0.5,
+          const SizedBox(width: 10),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Learnix AI',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: isCompactHeader ? 16 : 18,
+                    fontWeight: FontWeight.w800,
+                    color: tokens.textPrimary,
+                    letterSpacing: -0.5,
+                  ),
                 ),
-              ),
-              const Text(
-                'Robotics Lab For Every Child • Google Cloud & Gemini',
-                style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500),
-              ),
-            ],
+                if (!isCompactHeader)
+                  const Text(
+                    'Robotics Lab For Every Child • Google Cloud & Gemini',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500),
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -166,7 +177,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
         // Backend Environment Switcher
         Container(
           margin: const EdgeInsets.symmetric(vertical: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 10),
+          padding: EdgeInsets.symmetric(horizontal: isCompactHeader ? 6 : 10),
           decoration: BoxDecoration(
             color: tokens.surfaceBg,
             borderRadius: BorderRadius.circular(20),
@@ -175,16 +186,21 @@ class _MainShellScreenState extends State<MainShellScreen> {
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: _baseUrl,
-              icon: Icon(LucideIcons.cloud, size: 16, color: tokens.success),
-              style: TextStyle(fontSize: 12, color: tokens.textPrimary, fontWeight: FontWeight.w600),
-              items: const [
+              isDense: true,
+              icon: Icon(LucideIcons.cloud, size: 14, color: tokens.success),
+              style: TextStyle(
+                fontSize: isCompactHeader ? 11 : 12,
+                color: tokens.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+              items: [
                 DropdownMenuItem(
                   value: 'https://learnix-ai-248424564253.asia-southeast1.run.app',
-                  child: Text('☁️ Cloud Run Live'),
+                  child: Text(isCompactHeader ? '☁️ Cloud' : '☁️ Cloud Run Live'),
                 ),
                 DropdownMenuItem(
                   value: 'http://localhost:8000',
-                  child: Text('💻 Localhost:8000'),
+                  child: Text(isCompactHeader ? '💻 Local' : '💻 Localhost:8000'),
                 ),
               ],
               onChanged: (val) {
@@ -193,27 +209,35 @@ class _MainShellScreenState extends State<MainShellScreen> {
             ),
           ),
         ),
-        SizedBox(width: tokens.space12),
+        SizedBox(width: isCompactHeader ? 6 : tokens.space12),
         // Student Profile Badge
         Padding(
-          padding: EdgeInsets.only(right: tokens.space24),
+          padding: EdgeInsets.only(right: isCompactHeader ? 10 : tokens.space24),
           child: Container(
-            padding: EdgeInsets.symmetric(horizontal: tokens.space12, vertical: tokens.space4),
+            padding: EdgeInsets.symmetric(
+              horizontal: isCompactHeader ? 8 : tokens.space12,
+              vertical: tokens.space4,
+            ),
             decoration: BoxDecoration(
               color: tokens.primaryLight,
               borderRadius: BorderRadius.circular(24),
             ),
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 CircleAvatar(
-                  radius: 12,
+                  radius: 11,
                   backgroundColor: tokens.primary,
                   child: const Text('A', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
                 ),
-                SizedBox(width: tokens.space8),
+                const SizedBox(width: 6),
                 Text(
-                  'Aarav (Grade 8)',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: tokens.primary),
+                  isCompactHeader ? 'Aarav' : 'Aarav (Grade 8)',
+                  style: TextStyle(
+                    fontSize: isCompactHeader ? 11 : 12,
+                    fontWeight: FontWeight.bold,
+                    color: tokens.primary,
+                  ),
                 ),
               ],
             ),
@@ -323,15 +347,26 @@ class _MainShellScreenState extends State<MainShellScreen> {
         padding: EdgeInsets.all(tokens.space16),
         children: [
           DrawerHeader(
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: tokens.primary, borderRadius: BorderRadius.circular(10)),
-                  child: const Icon(LucideIcons.zap, color: Colors.white),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: tokens.primary, borderRadius: BorderRadius.circular(10)),
+                      child: const Icon(LucideIcons.zap, color: Colors.white),
+                    ),
+                    SizedBox(width: tokens.space12),
+                    const Text('Learnix AI', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  ],
                 ),
-                SizedBox(width: tokens.space12),
-                const Text('Learnix AI', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                const Text(
+                  'Robotics Lab For Every Child',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
               ],
             ),
           ),
@@ -356,13 +391,14 @@ class _MainShellScreenState extends State<MainShellScreen> {
       selectedIndex: _selectedIndex,
       onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
       backgroundColor: Colors.white,
+      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       destinations: const [
-        NavigationDestination(icon: Icon(LucideIcons.home), label: 'Home'),
-        NavigationDestination(icon: Icon(LucideIcons.milestone), label: 'Path'),
-        NavigationDestination(icon: Icon(LucideIcons.camera), label: 'Studio'),
-        NavigationDestination(icon: Icon(LucideIcons.flaskConical), label: 'Lab'),
-        NavigationDestination(icon: Icon(LucideIcons.bot), label: 'Tutor'),
-        NavigationDestination(icon: Icon(LucideIcons.barChart2), label: 'Reports'),
+        NavigationDestination(icon: Icon(LucideIcons.home, size: 20), label: 'Home'),
+        NavigationDestination(icon: Icon(LucideIcons.milestone, size: 20), label: 'Path'),
+        NavigationDestination(icon: Icon(LucideIcons.camera, size: 20), label: 'Studio'),
+        NavigationDestination(icon: Icon(LucideIcons.flaskConical, size: 20), label: 'Lab'),
+        NavigationDestination(icon: Icon(LucideIcons.bot, size: 20), label: 'Tutor'),
+        NavigationDestination(icon: Icon(LucideIcons.barChart2, size: 20), label: 'Reports'),
       ],
     );
   }
