@@ -96,6 +96,26 @@ def _get_sqlite_db() -> sqlite3.Connection:
             attempted_at TEXT DEFAULT CURRENT_TIMESTAMP,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
+        CREATE TABLE IF NOT EXISTS lab_runs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id INTEGER,
+            experiment_id INTEGER,
+            success INTEGER,
+            error_type TEXT,
+            ai_hint TEXT,
+            run_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS feedback (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id INTEGER,
+            from_role TEXT,
+            text TEXT,
+            sentiment TEXT,
+            topic TEXT,
+            issue TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
         CREATE TABLE IF NOT EXISTS visual_lessons (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             student_id INTEGER,
@@ -137,6 +157,41 @@ def _get_sqlite_db() -> sqlite3.Connection:
                     "INSERT OR IGNORE INTO experiments (id, title, concept_id, components, goal, starter_code, solution_code) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     (r["id"], r["title"], r["concept_id"], r["components"], r["goal"], r["starter_code"], r["solution_code"]),
                 )
+        if (data_dir / "quiz_attempts.csv").exists():
+            with open(data_dir / "quiz_attempts.csv", encoding="utf-8") as f:
+                for r in csv.DictReader(f):
+                    conn.execute(
+                        "INSERT OR IGNORE INTO quiz_attempts (id, student_id, concept_id, score, max_score, attempted_at) VALUES (?, ?, ?, ?, ?, ?)",
+                        (r["id"], r["student_id"], r["concept_id"], r["score"], r["max_score"], r["attempted_at"]),
+                    )
+        if (data_dir / "lab_runs.csv").exists():
+            with open(data_dir / "lab_runs.csv", encoding="utf-8") as f:
+                for r in csv.DictReader(f):
+                    is_success = 1 if str(r.get("success", "")).lower() in ("true", "1") else 0
+                    conn.execute(
+                        "INSERT OR IGNORE INTO lab_runs (id, student_id, experiment_id, success, error_type, ai_hint, run_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (r["id"], r["student_id"], r["experiment_id"], is_success, r.get("error_type", "none"), r.get("ai_hint", ""), r["run_at"]),
+                    )
+        if (data_dir / "feedback.csv").exists():
+            with open(data_dir / "feedback.csv", encoding="utf-8") as f:
+                for r in csv.DictReader(f):
+                    txt = r["text"].lower()
+                    sentiment = "positive"
+                    topic = "Robotics Lab"
+                    issue = "none"
+                    if "slow" in txt or "stuck" in txt or "hard" in txt or "don't know" in txt or "difficult" in txt:
+                        sentiment = "negative"
+                        issue = "Performance or difficulty"
+                    elif "not understand" in txt or "explain" in txt or "confusing" in txt:
+                        sentiment = "neutral"
+                        issue = "Needs concept clarification"
+                    elif "happy" in txt or "fun" in txt or "love" in txt or "excited" in txt:
+                        sentiment = "positive"
+                        issue = "none"
+                    conn.execute(
+                        "INSERT OR IGNORE INTO feedback (id, student_id, from_role, text, sentiment, topic, issue) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (r["id"], r["student_id"], r["from_role"], r["text"], sentiment, topic, issue),
+                    )
         conn.commit()
 
     return conn
@@ -162,6 +217,8 @@ def _execute_via_sqlite_fallback(
     s = re.sub(r"::\w+", "", s)
     s = re.sub(r"current_database\(\)", "'learnix'", s, flags=re.IGNORECASE)
     s = re.sub(r"now\(\)", "datetime('now')", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bTRUE\b", "1", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bFALSE\b", "0", s, flags=re.IGNORECASE)
 
     # Convert complex params (dicts, lists) to JSON strings
     converted_params = []

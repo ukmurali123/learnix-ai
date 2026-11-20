@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Learnix AI — Reports &amp; Analytics</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body class="reports-page">
+  <!-- Top App Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-name">
+        Learnix AI
+        <span>Reports &amp; Analytics</span>
+      </div>
+    </div>
+
+    <nav class="top-nav">
+      <a href="/index.html" class="nav-link">Home</a>
+      <a href="/concept_studio.html" class="nav-link">Concept Studio</a>
+      <a href="/virtual_lab.html" class="nav-link">Virtual Lab</a>
+      <a href="/coach.html" class="nav-link">Coach</a>
+      <a href="/reports.html" class="nav-link active">Reports</a>
+    </nav>
+
+    <div class="user-badge">
+      <div class="avatar">A</div>
+      <span>Aarav (Grade 8)</span>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="reports-container">
+    <!-- Reports Navigation Tabs Switcher -->
+    <div class="reports-nav-bar">
+      <div class="reports-tabs" role="tablist">
+        <button id="tab-parent" class="report-tab active" role="tab" aria-selected="true">
+          <span class="tab-icon">👨‍👩‍👧</span>
+          <span>Parent Weekly Report</span>
+        </button>
+        <button id="tab-centre" class="report-tab" role="tab" aria-selected="false">
+          <span class="tab-icon">🏫</span>
+          <span>Centre Network Dashboard</span>
+        </button>
+      </div>
+      <div class="reports-actions">
+        <button id="btn-print-report" class="btn btn-sm btn-outline">
+          🖨️ Print / Save PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 1: PARENT WEEKLY REPORT                                          -->
+    <!-- ===================================================================== -->
+    <div id="panel-parent-report" class="report-panel active">
+      <!-- Top Language Override Controls Bar -->
+      <section class="card parent-controls-card">
+        <div class="parent-lang-control">
+          <label for="parent-lang-select">🗣️ Read Note In Parent's Language:</label>
+          <select id="parent-lang-select" class="lang-select">
+            <option value="English" selected>English</option>
+            <option value="Tamil">தமிழ் (Tamil)</option>
+            <option value="Hindi">हिन्दी (Hindi)</option>
+            <option value="Marathi">मराठी (Marathi)</option>
+            <option value="Arabic">العربية (Arabic)</option>
+          </select>
+          <button id="btn-regen-parent-note" class="btn btn-sm btn-primary">
+            ✨ Translate / Update Note
+          </button>
+        </div>
+        <div class="report-meta-timestamp">
+          <span>Weekly Report Period: <strong>Current Week</strong></span>
+        </div>
+      </section>
+
+      <!-- Student & Centre Profile Header Card -->
+      <section class="card student-report-header-card">
+        <div class="student-profile-left">
+          <div class="profile-avatar-large">A</div>
+          <div class="profile-details">
+            <h2>Aarav's Weekly Robotics Progress</h2>
+            <div class="profile-pills">
+              <span class="pill">Grade 8</span>
+              <span class="pill" id="rep-student-centre">Learnix Namakkal Centre</span>
+              <span class="pill">Student ID: #1</span>
+            </div>
+          </div>
+        </div>
+        <div class="weekly-streak-badge">
+          <span class="streak-icon">🔥</span>
+          <div>
+            <strong>Active Explorer</strong>
+            <span>4 Days Learned This Week</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI-Written Weekly Parent Note Card -->
+      <section class="card ai-parent-note-card">
+        <div class="note-card-header">
+          <div class="note-badge">
+            <span class="sparkle">✨</span>
+            <strong>AI Tutor Weekly Note</strong>
+          </div>
+          <span id="note-language-indicator" class="note-lang-pill">English</span>
+        </div>
+
+        <div class="parent-note-body">
+          <h3 id="parent-note-greeting" class="parent-greeting">Dear Parent,</h3>
+          <p id="parent-note-paragraph" class="parent-paragraph">
+            Loading AI-written weekly progress note from Gemini...
+          </p>
+        </div>
+
+        <!-- Celebrated Highlights -->
+        <div class="note-highlights-box">
+          <h4>🌟 Celebrated Highlights &amp; Wins This Week:</h4>
+          <ul id="parent-highlights-list" class="highlights-list">
+            <li>Mastered circuit wiring with protective resistors in the Virtual Lab!</li>
+            <li>Successfully built and programmed an LED blink circuit!</li>
+          </ul>
+        </div>
+
+        <!-- Next Week Learning Goal -->
+        <div class="note-goal-box">
+          <span class="goal-icon">🎯</span>
+          <div>
+            <strong>Next Week's Focus at Home &amp; Lab:</strong>
+            <p id="parent-goal-text">Review ultrasonic distance measurements and experiment with buzzer frequencies.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Weekly Progress Stats Grid -->
+      <section class="parent-stats-grid">
+        <div class="card stat-tile">
+          <span class="stat-tile-icon">📝</span>
+          <div class="stat-tile-data">
+            <span class="stat-number" id="p-stat-quizzes">6</span>
+            <span class="stat-name">Quizzes Attempted</span>
+          </div>
+        </div>
+        <div class="card stat-tile">
+          <span class="stat-tile-icon">📊</span>
+          <div class="stat-tile-data">
+            <span class="stat-number" id="p-stat-quiz-pct">68%</span>
+            <span class="stat-name">Average Quiz Score</span>
+          </div>
+        </div>
+        <div class="card stat-tile">
+          <span class="stat-tile-icon">⚡</span>
+          <div class="stat-tile-data">
+            <span class="stat-number" id="p-stat-lab-runs">7</span>
+            <span class="stat-name">Virtual Lab Circuits Run</span>
+          </div>
+        </div>
+        <div class="card stat-tile">
+          <span class="stat-tile-icon">🏆</span>
+          <div class="stat-tile-data">
+            <span class="stat-number" id="p-stat-lab-success">100%</span>
+            <span class="stat-name">Hardware Verification</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 2: CENTRE NETWORK DASHBOARD                                      -->
+    <!-- ===================================================================== -->
+    <div id="panel-centre-dashboard" class="report-panel" style="display: none;">
+      <!-- Top Network KPI Metric Tiles -->
+      <section class="centre-kpi-grid">
+        <div class="card kpi-card">
+          <span class="kpi-icon">🏫</span>
+          <div class="kpi-info">
+            <span class="kpi-num" id="kpi-centres-count">6</span>
+            <span class="kpi-label">Active Learning Centres</span>
+          </div>
+        </div>
+        <div class="card kpi-card">
+          <span class="kpi-icon">👥</span>
+          <div class="kpi-info">
+            <span class="kpi-num" id="kpi-students-count">30</span>
+            <span class="kpi-label">Enrolled Students</span>
+          </div>
+        </div>
+        <div class="card kpi-card">
+          <span class="kpi-icon">📈</span>
+          <div class="kpi-info">
+            <span class="kpi-num" id="kpi-quiz-avg">58.4%</span>
+            <span class="kpi-label">Network Avg Quiz Score</span>
+          </div>
+        </div>
+        <div class="card kpi-card">
+          <span class="kpi-icon">🔬</span>
+          <div class="kpi-info">
+            <span class="kpi-num" id="kpi-lab-rate">42.1%</span>
+            <span class="kpi-label">Lab Build Success Rate</span>
+          </div>
+        </div>
+        <div class="card kpi-card alert-kpi">
+          <span class="kpi-icon">⚠️</span>
+          <div class="kpi-info">
+            <span class="kpi-num" id="kpi-help-count">14</span>
+            <span class="kpi-label">Students Needing Help</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Comparison Bar Chart Card -->
+      <section class="card chart-card">
+        <div class="chart-header-row">
+          <div>
+            <h3>📊 Centre Comparison Analytics</h3>
+            <p class="chart-subtitle">Compare performance metrics across all regional centres.</p>
+          </div>
+          <div class="chart-metric-switcher">
+            <button class="btn-chart-metric active" data-metric="quiz">Avg Quiz Score (%)</button>
+            <button class="btn-chart-metric" data-metric="lab">Lab Success Rate (%)</button>
+            <button class="btn-chart-metric" data-metric="help">Students Needing Help</button>
+          </div>
+        </div>
+
+        <!-- Dynamic SVG Bar Chart Container -->
+        <div id="centre-bar-chart-container" class="bar-chart-svg-wrapper">
+          <!-- Rendered by reports.js -->
+        </div>
+      </section>
+
+      <!-- Centres Performance Table Card -->
+      <section class="card table-card">
+        <div class="table-header-row">
+          <h3>📋 Detailed Centres Performance Table</h3>
+          <span class="table-badge">6 Centres Monitored</span>
+        </div>
+
+        <div class="table-responsive-wrapper">
+          <table class="centre-table">
+            <thead>
+              <tr>
+                <th>Centre Name</th>
+                <th>Location</th>
+                <th>Students</th>
+                <th>Avg Quiz Score</th>
+                <th>Lab Success Rate</th>
+                <th>Total Lab Runs</th>
+                <th>Needing Help</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="centre-table-body">
+              <tr>
+                <td colspan="8" class="loading-td">Loading centre metrics...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- AI.EXTRACT Feedback Sentiment Summary Card -->
+      <section class="card sentiment-summary-card">
+        <div class="sentiment-header-row">
+          <div class="sentiment-title">
+            <span>🤖</span>
+            <div>
+              <h3>AI.EXTRACT Feedback Sentiment Analysis</h3>
+              <p>Sentiment classified automatically via Gemini LLM &amp; AlloyDB AI.EXTRACT() functions.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sentiment Distribution Progress Bar & Badges -->
+        <div class="sentiment-stats-bar-wrapper">
+          <div class="sentiment-badges-row">
+            <div class="s-badge positive">
+              <span class="dot"></span>
+              <strong>Positive:</strong>
+              <span id="sent-pos-count">20</span> (<span id="sent-pos-pct">67%</span>)
+            </div>
+            <div class="s-badge neutral">
+              <span class="dot"></span>
+              <strong>Neutral:</strong>
+              <span id="sent-neu-count">4</span> (<span id="sent-neu-pct">13%</span>)
+            </div>
+            <div class="s-badge negative">
+              <span class="dot"></span>
+              <strong>Negative:</strong>
+              <span id="sent-neg-count">6</span> (<span id="sent-neg-pct">20%</span>)
+            </div>
+          </div>
+
+          <div class="sentiment-stacked-bar">
+            <div id="sent-bar-pos" class="bar-segment pos" style="width: 67%;"></div>
+            <div id="sent-bar-neu" class="bar-segment neu" style="width: 13%;"></div>
+            <div id="sent-bar-neg" class="bar-segment neg" style="width: 20%;"></div>
+          </div>
+        </div>
+
+        <!-- Top Issues Extracted by AI -->
+        <div class="sentiment-issues-section">
+          <h4>📌 Top Issues Extracted from Feedback by AI:</h4>
+          <div id="sentiment-issues-list" class="issues-chips-list">
+            <!-- Rendered by reports.js -->
+          </div>
+        </div>
+
+        <!-- Recent Feedback Stream -->
+        <div class="feedback-stream-section">
+          <h4>💬 Recent Student &amp; Parent Feedback Quotes:</h4>
+          <div id="feedback-stream-list" class="feedback-stream-grid">
+            <!-- Rendered by reports.js -->
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <p>Learnix AI &bull; Weekly Parent Reports &amp; Multi-Centre Analytics Dashboard</p>
+  </footer>
+
+  <!-- Reports JS -->
+  <script src="/js/reports.js"></script>
+</body>
+</html>

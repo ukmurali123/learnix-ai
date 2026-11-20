@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Learnix AI — Coach Alex</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body class="coach-page">
+  <!-- Top App Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-name">
+        Learnix AI
+        <span>AI Coach</span>
+      </div>
+    </div>
+
+    <nav class="top-nav">
+      <a href="/index.html" class="nav-link">Home</a>
+      <a href="/concept_studio.html" class="nav-link">Concept Studio</a>
+      <a href="/virtual_lab.html" class="nav-link">Virtual Lab</a>
+      <a href="/coach.html" class="nav-link active">Coach</a>
+      <a href="/reports.html" class="nav-link">Reports</a>
+    </nav>
+
+    <div class="user-badge">
+      <div class="avatar">A</div>
+      <span>Aarav (Grade 8)</span>
+    </div>
+  </header>
+
+  <main class="coach-container">
+    <!-- Hero Coach Welcome -->
+    <section class="card coach-hero-card">
+      <div class="coach-hero-left">
+        <div class="coach-large-avatar">🤖</div>
+        <div>
+          <h1>Coach Alex's Diagnostic Lab</h1>
+          <p id="coach-full-message">
+            Loading your personalized diagnostic insights...
+          </p>
+        </div>
+      </div>
+      <div class="coach-hero-actions">
+        <a href="/virtual_lab.html" class="btn btn-primary">🔬 Practice in Virtual Lab</a>
+        <a href="/concept_studio.html" class="btn btn-outline">📸 Open Concept Studio</a>
+      </div>
+    </section>
+
+    <!-- Row 1: Recurring Lab Errors & Weak Concepts -->
+    <div class="coach-grid-2col">
+      <!-- 1. Recurring Hardware & Code Errors Analysis -->
+      <section class="card diagnostic-card">
+        <div class="card-header-simple">
+          <h3>🔍 Recurring Virtual Lab Errors</h3>
+          <span class="badge-diag">Automated RCA</span>
+        </div>
+        <p class="diag-subtitle">Where circuits most frequently disconnect or short-circuit:</p>
+        <div id="diag-errors-list" class="diag-errors-list">
+          <div class="loading-td">Analyzing circuit runs...</div>
+        </div>
+      </section>
+
+      <!-- 2. Recommended Next Practice Plan -->
+      <section class="card diagnostic-card">
+        <div class="card-header-simple">
+          <h3>🎯 Recommended Learning Sequence</h3>
+          <span class="badge-diag">AI Sequencing</span>
+        </div>
+        <p class="diag-subtitle">Master these concepts in order to unlock advanced robotics:</p>
+        <div id="coach-sequence-list" class="coach-sequence-list">
+          <div class="loading-td">Building recommended path...</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Row 2: "Spark a Project Idea" Interactive Assistant -->
+    <section class="card spark-idea-card">
+      <div class="spark-header">
+        <span class="spark-icon">✨</span>
+        <div>
+          <h3>Have an Invention Idea? Let's Build It!</h3>
+          <p>Tell Coach Alex what you want to build (e.g., "a night light that turns on in the dark" or "a burglar alarm").</p>
+        </div>
+      </div>
+
+      <div class="spark-input-group">
+        <input
+          type="text"
+          id="spark-input"
+          class="spark-input"
+          placeholder="e.g. A smart alarm that beeps faster when someone gets closer..."
+        />
+        <button id="btn-spark-idea" class="btn btn-spark">
+          <span class="spark-spinner" style="display:none;"></span>
+          <span class="spark-btn-text">Generate Circuit &amp; Code</span>
+        </button>
+      </div>
+
+      <!-- Generated Idea Output Result Card -->
+      <div id="spark-result-card" class="spark-result-card" style="display: none;">
+        <div class="spark-result-header">
+          <h4 id="spark-result-title">Smart Distance Alarm</h4>
+          <span id="spark-exp-match" class="badge-exp">Matches Exp #3</span>
+        </div>
+        <p id="spark-result-explain">
+          Here is how to wire and program this invention using your kit components!
+        </p>
+        <div class="spark-components-box">
+          <strong>Components Needed:</strong>
+          <span id="spark-components-list">Arduino, HC-SR04 Sensor, Buzzer, Breadboard</span>
+        </div>
+        <div class="spark-actions-row">
+          <a id="spark-launch-btn" href="/virtual_lab.html?exp=3" class="btn btn-primary">
+            🚀 Launch in Virtual Lab
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>Learnix AI &bull; AI Coach Diagnostic Engine</p>
+  </footer>
+
+  <script src="/js/coach.js"></script>
+</body>
+</html>

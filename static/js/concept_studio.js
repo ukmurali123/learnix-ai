@@ -467,7 +467,7 @@ function renderSingleConceptCard(concept, index) {
           <p>${escapeHtml(instruction)}</p>
         </div>
       </div>
-      <a href="/?exp=${expId}" class="btn btn-try-it">
+      <a href="/virtual_lab.html?exp=${expId}" class="btn btn-try-it">
         ▶ Open in Virtual Lab (Exp ${expId})
       </a>
     `;
