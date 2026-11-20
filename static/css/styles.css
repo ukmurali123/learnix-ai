@@ -221,6 +221,22 @@ header.app-header {
   background: #059669;
 }
 
+.btn-run.btn-stop {
+  background: #dc2626 !important;
+  color: white !important;
+  box-shadow: 0 2px 10px rgba(220, 38, 38, 0.45) !important;
+  animation: pulseStopBtn 1.2s infinite alternate ease-in-out;
+}
+
+.btn-run.btn-stop:hover {
+  background: #b91c1c !important;
+}
+
+@keyframes pulseStopBtn {
+  from { box-shadow: 0 0 5px rgba(220, 38, 38, 0.4); }
+  to { box-shadow: 0 0 14px rgba(220, 38, 38, 0.8); }
+}
+
 .btn-reset {
   background: #f1f5f9;
   color: var(--text-muted);

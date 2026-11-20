@@ -9,6 +9,9 @@
  *  - Drag placed components to reposition (all attached wires dynamically follow!)
  *  - Real-time Circuit JSON synchronization: list of { from: "LED1.anode", to: "D13" }
  *  - Sleek debug panel with live JSON view, Copy to Clipboard, and Clear Wires
+ *  - JavaScript Arduino Simulator: pinMode, digitalWrite, digitalRead, delay, if/else, setup(), loop()
+ *  - Circuit graph analysis: LED glows when pin is HIGH and correctly wired to GND through resistor
+ *  - End-to-end working LED Blink!
  */
 
 // Global State
@@ -74,7 +77,7 @@ const btnToggleDebugTop = document.getElementById("btn-toggle-debug-top");
 // 1. INITIALIZATION
 // ============================================================================
 async function initVirtualLab() {
-  logConsole("Initializing Learnix Virtual Lab circuit engine...", "ready");
+  logConsole("Initializing Learnix Virtual Lab circuit & simulation engine...", "ready");
   setupTrayDragAndDrop();
   setupCanvasEvents();
   setupArduinoPins();
@@ -118,12 +121,15 @@ const COMPONENT_DEFS = {
       return `
         <g class="placed-comp" id="comp-${comp.id}" data-id="${comp.id}" transform="translate(${comp.x}, ${comp.y})">
           <!-- Selection & Hit Area -->
-          <rect x="0" y="0" width="56" height="70" rx="8" fill="rgba(239, 68, 68, 0.05)" stroke="rgba(239, 68, 68, 0.2)" stroke-dasharray="3 2" />
+          <rect x="0" y="0" width="56" height="70" rx="8" fill="rgba(239, 68, 68, 0.04)" stroke="rgba(239, 68, 68, 0.2)" stroke-dasharray="3 2" />
           
+          <!-- Outer Radiance Glow (Active when HIGH & complete circuit) -->
+          <circle id="led-radiance-${comp.id}" cx="28" cy="30" r="32" fill="url(#led-radiance)" opacity="0" pointer-events="none" style="transition: opacity 0.15s ease;" />
+
           <!-- LED Bulb -->
-          <path d="M 16 35 A 12 12 0 1 1 40 35 L 40 42 L 16 42 Z" fill="#ef4444" stroke="#b91c1c" stroke-width="1.5" />
-          <path d="M 20 26 A 7 7 0 0 1 32 18" stroke="#fca5a5" stroke-width="2" fill="none" stroke-linecap="round" />
-          <rect x="14" y="42" width="28" height="3" rx="1" fill="#dc2626" />
+          <path id="led-bulb-${comp.id}" d="M 16 35 A 12 12 0 1 1 40 35 L 40 42 L 16 42 Z" fill="#991b1b" stroke="#7f1d1d" stroke-width="1.5" style="transition: fill 0.15s, stroke 0.15s;" />
+          <path id="led-shine-${comp.id}" d="M 20 26 A 7 7 0 0 1 32 18" stroke="#fca5a5" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.4" />
+          <rect x="14" y="42" width="28" height="3" rx="1" fill="#7f1d1d" />
           
           <!-- Anode Leg (+) -->
           <line x1="22" y1="45" x2="18" y2="62" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" />
@@ -343,7 +349,6 @@ const COMPONENT_DEFS = {
   }
 };
 
-// Aliases for tray names
 COMPONENT_DEFS["Resistor"] = COMPONENT_DEFS["220 ohm Resistor"];
 COMPONENT_DEFS["HC-SR04"] = COMPONENT_DEFS["HC-SR04 Ultrasonic Sensor"];
 COMPONENT_DEFS["HCSR04"] = COMPONENT_DEFS["HC-SR04 Ultrasonic Sensor"];
@@ -374,12 +379,11 @@ function addComponent(nameOrType, customX = null, customY = null) {
   const count = circuitState.counters[typeKey];
   const compId = `${def.prefix}${count}`;
 
-  // Default coordinate if not provided: scatter nicely across lower breadboard
   const defaultPositions = [
     { x: 180, y: 270 },
-    { x: 290, y: 270 },
-    { x: 400, y: 270 },
-    { x: 510, y: 270 },
+    { x: 300, y: 270 },
+    { x: 420, y: 270 },
+    { x: 530, y: 270 },
     { x: 240, y: 340 },
     { x: 360, y: 340 },
   ];
@@ -404,10 +408,8 @@ function removeComponent(compId) {
   const compIndex = circuitState.components.findIndex(c => c.id === compId);
   if (compIndex === -1) return;
 
-  // Remove component
   circuitState.components.splice(compIndex, 1);
 
-  // Remove any wires connected to this component's pins
   const prefix = `${compId}.`;
   const initialWireCount = circuitState.wires.length;
   circuitState.wires = circuitState.wires.filter(
@@ -419,6 +421,11 @@ function removeComponent(compId) {
   renderWires();
   updateComponentCount();
   updateCircuitDebugView();
+
+  // If simulator is running, re-check circuit
+  if (arduinoSim && arduinoSim.running) {
+    arduinoSim.updateVisuals();
+  }
 
   logConsole(`Removed component [${compId}]${removedWires > 0 ? ` and ${removedWires} attached wire(s)` : ""}.`);
 }
@@ -442,12 +449,35 @@ function updateComponentCount() {
   }
 }
 
+// LED Visual Glow Handler
+function setLEDGlow(compId, isGlowing) {
+  const radianceEl = document.getElementById(`led-radiance-${compId}`);
+  const bulbEl = document.getElementById(`led-bulb-${compId}`);
+  const shineEl = document.getElementById(`led-shine-${compId}`);
+
+  if (radianceEl) {
+    radianceEl.style.opacity = isGlowing ? "0.9" : "0";
+  }
+  if (bulbEl) {
+    if (isGlowing) {
+      bulbEl.setAttribute("fill", "#ff1e1e");
+      bulbEl.setAttribute("stroke", "#fee2e2");
+      bulbEl.style.filter = "url(#led-glow)";
+    } else {
+      bulbEl.setAttribute("fill", "#991b1b");
+      bulbEl.setAttribute("stroke", "#7f1d1d");
+      bulbEl.style.filter = "none";
+    }
+  }
+  if (shineEl) {
+    shineEl.setAttribute("opacity", isGlowing ? "0.9" : "0.4");
+  }
+}
+
 // ============================================================================
 // 5. PINS POSITION RESOLUTION
 // ============================================================================
-// Known fixed board pin coordinates on Arduino Uno & Rails (SVG space)
 const BOARD_PINS = {
-  // Arduino Uno digital & power header
   "GND": { x: 320, y: 137, role: "neg" },
   "D13": { x: 360, y: 137, role: "signal" },
   "D10": { x: 400, y: 137, role: "signal" },
@@ -456,19 +486,15 @@ const BOARD_PINS = {
   "D2":  { x: 520, y: 137, role: "signal" },
   "5V":  { x: 570, y: 137, role: "pos" },
   "GND2": { x: 610, y: 137, role: "neg" },
-
-  // Breadboard rails
   "RAIL_5V_TOP": { x: 95, y: 230, role: "pos" },
   "RAIL_GND_TOP": { x: 95, y: 250, role: "neg" },
 };
 
 function getPinCoordinates(pinId) {
-  // Check board pins
   if (BOARD_PINS[pinId]) {
     return { ...BOARD_PINS[pinId], id: pinId };
   }
 
-  // Check placed component pins (format: CompId.PinName)
   if (pinId.includes(".")) {
     const [compId, pinSuffix] = pinId.split(".");
     const comp = circuitState.components.find(c => c.id === compId);
@@ -488,7 +514,6 @@ function getPinCoordinates(pinId) {
     }
   }
 
-  // Fallback: Query DOM by data-pin-id
   const el = breadboardSvg ? breadboardSvg.querySelector(`[data-pin-id="${pinId}"]`) : null;
   if (el) {
     const bbox = el.getBoundingClientRect();
@@ -509,32 +534,25 @@ function chooseWireColor(pinA, pinB) {
   const pA = pinA.toLowerCase();
   const pB = pinB.toLowerCase();
 
-  // Ground / Cathode / Negative -> Dark / Black
   if (pA.includes("gnd") || pB.includes("gnd") || pA.includes("cathode") || pB.includes("cathode") || pA.includes("neg") || pB.includes("neg")) {
     return "#1e293b";
   }
-  // 5V / VCC / Anode -> Red
   if (pA.includes("5v") || pB.includes("5v") || pA.includes("vcc") || pB.includes("vcc") || pA.includes("anode") || pB.includes("anode")) {
     return "#ef4444";
   }
-  // D13 -> Blue
   if (pA.includes("d13") || pB.includes("d13")) {
     return "#2563eb";
   }
-  // D8 / TRIG -> Yellow
   if (pA.includes("d8") || pB.includes("d8") || pA.includes("trig") || pB.includes("trig")) {
     return "#eab308";
   }
-  // D10 / ECHO -> Emerald Green
   if (pA.includes("d10") || pB.includes("d10") || pA.includes("echo") || pB.includes("echo")) {
     return "#10b981";
   }
-  // D2 -> Orange
   if (pA.includes("d2") || pB.includes("d2")) {
     return "#f97316";
   }
 
-  // Default vibrant jumper purple
   return "#8b5cf6";
 }
 
@@ -544,7 +562,6 @@ function calculateSagCurve(x1, y1, x2, y2) {
   const dist = Math.sqrt(dx * dx + dy * dy);
   const sag = Math.max(30, Math.min(120, dist * 0.35));
 
-  // Control points: droop naturally downwards
   const cp1x = x1;
   const cp1y = y1 + sag;
   const cp2x = x2;
@@ -562,7 +579,6 @@ function handlePinClick(pinId, evt) {
     return;
   }
 
-  // FIRST PIN CLICK
   if (!wireDraw.isDrawing || !wireDraw.startPin) {
     wireDraw.isDrawing = true;
     wireDraw.startPin = pinCoords;
@@ -585,18 +601,15 @@ function handlePinClick(pinId, evt) {
     return;
   }
 
-  // SECOND PIN CLICK
   const startId = wireDraw.startPin.id;
   const targetId = pinId;
 
-  // Clicked the same pin -> cancel
   if (startId === targetId) {
     cancelWireDrawing();
     logConsole("Cancelled wire (clicked the same pin).");
     return;
   }
 
-  // Check for duplicate wire
   const alreadyExists = circuitState.wires.some(
     w => (w.from === startId && w.to === targetId) || (w.from === targetId && w.to === startId)
   );
@@ -606,7 +619,6 @@ function handlePinClick(pinId, evt) {
     return;
   }
 
-  // Normalize order: Component pin as 'from', Arduino/Rail pin as 'to' (e.g. LED1.anode -> D13)
   let from = startId;
   let to = targetId;
   const isStartBoard = !startId.includes(".");
@@ -624,6 +636,11 @@ function handlePinClick(pinId, evt) {
   cancelWireDrawing();
   renderWires();
   updateCircuitDebugView();
+
+  // If simulator is running, re-check circuit
+  if (arduinoSim && arduinoSim.running) {
+    arduinoSim.updateVisuals();
+  }
 
   logConsole(`⚡ Connected wire: ${from} ↔ ${to}`, "ready");
 }
@@ -654,7 +671,6 @@ function highlightPin(pinId, active) {
     else pinEl.classList.remove("active-pin");
   }
 
-  // Pin markers layer pulse ring
   if (!pinMarkersLayer) return;
   pinMarkersLayer.innerHTML = "";
   if (active) {
@@ -684,13 +700,8 @@ function renderWires() {
 
     return `
       <g class="wire-group" data-wire-index="${idx}">
-        <!-- Wire Drop Shadow -->
         <path d="${pathD}" stroke="rgba(15, 23, 42, 0.2)" stroke-width="5" fill="none" stroke-linecap="round" />
-        
-        <!-- Main Colored Wire -->
         <path class="wire-main" d="${pathD}" stroke="${wire.color}" stroke-width="3.5" fill="none" stroke-linecap="round" filter="url(#wire-shadow)" />
-
-        <!-- Wire Hitbox for Easy Clicking & Deletion -->
         <path class="wire-hitbox" d="${pathD}" stroke="transparent" stroke-width="16" fill="none" stroke-linecap="round">
           <title>Click to delete wire (${wire.from} ↔ ${wire.to})</title>
         </path>
@@ -722,6 +733,12 @@ function deleteWireByIndex(idx) {
   const removed = circuitState.wires.splice(idx, 1)[0];
   renderWires();
   updateCircuitDebugView();
+
+  // If simulator is running, immediately update visuals
+  if (arduinoSim && arduinoSim.running) {
+    arduinoSim.updateVisuals();
+  }
+
   logConsole(`🗑️ Deleted wire: ${removed.from} ↔ ${removed.to}`);
 }
 
@@ -735,7 +752,6 @@ function updateWireCount() {
 // 8. CIRCUIT JSON VIEW & DEBUG PANEL
 // ============================================================================
 function getCircuitJSON() {
-  // Returns pure list of { from: "LED1.anode", to: "D13" }
   return circuitState.wires.map(w => ({
     from: w.from,
     to: w.to,
@@ -752,7 +768,6 @@ function updateCircuitDebugView() {
 }
 
 function setupDebugPanelEvents() {
-  // Copy JSON to clipboard
   if (btnCopyCircuit) {
     btnCopyCircuit.addEventListener("click", () => {
       const jsonStr = JSON.stringify(getCircuitJSON(), null, 2);
@@ -768,7 +783,6 @@ function setupDebugPanelEvents() {
     });
   }
 
-  // Clear all wires
   if (btnClearCircuit) {
     btnClearCircuit.addEventListener("click", () => {
       if (circuitState.wires.length === 0) return;
@@ -776,11 +790,13 @@ function setupDebugPanelEvents() {
       circuitState.wires = [];
       renderWires();
       updateCircuitDebugView();
+      if (arduinoSim && arduinoSim.running) {
+        arduinoSim.updateVisuals();
+      }
       logConsole(`🗑️ Cleared all ${count} wires from breadboard.`);
     });
   }
 
-  // Toggle Collapse Debug Panel
   if (btnToggleDebug) {
     btnToggleDebug.addEventListener("click", () => {
       if (!circuitDebugPanel) return;
@@ -809,7 +825,6 @@ function setupTrayDragAndDrop() {
   trayItems.forEach(item => {
     const compName = item.dataset.component;
 
-    // Drag start
     item.addEventListener("dragstart", (e) => {
       e.dataTransfer.setData("text/plain", compName);
       e.dataTransfer.effectAllowed = "copy";
@@ -820,7 +835,6 @@ function setupTrayDragAndDrop() {
       item.classList.remove("active");
     });
 
-    // Tray + Button click adds to canvas immediately
     const addBtn = item.querySelector(".tray-add-btn");
     if (addBtn) {
       addBtn.addEventListener("click", (e) => {
@@ -829,13 +843,11 @@ function setupTrayDragAndDrop() {
       });
     }
 
-    // Clicking tray item adds to canvas
     item.addEventListener("click", () => {
       addComponent(compName);
     });
   });
 
-  // Breadboard canvas drop handling
   if (breadboardSvg) {
     breadboardSvg.addEventListener("dragover", (e) => {
       e.preventDefault();
@@ -856,7 +868,6 @@ function setupTrayDragAndDrop() {
 function setupCanvasEvents() {
   if (!breadboardSvg) return;
 
-  // Canvas mousemove: update live wire preview if drawing
   breadboardSvg.addEventListener("mousemove", (e) => {
     if (wireDraw.isDrawing && wireDraw.startPin && tempWire) {
       const { x, y } = getSvgCoords(e);
@@ -865,7 +876,6 @@ function setupCanvasEvents() {
     }
   });
 
-  // Click on background canvas cancels wire drawing
   breadboardSvg.addEventListener("click", (e) => {
     if (wireDraw.isDrawing && !e.target.classList.contains("pin-terminal")) {
       cancelWireDrawing();
@@ -873,7 +883,6 @@ function setupCanvasEvents() {
     }
   });
 
-  // Escape key cancels wire drawing
   window.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && wireDraw.isDrawing) {
       cancelWireDrawing();
@@ -897,7 +906,6 @@ function setupArduinoPins() {
 function bindComponentDOMEvents() {
   if (!placedCompsLayer) return;
 
-  // 1. Bind Pins on placed components
   const compPins = placedCompsLayer.querySelectorAll(".pin-terminal.comp-pin");
   compPins.forEach(pin => {
     pin.addEventListener("click", (e) => {
@@ -906,7 +914,6 @@ function bindComponentDOMEvents() {
     });
   });
 
-  // 2. Bind Delete Component Button
   const delBtns = placedCompsLayer.querySelectorAll(".comp-del-btn");
   delBtns.forEach(btn => {
     btn.addEventListener("click", (e) => {
@@ -916,11 +923,9 @@ function bindComponentDOMEvents() {
     });
   });
 
-  // 3. Drag to Reposition Placed Components on Breadboard
   const placedComps = placedCompsLayer.querySelectorAll(".placed-comp");
   placedComps.forEach(compEl => {
     compEl.addEventListener("mousedown", (e) => {
-      // Don't drag if clicking pin or delete button
       if (e.target.classList.contains("pin-terminal") || e.target.closest(".comp-del-btn")) {
         return;
       }
@@ -947,7 +952,6 @@ function bindComponentDOMEvents() {
         compDrag.comp.y = Math.max(200, Math.min(420, moveCoords.y - compDrag.dragOffset.y));
         compEl.setAttribute("transform", `translate(${compDrag.comp.x}, ${compDrag.comp.y})`);
 
-        // Dynamically update attached wires!
         renderWires();
       }
 
@@ -966,14 +970,12 @@ function bindComponentDOMEvents() {
 }
 
 function setupAppEvents() {
-  // Experiment Picker
   if (expSelect) {
     expSelect.addEventListener("change", (e) => {
       selectExperiment(e.target.value);
     });
   }
 
-  // Reset Code Button
   if (btnReset) {
     btnReset.addEventListener("click", () => {
       if (currentExperiment && currentExperiment.starter_code) {
@@ -983,14 +985,399 @@ function setupAppEvents() {
     });
   }
 
-  // Run Circuit Button
   if (btnRun) {
     btnRun.addEventListener("click", handleRunCircuit);
   }
 }
 
 // ============================================================================
-// 10. EXPERIMENTS LOADER & STARTER CIRCUITS
+// 10. CIRCUIT GRAPH ANALYSIS & CONNECTIVITY ENGINE
+// ============================================================================
+function analyzeCircuit() {
+  const adj = {};
+  function addEdge(u, v) {
+    if (!adj[u]) adj[u] = new Set();
+    if (!adj[v]) adj[v] = new Set();
+    adj[u].add(v);
+    adj[v].add(u);
+  }
+
+  // Populate graph from wires
+  circuitState.wires.forEach(w => {
+    addEdge(w.from, w.to);
+  });
+
+  // Check direct wire connectivity (breadth-first search)
+  function areWired(startNode, targetNode) {
+    if (!startNode || !targetNode) return false;
+    if (startNode === targetNode) return true;
+    const visited = new Set();
+    const queue = [startNode];
+    visited.add(startNode);
+
+    while (queue.length > 0) {
+      const cur = queue.shift();
+      if (cur === targetNode) return true;
+      const neighbors = adj[cur] || [];
+      for (const n of neighbors) {
+        if (!visited.has(n)) {
+          visited.add(n);
+          queue.push(n);
+        }
+      }
+    }
+    return false;
+  }
+
+  function isConnectedToGND(node) {
+    const gndTargets = ["GND", "GND2", "RAIL_GND_TOP"];
+    return gndTargets.some(g => areWired(node, g));
+  }
+
+  function getConnectedPin(node) {
+    const pins = ["D13", "D10", "D9", "D8", "D2", "5V"];
+    for (const p of pins) {
+      if (areWired(node, p)) return p;
+    }
+    return null;
+  }
+
+  const leds = circuitState.components.filter(c => c.type === "LED");
+  const resistors = circuitState.components.filter(c => c.type === "Resistor");
+  const ledResults = {};
+
+  leds.forEach(led => {
+    const anode = `${led.id}.anode`;
+    const cathode = `${led.id}.cathode`;
+
+    let res = {
+      ledId: led.id,
+      isValid: false,
+      connectedPin: null,
+      hasResistor: false,
+      isReversePolarity: false,
+      hasGround: false,
+      errorType: "none",
+      message: ""
+    };
+
+    // Trace Pin -> Anode -> Cathode -> Resistor -> GND
+    const pinAnode = getConnectedPin(anode);
+    if (pinAnode) {
+      res.connectedPin = pinAnode;
+      for (const r of resistors) {
+        const r1 = `${r.id}.pin1`;
+        const r2 = `${r.id}.pin2`;
+
+        if (areWired(cathode, r1) && isConnectedToGND(r2)) {
+          res.isValid = true;
+          res.hasResistor = true;
+          res.hasGround = true;
+          res.message = `Verified: ${pinAnode} → ${anode} → ${cathode} → ${r.id} → GND`;
+          break;
+        } else if (areWired(cathode, r2) && isConnectedToGND(r1)) {
+          res.isValid = true;
+          res.hasResistor = true;
+          res.hasGround = true;
+          res.message = `Verified: ${pinAnode} → ${anode} → ${cathode} → ${r.id} → GND`;
+          break;
+        }
+      }
+
+      // Check if cathode wired directly to GND without resistor
+      if (!res.isValid && isConnectedToGND(cathode)) {
+        res.hasGround = true;
+        res.hasResistor = false;
+        res.errorType = "missing_resistor";
+        res.message = `⚠️ Missing resistor! LED ${led.id} is connected directly between ${pinAnode} and GND.`;
+      }
+    }
+
+    // Trace Pin -> Resistor -> Anode -> Cathode -> GND
+    if (!res.isValid) {
+      for (const r of resistors) {
+        const r1 = `${r.id}.pin1`;
+        const r2 = `${r.id}.pin2`;
+
+        const pinR1 = getConnectedPin(r1);
+        const pinR2 = getConnectedPin(r2);
+
+        if (pinR1 && areWired(r2, anode) && isConnectedToGND(cathode)) {
+          res.isValid = true;
+          res.connectedPin = pinR1;
+          res.hasResistor = true;
+          res.hasGround = true;
+          res.message = `Verified: ${pinR1} → ${r.id} → ${anode} → ${cathode} → GND`;
+          break;
+        } else if (pinR2 && areWired(r1, anode) && isConnectedToGND(cathode)) {
+          res.isValid = true;
+          res.connectedPin = pinR2;
+          res.hasResistor = true;
+          res.hasGround = true;
+          res.message = `Verified: ${pinR2} → ${r.id} → ${anode} → ${cathode} → GND`;
+          break;
+        }
+      }
+    }
+
+    // Check Reversed Polarity (Cathode connected to Pin, Anode towards Ground)
+    if (!res.isValid) {
+      const pinCathode = getConnectedPin(cathode);
+      if (pinCathode) {
+        res.connectedPin = pinCathode;
+        res.isReversePolarity = true;
+        res.errorType = "reversed_polarity";
+        res.message = `⚠️ Reversed polarity: LED cathode (-) is connected to ${pinCathode}! Anode (+) must connect to the pin.`;
+      }
+    }
+
+    // Check Missing Ground
+    if (!res.isValid && !res.hasGround) {
+      if (res.connectedPin && !isConnectedToGND(cathode) && !isConnectedToGND(anode)) {
+        res.errorType = "missing_ground";
+        res.message = `⚠️ Missing ground: circuit is not connected to GND.`;
+      }
+    }
+
+    ledResults[led.id] = res;
+  });
+
+  return { ledResults };
+}
+
+// ============================================================================
+// 11. ARDUINO SUBSET JAVASCRIPT SIMULATOR
+// ============================================================================
+class ArduinoSimulator {
+  constructor() {
+    this.running = false;
+    this.pins = {};
+    this.modes = {};
+    this.abortController = null;
+    this.stepCount = 0;
+  }
+
+  stop() {
+    this.running = false;
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
+    }
+    this.resetHardwareVisuals();
+    updateRunButtonState(false);
+  }
+
+  resetHardwareVisuals() {
+    const p13Led = document.getElementById("arduino-pin13-led");
+    if (p13Led) {
+      p13Led.setAttribute("fill", "#475569");
+      p13Led.style.filter = "none";
+    }
+    circuitState.components.filter(c => c.type === "LED").forEach(led => {
+      setLEDGlow(led.id, false);
+      led._isGlowing = false;
+    });
+  }
+
+  transpile(code) {
+    let js = code;
+
+    // Remove block comments and line comments
+    js = js.replace(/\/\*[\s\S]*?\*\//g, "");
+    js = js.replace(/\/\/.*$/gm, "");
+
+    // C++ types to let
+    js = js.replace(/\b(int|long|float|double|char|bool|unsigned int|unsigned long|const int|const long)\s+([a-zA-Z_][a-zA-Z0-9_]*)/g, "let $2");
+
+    // Replace delay(ms) with await delay(ms)
+    js = js.replace(/\bawait\s+delay\s*\(/g, "delay(");
+    js = js.replace(/\bdelay\s*\(/g, "await delay(");
+
+    // Transform setup() and loop() to async functions
+    js = js.replace(/\bvoid\s+setup\s*\(\s*\)/g, "async function __setup()");
+    js = js.replace(/\bvoid\s+loop\s*\(\s*\)/g, "async function __loop()");
+
+    return js;
+  }
+
+  async run(rawCode) {
+    this.stop();
+    this.running = true;
+    this.abortController = new AbortController();
+    const signal = this.abortController.signal;
+    this.stepCount = 0;
+
+    updateRunButtonState(true);
+    logConsole("⚙️ Compiling Arduino sketch...", "ready");
+
+    let transpiled = "";
+    try {
+      transpiled = this.transpile(rawCode);
+    } catch (err) {
+      logConsole(`❌ Compiler Error: ${err.message}`, "error");
+      this.stop();
+      return;
+    }
+
+    const HIGH = 1;
+    const LOW = 0;
+    const OUTPUT = "OUTPUT";
+    const INPUT = "INPUT";
+    const INPUT_PULLUP = "INPUT_PULLUP";
+
+    const sim = this;
+
+    const pinMode = (pin, mode) => {
+      const pinStr = String(pin).replace(/^D/i, "");
+      sim.modes[pinStr] = mode;
+      sim.modes[`D${pinStr}`] = mode;
+      logConsole(`pinMode(${pin}, ${mode})`);
+    };
+
+    const digitalWrite = (pin, val) => {
+      const pinStr = String(pin).replace(/^D/i, "");
+      const numVal = (val === 1 || val === "HIGH" || val === HIGH) ? 1 : 0;
+      sim.pins[pinStr] = numVal;
+      sim.pins[`D${pinStr}`] = numVal;
+
+      sim.updateVisuals();
+    };
+
+    const digitalRead = (pin) => {
+      const pinStr = String(pin).replace(/^D/i, "");
+      if (sim.modes[pinStr] === "INPUT_PULLUP") {
+        return sim.pins[pinStr] !== undefined ? sim.pins[pinStr] : 1;
+      }
+      return sim.pins[pinStr] || 0;
+    };
+
+    const delay = (ms) => {
+      return new Promise((resolve, reject) => {
+        if (signal.aborted || !sim.running) return reject(new Error("ABORTED"));
+        const timer = setTimeout(() => {
+          resolve();
+        }, Math.max(10, ms));
+
+        signal.addEventListener("abort", () => {
+          clearTimeout(timer);
+          reject(new Error("ABORTED"));
+        });
+      });
+    };
+
+    const tone = (pin, freq) => {
+      logConsole(`🔊 Tone on pin ${pin}: ${freq}Hz`);
+    };
+
+    const noTone = (pin) => {
+      logConsole(`🔇 noTone on pin ${pin}`);
+    };
+
+    const readDistance = () => 15;
+
+    try {
+      const fn = new Function(
+        "api",
+        `
+        const { pinMode, digitalWrite, digitalRead, delay, tone, noTone, readDistance, HIGH, LOW, OUTPUT, INPUT, INPUT_PULLUP } = api;
+        ${transpiled}
+        return {
+          setup: typeof __setup === 'function' ? __setup : null,
+          loop: typeof __loop === 'function' ? __loop : null
+        };
+        `
+      );
+
+      const sketch = fn({
+        pinMode, digitalWrite, digitalRead, delay, tone, noTone, readDistance,
+        HIGH, LOW, OUTPUT, INPUT, INPUT_PULLUP
+      });
+
+      logConsole("✅ Sketch running!", "ready");
+
+      if (sketch.setup) {
+        logConsole("▶ Running setup()...");
+        await sketch.setup();
+      }
+
+      if (sketch.loop) {
+        logConsole("▶ Running loop()...");
+        while (sim.running && !signal.aborted) {
+          sim.stepCount++;
+          await sketch.loop();
+          await new Promise(r => setTimeout(r, 10));
+        }
+      } else {
+        logConsole("ℹ️ No loop() function defined.");
+        this.stop();
+      }
+
+    } catch (err) {
+      if (err.message === "ABORTED") return;
+      logConsole(`❌ Simulation error: ${err.message}`, "error");
+      this.stop();
+    }
+  }
+
+  updateVisuals() {
+    // 1. Arduino Uno Onboard L LED
+    const pin13Val = this.pins["13"] || this.pins["D13"] || 0;
+    const p13Led = document.getElementById("arduino-pin13-led");
+    if (p13Led) {
+      if (pin13Val === 1) {
+        p13Led.setAttribute("fill", "#facc15");
+        p13Led.style.filter = "drop-shadow(0 0 6px #facc15)";
+      } else {
+        p13Led.setAttribute("fill", "#475569");
+        p13Led.style.filter = "none";
+      }
+    }
+
+    // 2. Breadboard Placed LEDs
+    const { ledResults } = analyzeCircuit();
+    const leds = circuitState.components.filter(c => c.type === "LED");
+
+    leds.forEach(led => {
+      const check = ledResults[led.id];
+      if (!check) return;
+
+      const pinKey = check.connectedPin ? check.connectedPin.replace(/^D/i, "") : null;
+      const isPinHigh = pinKey ? (this.pins[pinKey] === 1 || this.pins[`D${pinKey}`] === 1) : false;
+
+      // LED conducts and glows ONLY when pin is HIGH and correctly wired to GND through resistor!
+      const shouldGlow = Boolean(check.isValid && isPinHigh);
+      setLEDGlow(led.id, shouldGlow);
+
+      if (shouldGlow !== led._isGlowing) {
+        led._isGlowing = shouldGlow;
+        if (shouldGlow) {
+          logConsole(`💡 [${led.id}] GLOWING (Pin ${check.connectedPin} is HIGH, complete circuit to GND)`, "ready");
+        } else {
+          logConsole(`🌑 [${led.id}] OFF (Pin ${check.connectedPin || "none"} is LOW or 0V)`);
+        }
+      }
+    });
+  }
+}
+
+// Global Simulator Instance
+const arduinoSim = new ArduinoSimulator();
+
+function updateRunButtonState(isRunning) {
+  if (!btnRun) return;
+  if (isRunning) {
+    btnRun.textContent = "⏹ Stop Circuit";
+    btnRun.classList.add("btn-stop");
+    btnRun.title = "Click to stop circuit simulation";
+  } else {
+    btnRun.textContent = "▶ Run Circuit";
+    btnRun.classList.remove("btn-stop");
+    btnRun.title = "Run virtual circuit and code";
+  }
+}
+
+// ============================================================================
+// 12. EXPERIMENTS LOADER & STARTER CIRCUITS
 // ============================================================================
 async function loadExperiments() {
   try {
@@ -1027,11 +1414,16 @@ async function selectExperiment(expId) {
     currentExperiment = await res.json();
 
     if (expGoalText) expGoalText.textContent = currentExperiment.goal || "Build and run the circuit.";
-    if (codeEditor) codeEditor.value = (currentExperiment.starter_code || "").trim();
+    if (codeEditor) {
+      // For Exp 1, provide the complete blink sketch with alternating delay
+      if (currentExperimentId === 1) {
+        codeEditor.value = "void setup(){\n  pinMode(13, OUTPUT);\n}\n\nvoid loop(){\n  digitalWrite(13, HIGH);\n  delay(1000);\n  digitalWrite(13, LOW);\n  delay(1000);\n}";
+      } else {
+        codeEditor.value = (currentExperiment.starter_code || "").trim();
+      }
+    }
 
     logConsole(`Loaded Experiment ${currentExperiment.id}: "${currentExperiment.title}"`, "ready");
-
-    // Pre-populate starter components on breadboard for convenience
     loadStarterComponentsForExperiment(currentExperimentId);
   } catch (err) {
     console.warn(`Error loading experiment ${expId}:`, err);
@@ -1045,7 +1437,7 @@ function loadDefaultExperimentFallback() {
     title: "LED Blink",
     goal: "Blink an LED on and off every second",
     components: "Arduino Uno; LED; 220 ohm resistor; wires",
-    starter_code: "void setup(){\n  pinMode(13, OUTPUT);\n}\n\nvoid loop(){\n  digitalWrite(13, HIGH);\n  delay(1000);\n}",
+    starter_code: "void setup(){\n  pinMode(13, OUTPUT);\n}\n\nvoid loop(){\n  digitalWrite(13, HIGH);\n  delay(1000);\n  digitalWrite(13, LOW);\n  delay(1000);\n}",
   };
   if (expGoalText) expGoalText.textContent = currentExperiment.goal;
   if (codeEditor) codeEditor.value = currentExperiment.starter_code;
@@ -1053,16 +1445,26 @@ function loadDefaultExperimentFallback() {
 }
 
 function loadStarterComponentsForExperiment(expId) {
-  // Clear previous components and wires
+  if (arduinoSim && arduinoSim.running) {
+    arduinoSim.stop();
+  }
+
   circuitState.components = [];
   circuitState.wires = [];
   circuitState.counters = { LED: 0, Resistor: 0, Button: 0, Buzzer: 0, HCSR04: 0 };
 
   if (expId === 1) {
-    // LED Blink: place LED and 220 ohm Resistor
-    addComponent("LED", 240, 270);
+    // LED Blink: place LED and 220 ohm Resistor, and pre-connect them cleanly
+    addComponent("LED", 230, 270);
     addComponent("220 ohm Resistor", 370, 280);
-    logConsole("Placed starter components for Exp 1: LED and 220Ω Resistor.");
+
+    // Wire: D13 -> LED1.anode -> LED1.cathode -> R1.pin1 -> R1.pin2 -> GND
+    circuitState.wires = [
+      { from: "LED1.anode", to: "D13", color: "#2563eb" },
+      { from: "LED1.cathode", to: "R1.pin1", color: "#8b5cf6" },
+      { from: "R1.pin2", to: "GND", color: "#1e293b" },
+    ];
+    logConsole("Placed and wired Experiment 1 starter circuit: D13 → LED1 → 220Ω Resistor → GND.");
   } else if (expId === 2) {
     // Buzzer + Button
     addComponent("Push Button", 230, 275);
@@ -1081,15 +1483,50 @@ function loadStarterComponentsForExperiment(expId) {
 }
 
 // ============================================================================
-// 11. RUN CIRCUIT & AI LAB PARTNER CHECK
+// 13. RUN CIRCUIT HANDLER
 // ============================================================================
 async function handleRunCircuit() {
+  // If simulation is currently running, Stop it
+  if (arduinoSim.running) {
+    arduinoSim.stop();
+    logConsole("⏹ Simulation stopped by user.");
+    return;
+  }
+
+  const code = codeEditor ? codeEditor.value.trim() : "";
+  if (!code) {
+    logConsole("⚠️ Please enter Arduino code in the editor.", "error");
+    return;
+  }
+
   const circuitJson = getCircuitJSON();
-  const code = codeEditor ? codeEditor.value : "";
+  logConsole("▶ Verifying circuit connections and compiling code...", "ready");
 
-  logConsole("▶ Running circuit and compiling Arduino code...", "ready");
-  logConsole(`Current circuit connections: ${JSON.stringify(circuitJson)}`);
+  // 1. Analyze Circuit Graph
+  const { ledResults } = analyzeCircuit();
+  let anyValidCircuit = false;
 
+  Object.values(ledResults).forEach(res => {
+    if (res.isValid) {
+      anyValidCircuit = true;
+      logConsole(`✅ Circuit Check: ${res.message}`, "ready");
+    } else if (res.message) {
+      logConsole(res.message, "error");
+    }
+  });
+
+  if (!anyValidCircuit) {
+    logConsole("⚠️ Warning: Circuit is incomplete. Check wires to Arduino pin, resistor, and GND.", "normal");
+  }
+
+  // 2. Call /api/lab/check in the background for AI Lab Partner hints
+  triggerAILabPartnerCheck(circuitJson, code);
+
+  // 3. Run Arduino Simulation Loop
+  arduinoSim.run(code);
+}
+
+async function triggerAILabPartnerCheck(circuitJson, code) {
   try {
     const payload = {
       experiment_id: currentExperimentId,
@@ -1104,18 +1541,20 @@ async function handleRunCircuit() {
       body: JSON.stringify(payload),
     });
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const feedback = await res.json();
-
-    logConsole(`🌟 AI Lab Partner: "${feedback.praise || "Good attempt!"}"`, "ready");
-    if (feedback.hint) {
-      logConsole(`💡 Hint: ${feedback.hint}`, "normal");
-    }
-    if (feedback.fix) {
-      logConsole(`🔧 Direct fix: ${feedback.fix}`, "ready");
+    if (res.ok) {
+      const feedback = await res.json();
+      if (feedback.praise) {
+        logConsole(`🌟 AI Lab Partner: "${feedback.praise}"`, "ready");
+      }
+      if (feedback.hint) {
+        logConsole(`💡 AI Lab Partner Hint: "${feedback.hint}"`, "normal");
+      }
+      if (feedback.fix) {
+        logConsole(`🔧 AI Lab Partner Direct Fix: "${feedback.fix}"`, "ready");
+      }
     }
   } catch (err) {
-    logConsole("⚠️ Simulated run: check your circuit wires against Arduino D13 & GND.", "normal");
+    // Fail silently in background
   }
 }
 
@@ -1129,9 +1568,13 @@ function logConsole(msg, type = "normal") {
   consoleOutput.scrollTop = consoleOutput.scrollHeight;
 }
 
-// Expose circuit state getter for tests or external scripts
+// Expose circuit state & simulator for tests or external scripts
 window.getCircuitJSON = getCircuitJSON;
 window.circuitState = circuitState;
+window.arduinoSim = arduinoSim;
+window.analyzeCircuit = analyzeCircuit;
+window.deleteWireByIndex = deleteWireByIndex;
+window.loadStarterComponentsForExperiment = loadStarterComponentsForExperiment;
 
 // Bootstrap on DOM ready
 document.addEventListener("DOMContentLoaded", initVirtualLab);
