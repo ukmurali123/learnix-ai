@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app import db
-from app.routes import coach, concept_studio, lab, reports, students
+from app.routes import coach, concept_studio, lab, path, reports, students
 
 app = FastAPI(
     title="Learnix AI",
@@ -36,6 +36,7 @@ app.include_router(concept_studio.router)
 app.include_router(lab.router)
 app.include_router(coach.router)
 app.include_router(reports.router)
+app.include_router(path.router)
 
 static_dir = pathlib.Path(__file__).resolve().parent.parent / "static"
 static_dir.mkdir(parents=True, exist_ok=True)

@@ -438,3 +438,33 @@ Return JSON:
   "language": "{language}"
 }}"""
     return call_gemini_json(user_prompt, system_instruction=system_prompt)
+
+
+def generate_revision_step(
+    concept_title: str,
+    student: Dict[str, Any],
+    quiz_score: int,
+    max_score: int = 3,
+) -> Dict[str, Any]:
+    age = int(student.get("age", 11))
+    language = student.get("language", "English")
+    first_name = student.get("first_name", "Student")
+    system_prompt = (
+        f"You are Learnix AI Coach helping student {first_name} (age {age}) "
+        f"who scored {quiz_score}/{max_score} (< 50%) on '{concept_title}'. "
+        f"Write an encouraging revision recap in {language} with a simple real-life analogy, "
+        "highlighting the key idea they should remember before moving to the next day. "
+        "Keep technical words (LED, resistor, Arduino, sensor, GND) in English."
+    )
+    prompt = (
+        f"Concept: '{concept_title}'. Score: {quiz_score}/{max_score}.\n"
+        'Return JSON: {"recap": "2-3 sentence revision recap in student language", "analogy": "one clear comparison from daily life", "coach_tip": "one memorable action tip"}'
+    )
+    try:
+        return call_gemini_json(prompt, system_instruction=system_prompt)
+    except Exception:
+        return {
+            "recap": f"Remember, in '{concept_title}', understanding how components work together makes your robotics circuits reliable every time!",
+            "analogy": "Think of a circuit like water flowing through a closed loop: every part must be placed correctly for it to run smoothly.",
+            "coach_tip": "Review the visual diagram and step notes before starting the next day!"
+        }

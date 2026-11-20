@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Learnix AI — My Learning Path</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body class="path-page">
+  <!-- Top App Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-name">
+        Learnix AI
+        <span>Learning Path</span>
+      </div>
+    </div>
+
+    <nav class="top-nav">
+      <a href="/index.html" class="nav-link">Home</a>
+      <a href="/path.html" class="nav-link active">My Learning Path</a>
+      <a href="/concept_studio.html" class="nav-link">Concept Studio</a>
+      <a href="/virtual_lab.html" class="nav-link">Virtual Lab</a>
+      <a href="/coach.html" class="nav-link">Coach</a>
+      <a href="/reports.html" class="nav-link">Reports</a>
+    </nav>
+
+    <div class="user-badge">
+      <div class="avatar">A</div>
+      <span>Aarav (Grade 8)</span>
+    </div>
+  </header>
+
+  <main class="path-container">
+    <!-- Hero / Progress Section -->
+    <section class="card path-hero-card">
+      <div class="path-hero-text">
+        <span class="path-badge">🗺️ 10-Day Robotics Curriculum</span>
+        <h1>Day-by-Day Interactive Learning Path</h1>
+        <p>
+          Master electronics and robotics one day at a time: <strong>Learn</strong> with interactive animated diagrams, 
+          <strong>Try</strong> in the Virtual Lab, and <strong>Check</strong> your knowledge with visual quizzes!
+        </p>
+      </div>
+
+      <!-- Overall Course Progress Card -->
+      <div class="path-overall-progress">
+        <div class="progress-info-row">
+          <span class="progress-days-label">
+            <strong id="completed-days-count">0</strong> of 10 Days Mastered
+          </span>
+          <span id="path-pct-text" class="progress-pct-badge">0% Complete</span>
+        </div>
+        <div class="path-progress-track">
+          <div id="path-progress-bar-fill" class="path-progress-fill" style="width: 0%;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10 Days Grid Roadmap -->
+    <section class="days-roadmap-section">
+      <div class="roadmap-header">
+        <h2>Your 10-Day Robotics Journey</h2>
+        <span class="roadmap-hint">Click on your current day to begin today's mission:</span>
+      </div>
+
+      <div id="days-grid" class="days-grid">
+        <!-- Rendered dynamically by path.js -->
+        <div class="loading-td">Loading your learning path...</div>
+      </div>
+    </section>
+
+    <!-- Interactive Day Mission Modal / Drawer -->
+    <div id="day-modal" class="day-modal-overlay" style="display: none;">
+      <div class="day-modal-content">
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <div class="modal-header-titles">
+            <span id="modal-day-badge" class="modal-day-pill">DAY 1</span>
+            <h2 id="modal-day-title">What is an LED</h2>
+          </div>
+          <button id="btn-close-modal" class="btn-close-modal" title="Close Mission">✕</button>
+        </div>
+
+        <!-- 3-Step Navigation Tracker Bar -->
+        <div class="mission-steps-bar">
+          <button id="step-tab-learn" class="mission-step-tab active" data-step="learn">
+            <span class="step-num">1</span>
+            <span class="step-label">📘 Learn (Visual Model)</span>
+          </button>
+          <button id="step-tab-try" class="mission-step-tab" data-step="try">
+            <span class="step-num">2</span>
+            <span class="step-label">🔬 Try (Virtual Lab)</span>
+          </button>
+          <button id="step-tab-check" class="mission-step-tab" data-step="check">
+            <span class="step-num">3</span>
+            <span class="step-label">📝 Check (Quiz)</span>
+          </button>
+        </div>
+
+        <!-- STEP 1: LEARN (Visual Model Workspace) -->
+        <div id="step-view-learn" class="mission-step-view active">
+          <div class="step-view-header">
+            <h3>Step 1: Explore the Visual Concept</h3>
+            <p id="learn-summary-text">Understand how this component works through animated steps and live simulations.</p>
+          </div>
+          <div id="learn-visual-container" class="learn-visual-box">
+            <!-- Dynamic SVG renderer injected here -->
+          </div>
+          <div class="step-action-bar">
+            <button id="btn-goto-try" class="btn btn-primary btn-step-nav">
+              Got it! Proceed to Step 2: Try in Lab &rarr;
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 2: TRY (Virtual Lab Experiment) -->
+        <div id="step-view-try" class="mission-step-view" style="display: none;">
+          <div class="step-view-header">
+            <h3>Step 2: Hands-on Virtual Circuit</h3>
+            <p id="try-goal-text">Build and verify this circuit on the breadboard.</p>
+          </div>
+          <div id="try-content-card" class="try-experiment-card">
+            <div class="try-exp-info">
+              <span class="try-exp-icon">⚡</span>
+              <div>
+                <h4 id="try-exp-title">Experiment #1: LED Blink</h4>
+                <p id="try-exp-desc">Wire a 220Ω resistor and LED on digital pin 13 to see it blink.</p>
+                <div class="try-comp-tags" id="try-components-list">Components: Arduino, LED, Resistor, Wires</div>
+              </div>
+            </div>
+            <a id="btn-open-lab" href="/virtual_lab.html?exp=1" target="_blank" class="btn btn-large-orange">
+              🚀 Open Full Virtual Lab Simulator &rarr;
+            </a>
+          </div>
+          <div class="step-action-bar">
+            <button id="btn-back-learn" class="btn btn-outline">
+              &larr; Back to Step 1
+            </button>
+            <button id="btn-goto-check" class="btn btn-primary btn-step-nav">
+              Circuit Tested! Proceed to Step 3: Check Mastery &rarr;
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 3: CHECK (3-Question Visual Quiz & Completion) -->
+        <div id="step-view-check" class="mission-step-view" style="display: none;">
+          <div class="step-view-header">
+            <h3>Step 3: Test Your Understanding</h3>
+            <p>Answer 3 quick visual questions to complete today's mission and unlock the next day!</p>
+          </div>
+
+          <div id="quiz-questions-container" class="quiz-questions-box">
+            <!-- Quiz questions injected here -->
+          </div>
+
+          <!-- AI Coach Revision Step Card (Shown if score < 50%) -->
+          <div id="coach-revision-card" class="coach-revision-box" style="display: none;">
+            <div class="rev-header">
+              <span class="rev-icon">🤖</span>
+              <div>
+                <h4>Coach Alex: Revision Step</h4>
+                <span class="rev-badge">Concept Reinforcement</span>
+              </div>
+            </div>
+            <p id="rev-recap-text" class="rev-recap"></p>
+            <div class="rev-analogy-box">
+              <span class="rev-bulb">💡</span>
+              <span id="rev-analogy-text"></span>
+            </div>
+            <div class="rev-tip-box">
+              <strong>Coach Tip:</strong>
+              <span id="rev-tip-text"></span>
+            </div>
+          </div>
+
+          <!-- Completion Banner -->
+          <div id="day-completed-banner" class="day-completed-box" style="display: none;">
+            <span class="done-trophy">🏆</span>
+            <div>
+              <h4 id="completed-banner-title">Day Completed!</h4>
+              <p id="completed-banner-subtitle">Great job! The next day on your learning path is now unlocked.</p>
+            </div>
+          </div>
+
+          <div class="step-action-bar">
+            <button id="btn-back-try" class="btn btn-outline">
+              &larr; Back to Step 2
+            </button>
+            <button id="btn-finish-day" class="btn btn-primary btn-step-nav" style="display: none;">
+              ✅ Complete Day &amp; Unlock Next &rarr;
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <p>Learnix AI &bull; Interactive 10-Day Robotics Curriculum &bull; Powered by AlloyDB &amp; Gemini AI</p>
+  </footer>
+
+  <!-- Concept Studio visual renderers helper + Learning Path Core JS -->
+  <script src="/js/concept_studio.js"></script>
+  <script src="/js/path.js"></script>
+</body>
+</html>

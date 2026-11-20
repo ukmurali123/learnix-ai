@@ -24,6 +24,8 @@ description: Database rules for the Learnix app on AlloyDB (PostgreSQL). Use whe
 - lab_runs(id, student_id, experiment_id, success, error_type, ai_hint, run_at)
 - feedback(id, student_id, from_role, text, sentiment, topic, issue)
 - visual_lessons(id, student_id, source_type, concept_id, visual_type, content_json JSONB)  -- source_type: page | topic
+- course_days(id, day_number, title, concept_id, experiment_id, visual_type)
+- student_day_progress(id, student_id, day_number, status, quiz_score, completed_at)
 
 ## AI in SQL
 7. Create concept embeddings inside the database (AlloyDB AI embedding function with a Google text-embedding model). Do not call an external vector database.

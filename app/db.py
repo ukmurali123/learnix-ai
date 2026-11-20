@@ -125,7 +125,46 @@ def _get_sqlite_db() -> sqlite3.Connection:
             content_json TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
+        CREATE TABLE IF NOT EXISTS course_days (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            day_number INTEGER NOT NULL UNIQUE,
+            title TEXT NOT NULL,
+            concept_id INTEGER NOT NULL,
+            experiment_id INTEGER,
+            visual_type TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS student_day_progress (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id INTEGER NOT NULL,
+            day_number INTEGER NOT NULL,
+            status TEXT NOT NULL,
+            quiz_score INTEGER,
+            completed_at TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(student_id, day_number)
+        );
     """)
+
+    # Seed 10 Learning Path Days
+    days_data = [
+        (1, 'What is an LED', 1, None, 'animated_steps'),
+        (2, 'Resistors', 2, None, 'simulation'),
+        (3, 'Ground and complete circuits', 10, None, 'labelled_diagram'),
+        (4, 'Digital output pins + loops', 3, 1, 'animated_steps'),
+        (5, 'Buttons and digital input', 5, None, 'animated_steps'),
+        (6, 'Buzzers + if-else', 6, 2, 'simulation'),
+        (7, 'Variables', 9, None, 'story_comic'),
+        (8, 'Ultrasonic distance sensor', 8, 3, 'simulation'),
+        (9, 'What is AI', 13, None, 'story_comic'),
+        (10, 'Image recognition basics', 14, None, 'comparison'),
+    ]
+    for d in days_data:
+        conn.execute(
+            "INSERT OR IGNORE INTO course_days (day_number, title, concept_id, experiment_id, visual_type) VALUES (?, ?, ?, ?, ?)",
+            d,
+        )
+    conn.commit()
 
     # Seed data from CSVs if empty
     data_dir = pathlib.Path(__file__).resolve().parent.parent / "data"
