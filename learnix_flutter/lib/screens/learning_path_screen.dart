@@ -46,6 +46,15 @@ class _LearningPathScreenState extends State<LearningPathScreen>
   // Interactive Predict state
   int? _predictChoice;
 
+  // Day 2 Resistor Color Band State (Image 1, 2, 3)
+  int _resistorBand1 = 1; // 1 = Brown
+  int _resistorBand2 = 0; // 0 = Black
+  int _resistorMultiplier = 2; // 2 = Red (x100) -> 1.00 kΩ
+  int _selectedResistorBandTab = 0; // 0 = Band 1, 1 = Band 2, 2 = Multiplier
+  double _ohmLabVolts = 9.0;
+  double _ohmLabOhms = 470.0;
+  int _ohmLabMode = 1; // 0 = find V, 1 = find I, 2 = find R
+
   // Interactive "Try it" Practical Completion State
   bool _pracStep1Power = false;
   bool _pracStep2Resistor = false;
@@ -1211,6 +1220,10 @@ class _LearningPathScreenState extends State<LearningPathScreen>
             currentMa: currentMa,
             topology: _circuitTopology,
             dayNum: dayNum,
+            resistorBand1: _resistorBand1,
+            resistorBand2: _resistorBand2,
+            resistorMultiplier: _resistorMultiplier,
+            selectedResistorBandTab: _selectedResistorBandTab,
           ),
         ),
       );
@@ -1232,7 +1245,11 @@ class _LearningPathScreenState extends State<LearningPathScreen>
         const SizedBox(height: 14),
 
         // Context-specific bottom controls under the left animation
-        if (_activeWhatTabIndex == 0) ...[
+        if (dayNum == 2 && _activeWhatTabIndex == 0) ...[
+          // Day 2 Resistor Band Selector Pills (Band 1, Band 2, Multiplier) + Color Slider (0 to 9)
+          _buildResistorColorBandControls(),
+          const SizedBox(height: 12),
+        ] else if (_activeWhatTabIndex == 0) ...[
           Wrap(
             spacing: 10,
             runSpacing: 8,
@@ -1245,6 +1262,7 @@ class _LearningPathScreenState extends State<LearningPathScreen>
           const SizedBox(height: 12),
         ],
 
+        if (dayNum != 2 || _activeWhatTabIndex != 0)
         Row(
           children: [
             Text(
@@ -1433,6 +1451,102 @@ class _LearningPathScreenState extends State<LearningPathScreen>
   }
 
   List<Map<String, dynamic>> _getRightItemsForTab(int tabIdx, double currentMa, int dayNum) {
+    if (dayNum == 2) {
+      // Day 2: Resistors and Current Limiting (Images 1, 2, 3)
+      if (tabIdx == 0) {
+        return [
+          {
+            'label': 'Ohm Ω',
+            'symbol': 'Σ',
+            'icon': LucideIcons.gauge,
+            'badge': 'Ohm (Ω)',
+            'title': 'Ohm (Ω): how much a part squeezes the current',
+            'desc': 'Small resistance (10 Ω) allows lots of current. Big resistance (1000 Ω) lets through only a little current!',
+            'color': const Color(0xFF0284C7),
+            'cardBg': const Color(0xFFE0F2FE),
+          },
+          {
+            'label': 'Colour bands',
+            'symbol': '🎨',
+            'icon': LucideIcons.palette,
+            'badge': '4 Bands',
+            'title': '4-Band Colour Coded Resistor',
+            'desc': 'Digits 1 and 2 set the base number; Band 3 multiplies by 10^N; Band 4 (Gold) gives ±5% precision tolerance.',
+            'color': const Color(0xFFEA580C),
+            'cardBg': const Color(0xFFFFEDD5),
+          },
+          {
+            'label': 'Static',
+            'symbol': '🔒',
+            'icon': LucideIcons.lock,
+            'badge': 'Fixed Resistor',
+            'title': 'Fixed Carbon Film Resistor',
+            'desc': 'Permanent unchanging resistance (like 220 Ω, 330 Ω, or 10 kΩ) engineered for rock-solid stability.',
+            'color': const Color(0xFF16A34A),
+            'cardBg': const Color(0xFFDCFCE7),
+          },
+          {
+            'label': 'Variable',
+            'symbol': '🎚️',
+            'icon': LucideIcons.sliders,
+            'badge': 'Potentiometer',
+            'title': 'Variable Resistor (Potentiometer)',
+            'desc': 'A rotating knob or slider that adjusts resistance continuously from 0 Ω to maximum for volume or speed control.',
+            'color': const Color(0xFF7E22CE),
+            'cardBg': const Color(0xFFF3E8FF),
+          },
+        ];
+      }
+    }
+
+    if (dayNum == 9) {
+      // Day 9: What is AI (Neural Networks & Learning from Data)
+      if (tabIdx == 0) {
+        return [
+          {
+            'label': 'Inputs',
+            'symbol': '📥',
+            'icon': LucideIcons.sparkles,
+            'badge': 'Data Features',
+            'title': 'Input Features (Sensors / Images)',
+            'desc': 'Raw inputs like camera pixels, temperature, or distance readings are fed into the network.',
+            'color': const Color(0xFF0284C7),
+            'cardBg': const Color(0xFFE0F2FE),
+          },
+          {
+            'label': 'Weights',
+            'symbol': '🧠',
+            'icon': LucideIcons.cpu,
+            'badge': 'Synaptic Weights',
+            'title': 'Hidden Layers & Neuron Weights',
+            'desc': 'Connected layers multiply inputs by learnable numbers (weights) that adjust during training.',
+            'color': const Color(0xFF7E22CE),
+            'cardBg': const Color(0xFFF3E8FF),
+          },
+          {
+            'label': 'Training',
+            'symbol': '🏋️',
+            'icon': LucideIcons.repeat,
+            'badge': '10,000 Examples',
+            'title': 'Supervised Pattern Learning',
+            'desc': 'AI learns by guessing, seeing mistakes, and tuning weights until its predictions match reality.',
+            'color': const Color(0xFFEA580C),
+            'cardBg': const Color(0xFFFFEDD5),
+          },
+          {
+            'label': 'Prediction',
+            'symbol': '🎯',
+            'icon': LucideIcons.checkCircle2,
+            'badge': 'Confidence %',
+            'title': 'Decision Output (e.g. 98% Cat)',
+            'desc': 'Produces probability scores to classify objects, translate words, or decide robot maneuvers.',
+            'color': const Color(0xFF16A34A),
+            'cardBg': const Color(0xFFDCFCE7),
+          },
+        ];
+      }
+    }
+
     if (dayNum == 8) {
       // Day 8: Ultrasonic Distance Sensor (HC-SR04)
       if (tabIdx == 1) {
@@ -1854,6 +1968,138 @@ class _LearningPathScreenState extends State<LearningPathScreen>
         'cardBg': const Color(0xFFEBF5DF),
       },
     ];
+  }
+
+  // ===========================================================================
+  // DAY 2 RESISTOR COLOR CODE & OHM LAB CONTROLS (IMAGES 1, 2, 3)
+  // ===========================================================================
+  Widget _buildResistorColorBandControls() {
+    final bandNames = ['Band 1', 'Band 2', 'Multiplier'];
+    final int currentVal = _selectedResistorBandTab == 0
+        ? _resistorBand1
+        : (_selectedResistorBandTab == 1 ? _resistorBand2 : _resistorMultiplier);
+
+    final colorNames = ['Black', 'Brown', 'Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Violet', 'Grey', 'White'];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: List.generate(3, (idx) {
+            final isSelected = _selectedResistorBandTab == idx;
+            return Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: InkWell(
+                onTap: () => setState(() => _selectedResistorBandTab = idx),
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFFEA580C) : Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isSelected ? const Color(0xFFEA580C) : const Color(0xFF334155),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isSelected) ...[
+                        const Icon(Icons.check_rounded, size: 15, color: Colors.white),
+                        const SizedBox(width: 4),
+                      ],
+                      Text(
+                        bandNames[idx],
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: isSelected ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Text(
+              'Colour (0 to 9): ${colorNames[currentVal]} ($currentVal)',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: const Color(0xFF0284C7),
+                  inactiveTrackColor: const Color(0xFFE2E8F0),
+                  thumbColor: const Color(0xFF0284C7),
+                  trackHeight: 6,
+                ),
+                child: Slider(
+                  value: currentVal.toDouble(),
+                  min: 0,
+                  max: 9,
+                  divisions: 9,
+                  label: '$currentVal',
+                  onChanged: (v) {
+                    setState(() {
+                      final iv = v.round();
+                      if (_selectedResistorBandTab == 0) {
+                        _resistorBand1 = iv;
+                      } else if (_selectedResistorBandTab == 1) {
+                        _resistorBand2 = iv;
+                      } else {
+                        _resistorMultiplier = iv;
+                      }
+                      final base = (_resistorBand1 * 10 + _resistorBand2) * math.pow(10, _resistorMultiplier);
+                      _resistorOhms = base.toDouble().clamp(10.0, 1000000.0);
+                    });
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0FDF4),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFBBF7D0)),
+          ),
+          child: Row(
+            children: [
+              const Icon(LucideIcons.lightbulb, size: 16, color: Color(0xFF16A34A)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${colorNames[_resistorBand1]}, ${colorNames[_resistorBand2]}, ${colorNames[_resistorMultiplier]} = '
+                  '($_resistorBand1$_resistorBand2 × 10^$_resistorMultiplier) = ${_formatResistorValue((_resistorBand1 * 10 + _resistorBand2) * math.pow(10, _resistorMultiplier).toDouble())}. Pick a band, then slide to change its colour.',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF166534)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatResistorValue(double ohms) {
+    if (ohms >= 1000000) {
+      return '${(ohms / 1000000).toStringAsFixed(2)} MΩ';
+    }
+    if (ohms >= 1000) {
+      return '${(ohms / 1000).toStringAsFixed(2)} kΩ';
+    }
+    return '${ohms.round()} Ω';
   }
 
   Widget _buildTopologyPill(int idx, String label) {
@@ -2718,6 +2964,10 @@ class _InteractiveCircuitSchematicPainter extends CustomPainter {
   final double currentMa;
   final int topology;
   final int dayNum;
+  final int resistorBand1;
+  final int resistorBand2;
+  final int resistorMultiplier;
+  final int selectedResistorBandTab;
 
   _InteractiveCircuitSchematicPainter({
     required this.progress,
@@ -2725,6 +2975,10 @@ class _InteractiveCircuitSchematicPainter extends CustomPainter {
     required this.currentMa,
     required this.topology,
     this.dayNum = 1,
+    this.resistorBand1 = 1,
+    this.resistorBand2 = 0,
+    this.resistorMultiplier = 2,
+    this.selectedResistorBandTab = 0,
   });
 
   @override
@@ -2739,6 +2993,24 @@ class _InteractiveCircuitSchematicPainter extends CustomPainter {
     if (dayNum == 8) {
       // Day 8: Ultrasonic Distance Sensor (HC-SR04) Schematic
       _drawUltrasonicSensorSchematic(canvas, size);
+      return;
+    }
+
+    if (dayNum == 2) {
+      // Day 2: Resistor & Colour Coding (As requested in Image 1, 2, 3!)
+      _drawResistorColorCodeSchematic(canvas, size);
+      return;
+    }
+
+    if (dayNum == 9) {
+      // Day 9: What is Artificial Intelligence (AI) Neural Network Flow
+      _drawWhatIsAiNetworkSchematic(canvas, size);
+      return;
+    }
+
+    if (dayNum == 10) {
+      // Day 10: Computer Vision & Pixel Edge Recognition
+      _drawComputerVisionPixelSchematic(canvas, size);
       return;
     }
 
@@ -2921,6 +3193,239 @@ class _InteractiveCircuitSchematicPainter extends CustomPainter {
       const Color(0xFF0284C7),
       12.5,
       FontWeight.w900,
+    );
+  }
+
+  void _drawResistorColorCodeSchematic(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height * 0.44;
+
+    // Resistor lead wire
+    canvas.drawLine(
+      Offset(size.width * 0.10, cy),
+      Offset(size.width * 0.90, cy),
+      Paint()..color = const Color(0xFF64748B)..strokeWidth = 4..strokeCap = StrokeCap.round,
+    );
+
+    // Resistor ceramic body with curved bulges
+    final bodyRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(cx, cy), width: 220, height: 72),
+      const Radius.circular(36),
+    );
+    canvas.drawRRect(bodyRect, Paint()..color = const Color(0xFFE2C9A5));
+    canvas.drawRRect(
+      bodyRect,
+      Paint()
+        ..color = const Color(0xFF78350F)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5,
+    );
+
+    // Colors mapping (0 to 9)
+    final bandColors = [
+      const Color(0xFF000000), // 0 Black
+      const Color(0xFF78350F), // 1 Brown
+      const Color(0xFFDC2626), // 2 Red
+      const Color(0xFFEA580C), // 3 Orange
+      const Color(0xFFFACC15), // 4 Yellow
+      const Color(0xFF16A34A), // 5 Green
+      const Color(0xFF2563EB), // 6 Blue
+      const Color(0xFF7C3AED), // 7 Violet
+      const Color(0xFF6B7280), // 8 Grey
+      const Color(0xFFFFFFFF), // 9 White
+    ];
+
+    final double startBandX = cx - 72;
+    // Band 1
+    final b1Rect = Rect.fromCenter(center: Offset(startBandX, cy), width: 18, height: 70);
+    canvas.drawRect(b1Rect, Paint()..color = bandColors[resistorBand1]);
+    if (selectedResistorBandTab == 0) {
+      canvas.drawRect(b1Rect.inflate(2), Paint()..color = const Color(0xFF0284C7)..style = PaintingStyle.stroke..strokeWidth = 2);
+      _drawText(canvas, 'digit 1', Offset(startBandX - 18, cy - 54), const Color(0xFF0284C7), 11, FontWeight.w800);
+    }
+
+    // Band 2
+    final b2Rect = Rect.fromCenter(center: Offset(startBandX + 32, cy), width: 18, height: 70);
+    canvas.drawRect(b2Rect, Paint()..color = bandColors[resistorBand2]);
+    if (selectedResistorBandTab == 1) {
+      canvas.drawRect(b2Rect.inflate(2), Paint()..color = const Color(0xFF0284C7)..style = PaintingStyle.stroke..strokeWidth = 2);
+      _drawText(canvas, 'digit 2', Offset(startBandX + 14, cy - 54), const Color(0xFF0284C7), 11, FontWeight.w800);
+    }
+
+    // Multiplier Band
+    final b3Rect = Rect.fromCenter(center: Offset(startBandX + 68, cy), width: 18, height: 70);
+    canvas.drawRect(b3Rect, Paint()..color = bandColors[resistorMultiplier]);
+    if (selectedResistorBandTab == 2) {
+      canvas.drawRect(b3Rect.inflate(2), Paint()..color = const Color(0xFF0284C7)..style = PaintingStyle.stroke..strokeWidth = 2);
+      _drawText(canvas, 'multiplier', Offset(startBandX + 44, cy - 54), const Color(0xFF0284C7), 11, FontWeight.w800);
+    }
+
+    // Gold tolerance band (±5%)
+    final b4Rect = Rect.fromCenter(center: Offset(startBandX + 114, cy), width: 18, height: 70);
+    canvas.drawRect(b4Rect, Paint()..color = const Color(0xFFEAB308));
+    _drawText(canvas, 'gold = tolerance ±5%', Offset(cx - 56, cy - 74), const Color(0xFF64748B), 11, FontWeight.w600);
+
+    // Dynamic resistance readout below the component
+    final ohms = (resistorBand1 * 10 + resistorBand2) * math.pow(10, resistorMultiplier).toDouble();
+    String ohmsDisplay;
+    if (ohms >= 1000000) {
+      ohmsDisplay = '${(ohms / 1000000).toStringAsFixed(2)} MΩ';
+    } else if (ohms >= 1000) {
+      ohmsDisplay = '${(ohms / 1000).toStringAsFixed(2)} kΩ';
+    } else {
+      ohmsDisplay = '${ohms.round()} Ω';
+    }
+
+    final colorNames = ['Black', 'Brown', 'Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Violet', 'Grey', 'White'];
+    _drawText(canvas, ohmsDisplay, Offset(cx - 56, cy + 50), const Color(0xFF0284C7), 28, FontWeight.w900);
+    _drawText(
+      canvas,
+      '${colorNames[resistorBand1]}  •  ${colorNames[resistorBand2]}  •  ${colorNames[resistorMultiplier]}',
+      Offset(cx - 70, cy + 86),
+      const Color(0xFF475569),
+      12.5,
+      FontWeight.w700,
+    );
+  }
+
+  void _drawWhatIsAiNetworkSchematic(Canvas canvas, Size size) {
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(18)),
+      Paint()..color = const Color(0xFF09101D),
+    );
+
+    final cx = size.width / 2;
+    final cy = size.height * 0.48;
+
+    _drawText(
+      canvas,
+      '🧠 ARTIFICIAL INTELLIGENCE: DEEP NEURAL NETWORK ARCHITECTURE',
+      const Offset(20, 16),
+      const Color(0xFF38BDF8),
+      12,
+      FontWeight.w900,
+    );
+
+    // 3 Layer columns: Input (3 nodes), Hidden (4 nodes), Output (2 nodes)
+    final layers = [
+      [cy - 48, cy, cy + 48], // Inputs
+      [cy - 68, cy - 22, cy + 22, cy + 68], // Hidden
+      [cy - 32, cy + 32], // Output
+    ];
+    final colX = [cx - 130, cx, cx + 130];
+    final layerNames = ['INPUTS (X)', 'HIDDEN WEIGHTS (W)', 'DECISION (Y)'];
+
+    // Synaptic connections with animated pulse flow
+    final connPaint = Paint()
+      ..color = const Color(0xFF1E3A8A)
+      ..strokeWidth = 1.6;
+    final activeConnPaint = Paint()
+      ..color = const Color(0xFF38BDF8)
+      ..strokeWidth = 2.2;
+
+    for (int l = 0; l < 2; l++) {
+      for (int i = 0; i < layers[l].length; i++) {
+        for (int j = 0; j < layers[l + 1].length; j++) {
+          final isPulsing = ((i + j + (progress * 8).floor()) % 5) == 0;
+          canvas.drawLine(
+            Offset(colX[l], layers[l][i]),
+            Offset(colX[l + 1], layers[l + 1][j]),
+            isPulsing ? activeConnPaint : connPaint,
+          );
+        }
+      }
+    }
+
+    // Draw nodes
+    for (int l = 0; l < 3; l++) {
+      _drawText(canvas, layerNames[l], Offset(colX[l] - 42, cy - 95), const Color(0xFF94A3B8), 10, FontWeight.w800);
+      for (int n = 0; n < layers[l].length; n++) {
+        final center = Offset(colX[l], layers[l][n]);
+        final isOutputActive = l == 2 && n == 0;
+        canvas.drawCircle(
+          center,
+          15,
+          Paint()..color = l == 0 ? const Color(0xFF0284C7) : (l == 1 ? const Color(0xFF7C3AED) : const Color(0xFF16A34A)),
+        );
+        canvas.drawCircle(
+          center,
+          15,
+          Paint()
+            ..color = isOutputActive ? const Color(0xFF4ADE80) : Colors.white
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2,
+        );
+      }
+    }
+
+    _drawText(
+      canvas,
+      'Prediction: [98% ROBOT STOP / 2% GO] — Pattern matched from 10,000 training examples!',
+      Offset(cx - 210, size.height - 28),
+      const Color(0xFF4ADE80),
+      11.5,
+      FontWeight.w800,
+    );
+  }
+
+  void _drawComputerVisionPixelSchematic(Canvas canvas, Size size) {
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(18)),
+      Paint()..color = const Color(0xFF0B132B),
+    );
+
+    final cx = size.width / 2;
+    final cy = size.height * 0.48;
+
+    _drawText(
+      canvas,
+      '📷 COMPUTER VISION: PIXEL INTENSITY MATRIX & EDGE CONVOLUTION',
+      const Offset(20, 16),
+      const Color(0xFF38BDF8),
+      12,
+      FontWeight.w900,
+    );
+
+    // Left: 5x5 Camera Pixel Grid
+    final startGridX = cx - 140;
+    const cellSize = 18.0;
+    for (int r = 0; r < 5; r++) {
+      for (int c = 0; c < 5; c++) {
+        final isEdge = r == 2 || c == 2;
+        final cellRect = Rect.fromLTWH(startGridX + c * (cellSize + 4), cy - 45 + r * (cellSize + 4), cellSize, cellSize);
+        canvas.drawRect(
+          cellRect,
+          Paint()..color = isEdge ? const Color(0xFF38BDF8) : const Color(0xFF1E293B),
+        );
+        canvas.drawRect(
+          cellRect,
+          Paint()..color = const Color(0xFF475569)..style = PaintingStyle.stroke..strokeWidth = 1,
+        );
+      }
+    }
+    _drawText(canvas, '5×5 Pixel Grid', Offset(startGridX + 16, cy + 68), const Color(0xFF94A3B8), 10.5, FontWeight.w800);
+
+    // Arrow to Feature Detection
+    canvas.drawLine(Offset(cx - 15, cy), Offset(cx + 25, cy), Paint()..color = const Color(0xFF38BDF8)..strokeWidth = 3);
+    _drawText(canvas, '➔ CONV', Offset(cx - 10, cy - 16), const Color(0xFF38BDF8), 11, FontWeight.w900);
+
+    // Right: Recognized Object Box
+    final boxRect = RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(cx + 105, cy), width: 110, height: 90), const Radius.circular(10));
+    canvas.drawRRect(boxRect, Paint()..color = const Color(0xFF1E293B));
+    canvas.drawRRect(
+      boxRect,
+      Paint()..color = const Color(0xFF22C55E)..style = PaintingStyle.stroke..strokeWidth = 2.5,
+    );
+    _drawText(canvas, '🤖 ROBOT CAR\nDETECTED', Offset(cx + 64, cy - 20), Colors.white, 11, FontWeight.w900);
+    _drawText(canvas, 'Confidence: 99.4%', Offset(cx + 64, cy + 16), const Color(0xFF4ADE80), 10, FontWeight.w700);
+
+    _drawText(
+      canvas,
+      'Vision models pool numeric pixel RGB values to detect horizontal & vertical edges!',
+      Offset(cx - 200, size.height - 28),
+      const Color(0xFF94A3B8),
+      11.5,
+      FontWeight.w700,
     );
   }
 
@@ -3402,6 +3907,19 @@ class _WhereRealWorldDevicesPainter extends CustomPainter {
       '📱 Real-World Location 3: Smartphone Camera Flashlight',
       '🤖 Real-World Location 4: Autonomous Robot Headlights & Pin 13',
     ];
+
+    if (dayNum == 9) {
+      // Day 9: What is AI Real-World Applications
+      _drawAiRealWorldWorkspace(canvas, size, selectedDeviceIdx);
+      return;
+    }
+
+    if (dayNum == 10) {
+      // Day 10: Computer Vision Real-World Applications
+      _drawVisionRealWorldWorkspace(canvas, size, selectedDeviceIdx);
+      return;
+    }
+
     _drawText(canvas, titles[selectedDeviceIdx.clamp(0, 3)], const Offset(20, 18), const Color(0xFF166534), 13.5, FontWeight.w900);
 
     final cx = size.width / 2;
@@ -3483,6 +4001,63 @@ class _WhereRealWorldDevicesPainter extends CustomPainter {
       canvas.drawCircle(Offset(cx + 70, cy - 10), 10, Paint()..color = const Color(0xFFFACC15));
       _drawText(canvas, 'ROBOT PIN 13 LED', Offset(cx - 48, cy - 8), Colors.white, 11.5, FontWeight.w800);
     }
+  }
+
+  void _drawAiRealWorldWorkspace(Canvas canvas, Size size, int idx) {
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(18)),
+      Paint()..color = const Color(0xFF0F172A),
+    );
+    final cx = size.width / 2;
+    final cy = size.height * 0.50;
+
+    final titles = [
+      '🚗 Autonomous Self-Driving Cars (Obstacle AI)',
+      '🗣️ Smart Assistants (Voice & Speech Recognition)',
+      '🤖 Learnix Socratic AI Tutor & Automated Lab Diagnostics',
+      '🏭 Automated Robotic Sorting & Industrial Automation',
+    ];
+    _drawText(canvas, titles[idx.clamp(0, 3)], const Offset(20, 18), const Color(0xFF38BDF8), 13, FontWeight.w900);
+
+    // Animated AI Neural Core Icon
+    canvas.drawCircle(Offset(cx, cy), 46, Paint()..color = const Color(0xFF1E293B));
+    canvas.drawCircle(
+      Offset(cx, cy),
+      46,
+      Paint()..color = const Color(0xFF38BDF8)..style = PaintingStyle.stroke..strokeWidth = 2.5,
+    );
+    _drawText(canvas, '🧠', Offset(cx - 20, cy - 22), Colors.white, 38, FontWeight.normal);
+
+    // Radiating neural pulses
+    for (int i = 1; i <= 3; i++) {
+      final r = 46.0 + (i * 20.0 * ((progress + i * 0.3) % 1.0));
+      canvas.drawCircle(Offset(cx, cy), r, Paint()..color = const Color(0xFF38BDF8).withOpacity(0.35)..style = PaintingStyle.stroke..strokeWidth = 1.5);
+    }
+  }
+
+  void _drawVisionRealWorldWorkspace(Canvas canvas, Size size, int idx) {
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(18)),
+      Paint()..color = const Color(0xFF022C22),
+    );
+    final cx = size.width / 2;
+    final cy = size.height * 0.50;
+
+    final titles = [
+      '📱 Smartphone Face-Unlock & Biometric Verification',
+      '🛣️ Lane Departure & Autonomous Cruise Cameras',
+      '📦 Industrial Package Barcode & Defect Sorting',
+      '🏥 Medical Diagnostic Imaging & Scan Edge Detection',
+    ];
+    _drawText(canvas, titles[idx.clamp(0, 3)], const Offset(20, 18), const Color(0xFF34D399), 13, FontWeight.w900);
+
+    // Camera viewfinder box
+    final box = RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(cx, cy), width: 140, height: 96), const Radius.circular(12));
+    canvas.drawRRect(box, Paint()..color = const Color(0xFF064E3B));
+    canvas.drawRRect(box, Paint()..color = const Color(0xFF10B981)..style = PaintingStyle.stroke..strokeWidth = 2);
+
+    _drawText(canvas, '📸 TARGET LOCKED', Offset(cx - 55, cy - 10), Colors.white, 12, FontWeight.w900);
+    _drawText(canvas, 'Class: Human Face (99.8%)', Offset(cx - 65, cy + 14), const Color(0xFF6EE7B7), 10.5, FontWeight.w700);
   }
 
   void _drawText(Canvas canvas, String text, Offset pos, Color color, double size, FontWeight weight) {
