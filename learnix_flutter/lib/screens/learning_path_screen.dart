@@ -330,48 +330,102 @@ class _LearningPathScreenState extends State<LearningPathScreen>
 
   Map<String, dynamic> _getDayLessonData(Map<String, dynamic> day) {
     final dayNum = day['day_number'] ?? 1;
-    final title = (day['title'] ?? 'LED and its application').toString();
+    final title = (day['title'] ?? 'Robotics Concept').toString();
 
     final Map<int, Map<String, dynamic>> catalog = {
       1: {
-        'headerTitle': 'Day 1: $title & Series and Parallel',
+        'headerTitle': 'Day 1: What is an LED',
         'question': 'Why does an LED only glow in one direction and need a resistor?',
-        'what': 'A tiny semiconductor light that works one way (anode + to cathode −) and needs a resistor',
-        'like': 'Real-Life Memory Trick: Like a water tank pushing water through a narrow speed-valve to gently spin a one-way glowing waterwheel!',
+        'what': 'A light-emitting diode (LED) is a semiconductor that converts electricity into light in one direction (anode + to cathode −).',
+        'like': 'Real-Life Analogy: Like a water pump pushing water through a narrow speed-valve to gently spin a one-way glowing waterwheel!',
         'why': 'Cause & Effect: Without a 330 Ω resistor, 85 mA rushes in and burns the LED; with 330 Ω, current stays at a safe 9.1 mA!',
         'where': 'Real-World Places: Inside traffic signal lights, TV remote infrared transmitters, smartphone flashlights, and robot status lights!',
         'when': 'When to Use It: Whenever an Arduino output pin goes HIGH (5V) to signal an alert, sensor detection, or power status!',
       },
       2: {
-        'headerTitle': 'Day 2: $title & Current Limiting',
+        'headerTitle': 'Day 2: Resistors and Current Limiting',
         'question': 'Why does an LED burn without a resistor?',
-        'what': 'A passive component measured in Ohms (Ω) that slows down electric current in a circuit',
-        'like': 'Real-Life Memory Trick: Like a speed-bump on a road or a narrow pinch in a garden hose that keeps water pressure safe!',
+        'what': 'A resistor limits the flow of electric current in a circuit, measured in Ohms (Ω), converting excess electrical energy safely.',
+        'like': 'Real-Life Analogy: Like a speed-bump on a road or a narrow pinch in a garden hose that keeps water pressure at a safe speed!',
         'why': 'Cause & Effect: Ohm\'s Law (I = (5V − 2V) ÷ R) keeps current around 9.1 mA so delicate components never overheat!',
         'where': 'Real-World Places: Inside phone chargers, traffic lights, smart TVs, and every Arduino LED & sensor circuit!',
         'when': 'When to Use It: Always place a 220Ω–330Ω resistor in series whenever connecting a 2V LED to a 5V or 9V power source!',
       },
       3: {
-        'headerTitle': 'Day 3: $title & Closed Loops',
+        'headerTitle': 'Day 3: Ground and Complete Circuits',
         'question': 'Why won\'t a circuit work if the Ground (GND) wire is missing?',
-        'what': 'Ground (GND) is the 0V return path that completes an electrical loop back to the battery',
-        'like': 'Real-Life Memory Trick: Like a circular water slide loop — water cannot keep flowing if the return pipe back to the pump is broken!',
+        'what': 'Ground (GND) is the 0V reference point that completes an electrical loop back to the battery or power source.',
+        'like': 'Real-Life Analogy: Like a circular water slide loop — water cannot keep flowing if the return pipe back to the pump is broken!',
         'why': 'Cause & Effect: Open GND loop = 0.0 mA (dark LED); Closed GND loop = 9.1 mA continuous flow (glowing LED)!',
         'where': 'Real-World Places: Car battery negative chassis ground, home appliance neutral/ground lines, and Arduino GND rails!',
         'when': 'When to Use It: Always connect every component\'s negative (−) return leg to a common GND rail before turning power ON!',
       },
+      4: {
+        'headerTitle': 'Day 4: Digital Output Pins & Loops',
+        'question': 'How does Arduino control things on and off in a loop?',
+        'what': 'Digital pins can be switched HIGH (5V) or LOW (0V) using code. void loop() repeats these commands continuously.',
+        'like': 'Real-Life Analogy: Like a lighthouse light keeper flicking a switch ON and OFF to rhythmic count beats that repeat forever!',
+        'why': 'Cause & Effect: Without delay(), the loop toggles millions of times per second (a blur); delay(500) gives visible blinking!',
+        'where': 'Real-World Places: Turn signals on cars, pulsing warning beacons on radio towers, and robot indicator blinkers!',
+        'when': 'When to Use It: Whenever you want automated blinking, timed alerts, or periodic motor pulses without human intervention!',
+      },
+      5: {
+        'headerTitle': 'Day 5: Buttons and Digital Input',
+        'question': 'How does a microcontroller know when a button is pressed?',
+        'what': 'A push button connects or disconnects two points in a circuit. digitalRead() checks whether the pin sees HIGH or LOW.',
+        'like': 'Real-Life Analogy: Like a drawbridge: open = traffic stops (floating); closed = traffic crosses smoothly to GND!',
+        'why': 'Cause & Effect: Using INPUT_PULLUP prevents an erratic floating input by gently holding the pin at 5V until pressed to GND!',
+        'where': 'Real-World Places: Gamepad buttons, doorbells, keyboard keys, and emergency stop switches on factory machines!',
+        'when': 'When to Use It: Whenever a human needs to interact with your robot — starting a motor, firing a buzzer, or toggling lights!',
+      },
+      6: {
+        'headerTitle': 'Day 6: Buzzers + If-Else Decisions',
+        'question': 'How do buzzers make sound and how does code decide when to beep?',
+        'what': 'A piezo buzzer vibrates rapidly when fed an electrical pulse (PWM tone). If-else statements decide when to activate it.',
+        'like': 'Real-Life Analogy: Like a guard dog that only barks IF someone knocks on the front door, ELSE stays quietly asleep!',
+        'why': 'Cause & Effect: Tone frequency determines pitch (e.g. 880 Hz high chime vs 440 Hz low beep); if-condition governs triggering!',
+        'where': 'Real-World Places: Microwave oven beeps, car reverse parking sensors, digital alarm clocks, and doorbell chimes!',
+        'when': 'When to Use It: When you need audible feedback for danger, button clicks, sensor triggers, or user notifications!',
+      },
+      7: {
+        'headerTitle': 'Day 7: Variables & State Memory',
+        'question': 'How does a robot remember numbers, scores, and states?',
+        'what': 'Variables are named storage boxes in computer memory (e.g., int speed = 100; int distance = 15;) that hold values that change.',
+        'like': 'Real-Life Analogy: Like labelled lunchboxes or scoreboards on a soccer pitch that update every time a team scores a goal!',
+        'why': 'Cause & Effect: Without variables, code is hard-coded and static; with variables, robots adapt and remember previous measurements!',
+        'where': 'Real-World Places: Game high-scores, robot battery percentage counters, speedometer readings, and thermometer displays!',
+        'when': 'When to Use It: Whenever tracking sensor readings, counting button presses, or computing math before making decisions!',
+      },
+      8: {
+        'headerTitle': 'Day 8: Ultrasonic Distance Sensor (HC-SR04)',
+        'question': 'How does a robot "see" walls and measure distance with sound?',
+        'what': 'An HC-SR04 sensor transmits a 40 kHz ultrasonic burst from TRIG and measures the travel time until ECHO bounces back.',
+        'like': 'Real-Life Analogy: Like a bat flying in a dark cave or a submarine sonar pinging off undersea obstacles to navigate!',
+        'why': 'Cause & Effect: Speed of sound is 0.034 cm/µs. Distance = (Echo Time in µs × 0.034) ÷ 2 (divided by 2 for round-trip)!',
+        'where': 'Real-World Places: Autonomous robot vacuum obstacle avoidance, car parking radar sensors, and smart automatic trash bins!',
+        'when': 'When to Use It: When your robot must avoid crashing into walls, detect approaching intruders, or measure liquid levels!',
+      },
+      9: {
+        'headerTitle': 'Day 9: What is Artificial Intelligence (AI)',
+        'question': 'How is AI different from regular computer programming?',
+        'what': 'Regular code follows rigid step-by-step rules; AI learns patterns from examples and data to make predictions.',
+        'like': 'Real-Life Analogy: Regular code is like following a baking recipe word-for-word; AI is like an experienced chef tasting and tuning!',
+        'why': 'Cause & Effect: With 10,000 photos of cats and dogs, an AI extracts visual features that no human could write in simple if-statements!',
+        'where': 'Real-World Places: Self-driving cars, voice assistants (Siri, Alexa), spam filters, and Learnix AI tutoring!',
+        'when': 'When to Use It: When rules are too complex, fuzzy, or variable for manual if-else statements (vision, speech, reasoning)!',
+      },
+      10: {
+        'headerTitle': 'Day 10: Image Recognition & Computer Vision',
+        'question': 'How do computers see and classify objects in camera images?',
+        'what': 'Images are grids of numeric pixels (RGB). Vision models detect edges, textures, and shapes to recognize objects.',
+        'like': 'Real-Life Analogy: Like building a LEGO picture: individual dots form edges, edges form shapes, and shapes become a recognizable face!',
+        'why': 'Cause & Effect: Neural networks pool pixel values into feature maps, letting a robot car tell pedestrians apart from stop signs!',
+        'where': 'Real-World Places: Face-unlock on smartphones, lane-keeping camera systems on cars, and sorting robots in recycling plants!',
+        'when': 'When to Use It: Whenever your robot needs a camera feed to recognize gestures, sort colored blocks, or track human motion!',
+      },
     };
 
-    return catalog[dayNum] ??
-        {
-          'headerTitle': 'Day $dayNum: $title & Series and Parallel',
-          'question': 'Why does an LED burn without a resistor in a $title circuit?',
-          'what': day['concept']?['summary'] ?? 'A tiny light that works one way and needs a resistor',
-          'like': 'Real-Life Memory Trick: Like a water pump pushing water through a narrow speed-valve to spin a one-way waterwheel!',
-          'why': 'Cause & Effect: Without a resistor, 85 mA burns the component; with 330 Ω, current is safely limited to 9.1 mA!',
-          'where': 'Real-World Places: Found in traffic signals, TV remotes, smartphone torches, and autonomous robot cars!',
-          'when': 'When to Use It: Whenever wiring an output indicator or sensor trigger between an Arduino 5V pin and GND!',
-        };
+    return catalog[dayNum] ?? catalog[1]!;
   }
 
   @override
@@ -429,7 +483,7 @@ class _LearningPathScreenState extends State<LearningPathScreen>
                   ),
                   Flexible(
                     child: Text(
-                      'Robotics Level 1: Robo Starter',
+                      '10-Day Robotics Learning Path',
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: isMobile ? 15 : 17,
@@ -932,7 +986,7 @@ class _LearningPathScreenState extends State<LearningPathScreen>
                       // 3 = Bug hunt (Faulty Breadboard & Circuit Bug Hunter with AI Tutor!)
                       // 4 = Quiz
                       if (_activeTopModeIndex == 0)
-                        _buildDynamicDimensionLearnWorkspace(isNarrow, currentMa)
+                        _buildDynamicDimensionLearnWorkspace(isNarrow, currentMa, dayNum)
                       else if (_activeTopModeIndex == 1)
                         _buildDayPredictMode(currentMa)
                       else if (_activeTopModeIndex == 2)
@@ -1090,15 +1144,15 @@ class _LearningPathScreenState extends State<LearningPathScreen>
   }
 
   // ===========================================================================
-  // DYNAMIC LEARN ANIMATION WORKSPACE (CHANGES BASED ON WHAT / LIKE / WHY / WHERE / WHEN!)
+  // DYNAMIC LEARN ANIMATION WORKSPACE (CHANGES BASED ON WHAT / LIKE / WHY / WHERE / WHEN & CURRENT DAY!)
   // ===========================================================================
-  Widget _buildDynamicDimensionLearnWorkspace(bool isNarrow, double currentMa) {
-    // 1. Build the Left Animated Canvas depending on _activeWhatTabIndex:
-    // 0 = WHAT (Technical Circuit Schematic)
-    // 1 = LIKE (Non-technical Real-Life Water Tank + Speed-Valve + Waterwheel Memory Analogy!)
-    // 2 = WHY  (Side-by-Side Burned LED vs Safe Protected LED Cause & Effect!)
-    // 3 = WHERE (Real-World Everyday Devices: Traffic Signal, TV Remote, Phone Torch, Robot Car!)
-    // 4 = WHEN (Real-Time Trigger & Builder Decision Timeline!)
+  Widget _buildDynamicDimensionLearnWorkspace(bool isNarrow, double currentMa, int dayNum) {
+    // 1. Build the Left Animated Canvas depending on _activeWhatTabIndex and dayNum:
+    // 0 = WHAT (Technical Circuit Schematic / Ultrasonic Sensor / Button Input)
+    // 1 = LIKE (Non-technical Real-Life Water Tank / Bat Sonar / Drawbridge / Chef Analogy!)
+    // 2 = WHY  (Cause & Effect Side-by-Side: Burned vs Safe, Echo Delay, Floating vs Pullup)
+    // 3 = WHERE (Real-World Everyday Devices tailored to the Day's Topic)
+    // 4 = WHEN (Real-Time Decision & Trigger Flow Timeline)
     Widget leftAnimationCanvas;
     if (_activeWhatTabIndex == 1) {
       leftAnimationCanvas = AnimatedBuilder(
@@ -1108,6 +1162,7 @@ class _LearningPathScreenState extends State<LearningPathScreen>
             progress: _electronController.value,
             resistorOhms: _resistorOhms.toInt(),
             selectedPart: _selectedAnatomyIndex,
+            dayNum: dayNum,
           ),
         ),
       );
@@ -1119,6 +1174,7 @@ class _LearningPathScreenState extends State<LearningPathScreen>
             progress: _electronController.value,
             resistorOhms: _resistorOhms.toInt(),
             currentMa: currentMa,
+            dayNum: dayNum,
           ),
         ),
       );
@@ -1129,6 +1185,7 @@ class _LearningPathScreenState extends State<LearningPathScreen>
           painter: _WhereRealWorldDevicesPainter(
             progress: _electronController.value,
             selectedDeviceIdx: _selectedAnatomyIndex,
+            dayNum: dayNum,
           ),
         ),
       );
@@ -1140,6 +1197,7 @@ class _LearningPathScreenState extends State<LearningPathScreen>
             progress: _electronController.value,
             selectedRuleIdx: _selectedAnatomyIndex,
             resistorOhms: _resistorOhms.toInt(),
+            dayNum: dayNum,
           ),
         ),
       );
@@ -1152,6 +1210,7 @@ class _LearningPathScreenState extends State<LearningPathScreen>
             resistorOhms: _resistorOhms.toInt(),
             currentMa: currentMa,
             topology: _circuitTopology,
+            dayNum: dayNum,
           ),
         ),
       );
@@ -1231,7 +1290,7 @@ class _LearningPathScreenState extends State<LearningPathScreen>
     );
 
     // 2. Build the Right 4 Circular Selector Buttons + Spotlight Card tailored to WHAT / LIKE / WHY / WHERE / WHEN!
-    final List<Map<String, dynamic>> rightItems = _getRightItemsForTab(_activeWhatTabIndex, currentMa);
+    final List<Map<String, dynamic>> rightItems = _getRightItemsForTab(_activeWhatTabIndex, currentMa, dayNum);
     final activeItem = rightItems[_selectedAnatomyIndex.clamp(0, rightItems.length - 1)];
 
     final rightColumn = Column(
@@ -1373,8 +1432,196 @@ class _LearningPathScreenState extends State<LearningPathScreen>
     );
   }
 
-  List<Map<String, dynamic>> _getRightItemsForTab(int tabIdx, double currentMa) {
-    // 1. LIKE: Non-technical everyday memory analogies
+  List<Map<String, dynamic>> _getRightItemsForTab(int tabIdx, double currentMa, int dayNum) {
+    if (dayNum == 8) {
+      // Day 8: Ultrasonic Distance Sensor (HC-SR04)
+      if (tabIdx == 1) {
+        return [
+          {
+            'label': 'Bat Sonar',
+            'symbol': '🦇',
+            'icon': LucideIcons.radio,
+            'badge': 'Echo Ping',
+            'title': 'Echolocation (Bat Navigation)',
+            'desc': 'Just like a bat chirps and listens for the echo bounce off cave walls, HC-SR04 pings 40 kHz sound waves!',
+            'color': const Color(0xFF0284C7),
+            'cardBg': const Color(0xFFE0F2FE),
+          },
+          {
+            'label': 'Submarine',
+            'symbol': '🚢',
+            'icon': LucideIcons.compass,
+            'badge': 'Active Sonar',
+            'title': 'Submarine Undersea Sonar',
+            'desc': 'Submarines measure distance by timing the sound pulse round trip through water to undersea obstacles.',
+            'color': const Color(0xFF0D9488),
+            'cardBg': const Color(0xFFCCFBF1),
+          },
+          {
+            'label': 'Stopwatch',
+            'symbol': '⏱️',
+            'icon': LucideIcons.timer,
+            'badge': 'Time × Speed',
+            'title': 'High-Speed Microsecond Timer',
+            'desc': 'The Arduino stopwatch counts microseconds between sending TRIG pulse and receiving ECHO back.',
+            'color': const Color(0xFFD97706),
+            'cardBg': const Color(0xFFFEF3C7),
+          },
+          {
+            'label': 'Safety Shield',
+            'symbol': '🛡️',
+            'icon': LucideIcons.shieldCheck,
+            'badge': 'Wall Buffer',
+            'title': 'Invisible Safety Cushion',
+            'desc': 'Creates an invisible 20 cm distance bubble so autonomous robot cars stop before crashing into obstacles!',
+            'color': const Color(0xFF16A34A),
+            'cardBg': const Color(0xFFDCFCE7),
+          },
+        ];
+      }
+      if (tabIdx == 3) {
+        return [
+          {
+            'label': 'Robot Vac',
+            'symbol': '🤖',
+            'icon': LucideIcons.bot,
+            'badge': 'Smart Vacuum',
+            'title': 'Autonomous Robot Vacuums',
+            'desc': 'Uses ultrasonic and infrared pings to avoid furniture legs and map room boundaries safely.',
+            'color': const Color(0xFF0284C7),
+            'cardBg': const Color(0xFFE0F2FE),
+          },
+          {
+            'label': 'Car Parking',
+            'symbol': '🚗',
+            'icon': LucideIcons.gauge,
+            'badge': 'Bumper Radar',
+            'title': 'Automobile Reverse Parking Sensors',
+            'desc': 'Ultrasonic sensors embedded in car bumpers beep faster as you reverse closer to a wall or pole.',
+            'color': const Color(0xFF16A34A),
+            'cardBg': const Color(0xFFDCFCE7),
+          },
+          {
+            'label': 'Smart Bin',
+            'symbol': '🗑️',
+            'icon': LucideIcons.trash2,
+            'badge': 'Touchless Lid',
+            'title': 'Automatic Touchless Trash Bins',
+            'desc': 'Opens the lid automatically when your hand approaches within 15 cm of the sensor.',
+            'color': const Color(0xFFD97706),
+            'cardBg': const Color(0xFFFEF3C7),
+          },
+          {
+            'label': 'Liquid Tank',
+            'symbol': '🚰',
+            'icon': LucideIcons.droplets,
+            'badge': 'Water Gauge',
+            'title': 'Water Tank Level Monitoring',
+            'desc': 'Mounted on top of water tanks to measure water height without ever touching the liquid.',
+            'color': const Color(0xFF7E22CE),
+            'cardBg': const Color(0xFFF3E8FF),
+          },
+        ];
+      }
+    }
+
+    if (dayNum == 5) {
+      // Day 5: Buttons and Digital Input
+      if (tabIdx == 1) {
+        return [
+          {
+            'label': 'Drawbridge',
+            'symbol': '🌉',
+            'icon': LucideIcons.gitFork,
+            'badge': 'Open vs Closed',
+            'title': 'Mechanical Drawbridge Analogy',
+            'desc': 'When open, electrical traffic cannot cross (HIGH/disconnected); when pressed, traffic connects to GND (LOW)!',
+            'color': const Color(0xFF0284C7),
+            'cardBg': const Color(0xFFE0F2FE),
+          },
+          {
+            'label': 'Spring Coil',
+            'symbol': '🌀',
+            'icon': LucideIcons.rotateCw,
+            'badge': 'Momentary',
+            'title': 'Tactile Spring Return',
+            'desc': 'Springs back the moment your finger releases, making it ideal for momentary pulses and triggers.',
+            'color': const Color(0xFFD97706),
+            'cardBg': const Color(0xFFFEF3C7),
+          },
+          {
+            'label': 'Tug-of-War',
+            'symbol': '🪢',
+            'icon': LucideIcons.scale,
+            'badge': 'INPUT_PULLUP',
+            'title': 'Internal Pullup Resistor Tug',
+            'desc': 'A gentle internal 20kΩ spring keeps the pin pulled HIGH until a firm press grounds it to LOW.',
+            'color': const Color(0xFF16A34A),
+            'cardBg': const Color(0xFFDCFCE7),
+          },
+          {
+            'label': 'Bell Chime',
+            'symbol': '🔔',
+            'icon': LucideIcons.bell,
+            'badge': 'Trigger Event',
+            'title': 'Action Trigger (digitalRead == LOW)',
+            'desc': 'Detects the exact microsecond when a human interacts with the physical button to fire actions!',
+            'color': const Color(0xFF7E22CE),
+            'cardBg': const Color(0xFFF3E8FF),
+          },
+        ];
+      }
+    }
+
+    if (dayNum == 6) {
+      // Day 6: Buzzers + If-Else
+      if (tabIdx == 1) {
+        return [
+          {
+            'label': 'Guard Dog',
+            'symbol': '🐕',
+            'icon': LucideIcons.alertTriangle,
+            'badge': 'if / else',
+            'title': 'Vigilant Guard Dog Analogy',
+            'desc': 'IF an intruder trips the boundary sensor, bark loudly (tone(8, 1200)); ELSE remain quietly on guard (noTone(8))!',
+            'color': const Color(0xFF0284C7),
+            'cardBg': const Color(0xFFE0F2FE),
+          },
+          {
+            'label': 'Drumhead',
+            'symbol': '🥁',
+            'icon': LucideIcons.music,
+            'badge': 'Piezo Crystal',
+            'title': 'Vibrating Ceramic Drumhead',
+            'desc': 'A piezo disc expands and flexes hundreds of times per second when energized, pumping acoustic waves through the air.',
+            'color': const Color(0xFFD97706),
+            'cardBg': const Color(0xFFFEF3C7),
+          },
+          {
+            'label': 'Pitch Dial',
+            'symbol': '🎵',
+            'icon': LucideIcons.volume2,
+            'badge': 'Hertz (Hz)',
+            'title': 'Musical Frequency Pitch',
+            'desc': '440 Hz produces musical note A4; 1400 Hz produces a piercing emergency siren that demands immediate attention.',
+            'color': const Color(0xFF16A34A),
+            'cardBg': const Color(0xFFDCFCE7),
+          },
+          {
+            'label': 'Dual Branch',
+            'symbol': '🔀',
+            'icon': LucideIcons.gitBranch,
+            'badge': 'True / False',
+            'title': 'Two-Way Decision Switch',
+            'desc': 'If-else statements guarantee your microcontroller always knows what to do in both true and false conditions.',
+            'color': const Color(0xFF7E22CE),
+            'cardBg': const Color(0xFFF3E8FF),
+          },
+        ];
+      }
+    }
+
+    // 1. LIKE: Non-technical everyday memory analogies (Default / Days 1, 2, 3, 4, 7, 9, 10)
     if (tabIdx == 1) {
       return [
         {
@@ -2463,19 +2710,21 @@ class _SnakeDashedConnectorPainter extends CustomPainter {
 }
 
 // =============================================================================
-// CUSTOM PAINTER 2: "WHAT" TAB — TECHNICAL CIRCUIT SCHEMATIC
+// CUSTOM PAINTER 2: "WHAT" TAB — TECHNICAL CIRCUIT & COMPONENT SCHEMATIC
 // =============================================================================
 class _InteractiveCircuitSchematicPainter extends CustomPainter {
   final double progress;
   final int resistorOhms;
   final double currentMa;
   final int topology;
+  final int dayNum;
 
   _InteractiveCircuitSchematicPainter({
     required this.progress,
     required this.resistorOhms,
     required this.currentMa,
     required this.topology,
+    this.dayNum = 1,
   });
 
   @override
@@ -2485,6 +2734,24 @@ class _InteractiveCircuitSchematicPainter extends CustomPainter {
       for (double y = 16; y < size.height; y += 20) {
         canvas.drawCircle(Offset(x, y), 1.3, dotPaint);
       }
+    }
+
+    if (dayNum == 8) {
+      // Day 8: Ultrasonic Distance Sensor (HC-SR04) Schematic
+      _drawUltrasonicSensorSchematic(canvas, size);
+      return;
+    }
+
+    if (dayNum == 5) {
+      // Day 5: Button + INPUT_PULLUP Schematic
+      _drawButtonPullupSchematic(canvas, size);
+      return;
+    }
+
+    if (dayNum == 6) {
+      // Day 6: Piezo Buzzer + D8 Schematic
+      _drawBuzzerSchematic(canvas, size);
+      return;
     }
 
     final left = size.width * 0.16;
@@ -2605,6 +2872,115 @@ class _InteractiveCircuitSchematicPainter extends CustomPainter {
     );
   }
 
+  void _drawUltrasonicSensorSchematic(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height * 0.50;
+
+    // Sensor PCB body
+    final pcbRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(cx - 70, cy), width: 140, height: 74),
+      const Radius.circular(10),
+    );
+    canvas.drawRRect(pcbRect, Paint()..color = const Color(0xFF1E3A8A));
+    canvas.drawRRect(
+      pcbRect,
+      Paint()
+        ..color = const Color(0xFF60A5FA)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
+
+    // Two transducer cylinders (T and R)
+    canvas.drawCircle(Offset(cx - 105, cy), 18, Paint()..color = const Color(0xFF94A3B8));
+    canvas.drawCircle(Offset(cx - 35, cy), 18, Paint()..color = const Color(0xFF94A3B8));
+    _drawText(canvas, 'TRIG', Offset(cx - 117, cy - 6), const Color(0xFF0F172A), 9.5, FontWeight.w900);
+    _drawText(canvas, 'ECHO', Offset(cx - 48, cy - 6), const Color(0xFF0F172A), 9.5, FontWeight.w900);
+
+    // Sound waves emitting and reflecting
+    final wavePaint = Paint()
+      ..color = const Color(0xFF0284C7).withOpacity(0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    for (int i = 1; i <= 4; i++) {
+      final r = i * 20.0 * ((progress + i * 0.2) % 1.0);
+      canvas.drawArc(Rect.fromCircle(center: Offset(cx - 35, cy), radius: r), -0.5, 1.0, false, wavePaint);
+    }
+
+    // Target object / obstacle on the right
+    final targetRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(cx + 105, cy), width: 28, height: 90),
+      const Radius.circular(6),
+    );
+    canvas.drawRRect(targetRect, Paint()..color = const Color(0xFFDC2626));
+    _drawText(canvas, 'OBSTACLE', Offset(cx + 82, cy - 56), const Color(0xFFDC2626), 11, FontWeight.w800);
+
+    _drawText(
+      canvas,
+      'Distance = (Echo Time in µs × 0.034) ÷ 2 = 14 cm',
+      Offset(cx - 150, size.height - 28),
+      const Color(0xFF0284C7),
+      12.5,
+      FontWeight.w900,
+    );
+  }
+
+  void _drawButtonPullupSchematic(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height * 0.50;
+
+    // Arduino Pin D2 + Internal Pullup
+    canvas.drawRect(Rect.fromLTWH(cx - 140, cy - 50, 80, 100), Paint()..color = const Color(0xFF0284C7));
+    _drawText(canvas, 'ARDUINO\nPin D2\n(PULLUP)', Offset(cx - 134, cy - 25), Colors.white, 10.5, FontWeight.bold);
+
+    // Button terminals
+    canvas.drawLine(Offset(cx - 60, cy), Offset(cx + 10, cy), Paint()..color = const Color(0xFF475569)..strokeWidth = 3);
+    canvas.drawCircle(Offset(cx + 10, cy), 5, Paint()..color = const Color(0xFF0F172A));
+    canvas.drawCircle(Offset(cx + 40, cy), 5, Paint()..color = const Color(0xFF0F172A));
+
+    // Button contact lever
+    final leverClosed = (progress * 2).floor() % 2 == 1;
+    if (leverClosed) {
+      canvas.drawLine(Offset(cx + 10, cy), Offset(cx + 40, cy), Paint()..color = const Color(0xFF16A34A)..strokeWidth = 4);
+      _drawText(canvas, 'PRESSED = LOW (0V)', Offset(cx - 20, cy - 35), const Color(0xFF16A34A), 12, FontWeight.w900);
+    } else {
+      canvas.drawLine(Offset(cx + 10, cy), Offset(cx + 36, cy - 14), Paint()..color = const Color(0xFFDC2626)..strokeWidth = 4);
+      _drawText(canvas, 'RELEASED = HIGH (5V)', Offset(cx - 28, cy - 35), const Color(0xFFDC2626), 12, FontWeight.w900);
+    }
+
+    // GND wire
+    canvas.drawLine(Offset(cx + 40, cy), Offset(cx + 90, cy), Paint()..color = const Color(0xFF0F172A)..strokeWidth = 3);
+    _drawText(canvas, 'GND (0V)', Offset(cx + 96, cy - 8), const Color(0xFF0F172A), 12, FontWeight.w800);
+  }
+
+  void _drawBuzzerSchematic(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height * 0.50;
+
+    // Buzzer body
+    canvas.drawCircle(Offset(cx, cy), 42, Paint()..color = const Color(0xFF1E293B));
+    canvas.drawCircle(
+      Offset(cx, cy),
+      42,
+      Paint()
+        ..color = const Color(0xFFF59E0B)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3,
+    );
+    canvas.drawCircle(Offset(cx, cy), 14, Paint()..color = const Color(0xFF64748B));
+    _drawText(canvas, 'BUZZER\n(D8)', Offset(cx - 22, cy - 14), Colors.white, 10.5, FontWeight.w800);
+
+    // Sound waves
+    final wavePaint = Paint()
+      ..color = const Color(0xFFF59E0B).withOpacity(0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5;
+    for (int i = 1; i <= 3; i++) {
+      final r = 42.0 + (i * 18.0 * ((progress + i * 0.3) % 1.0));
+      canvas.drawCircle(Offset(cx, cy), r, wavePaint);
+    }
+    _drawText(canvas, 'tone(8, 880) ➔ 880 Hz Audible Chime', Offset(cx - 110, size.height - 28), const Color(0xFFB45309), 12.5, FontWeight.w900);
+  }
+
   void _drawGlowingLed(Canvas canvas, Offset center, double intensity) {
     canvas.drawCircle(
       center,
@@ -2654,21 +3030,42 @@ class _InteractiveCircuitSchematicPainter extends CustomPainter {
 }
 
 // =============================================================================
-// CUSTOM PAINTER 3: "LIKE" TAB — REAL-TIME NON-TECHNICAL WATER TANK & WHEEL ANALOGY!
+// CUSTOM PAINTER 3: "LIKE" TAB — REAL-TIME NON-TECHNICAL MEMORY ANALOGY!
 // =============================================================================
 class _LikeWaterWheelAnalogyPainter extends CustomPainter {
   final double progress;
   final int resistorOhms;
   final int selectedPart;
+  final int dayNum;
 
   _LikeWaterWheelAnalogyPainter({
     required this.progress,
     required this.resistorOhms,
     required this.selectedPart,
+    this.dayNum = 1,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (dayNum == 8) {
+      // Day 8: Ultrasonic Sensor Analogy — Bat Echolocation in Cave
+      _drawBatSonarAnalogy(canvas, size);
+      return;
+    }
+
+    if (dayNum == 5) {
+      // Day 5: Button Analogy — Drawbridge traffic flow
+      _drawDrawbridgeAnalogy(canvas, size);
+      return;
+    }
+
+    if (dayNum == 6) {
+      // Day 6: Buzzer + If/Else Analogy — Guard dog barking on detection
+      _drawGuardDogAnalogy(canvas, size);
+      return;
+    }
+
+    // Default / Days 1, 2, 3: Water Tank + Pinch Valve + Waterwheel Analogy
     // Soft sky/water tint background
     canvas.drawRRect(
       RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(18)),
@@ -2790,6 +3187,105 @@ class _LikeWaterWheelAnalogyPainter extends CustomPainter {
     );
   }
 
+  void _drawBatSonarAnalogy(Canvas canvas, Size size) {
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(18)),
+      Paint()..color = const Color(0xFF0F172A),
+    );
+    final cx = size.width / 2;
+    final cy = size.height * 0.50;
+
+    // Flying bat on left
+    _drawText(canvas, '🦇', Offset(cx - 120, cy - 24), Colors.white, 38, FontWeight.normal);
+    _drawText(canvas, 'Bat = HC-SR04\nPings 40 kHz Sound', Offset(cx - 145, cy + 26), const Color(0xFF38BDF8), 11, FontWeight.w800);
+
+    // Ultrasonic chirp arcs
+    final wavePaint = Paint()
+      ..color = const Color(0xFF38BDF8).withOpacity(0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5;
+    for (int i = 1; i <= 3; i++) {
+      final r = i * 22.0 * ((progress + i * 0.3) % 1.0);
+      canvas.drawArc(Rect.fromCircle(center: Offset(cx - 80, cy), radius: r), -0.5, 1.0, false, wavePaint);
+    }
+
+    // Cave wall obstacle on right
+    final wall = RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(cx + 100, cy), width: 32, height: 110), const Radius.circular(8));
+    canvas.drawRRect(wall, Paint()..color = const Color(0xFF475569));
+    _drawText(canvas, 'CAVE WALL', Offset(cx + 74, cy - 65), const Color(0xFFE2E8F0), 10.5, FontWeight.w800);
+
+    _drawText(
+      canvas,
+      'Real-Life Analogy: Bats navigate pitch-black caves by timing sound echoes,\njust like robots use HC-SR04 to stop before hitting walls!',
+      Offset(cx - 190, size.height - 36),
+      const Color(0xFF94A3B8),
+      11.5,
+      FontWeight.w700,
+    );
+  }
+
+  void _drawDrawbridgeAnalogy(Canvas canvas, Size size) {
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(18)),
+      Paint()..color = const Color(0xFFF8FAFC),
+    );
+    final cx = size.width / 2;
+    final cy = size.height * 0.50;
+
+    final closed = (progress * 2).floor() % 2 == 1;
+    _drawText(
+      canvas,
+      '🌉 Real-Life Analogy: Drawbridge = Button\nWhen raised (released) traffic stops (HIGH); when lowered (pressed) cars flow to GND (LOW)!',
+      Offset(cx - 200, 20),
+      const Color(0xFF0F172A),
+      12.5,
+      FontWeight.w800,
+    );
+
+    // Left road and right road
+    canvas.drawRect(Rect.fromLTWH(cx - 150, cy + 10, 80, 20), Paint()..color = const Color(0xFF334155));
+    canvas.drawRect(Rect.fromLTWH(cx + 70, cy + 10, 80, 20), Paint()..color = const Color(0xFF334155));
+
+    // Water below
+    canvas.drawRect(Rect.fromLTWH(cx - 70, cy + 30, 140, 40), Paint()..color = const Color(0xFF0284C7));
+
+    // Moving bridge plank
+    if (closed) {
+      canvas.drawRect(Rect.fromLTWH(cx - 70, cy + 10, 140, 14), Paint()..color = const Color(0xFF16A34A));
+      _drawText(canvas, 'BRIDGE CLOSED: CARS FLOW (LOW = 0V)', Offset(cx - 110, cy + 80), const Color(0xFF16A34A), 12, FontWeight.w900);
+    } else {
+      canvas.drawLine(Offset(cx - 70, cy + 10), Offset(cx + 10, cy - 40), Paint()..color = const Color(0xFFDC2626)..strokeWidth = 10);
+      _drawText(canvas, 'BRIDGE OPEN: TRAFFIC HALTED (HIGH = 5V)', Offset(cx - 120, cy + 80), const Color(0xFFDC2626), 12, FontWeight.w900);
+    }
+  }
+
+  void _drawGuardDogAnalogy(Canvas canvas, Size size) {
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(18)),
+      Paint()..color = const Color(0xFFFFFBEB),
+    );
+    final cx = size.width / 2;
+    final cy = size.height * 0.50;
+
+    final barking = (progress * 2).floor() % 2 == 1;
+    _drawText(
+      canvas,
+      '🐕 Real-Life Analogy: Guard Dog = If-Else Buzzer\nIF intruder detected ➔ BARK loudly (tone()); ELSE ➔ Sleep quietly (noTone())!',
+      Offset(cx - 190, 20),
+      const Color(0xFF92400E),
+      12.5,
+      FontWeight.w800,
+    );
+
+    if (barking) {
+      _drawText(canvas, '🐕', Offset(cx - 30, cy - 25), Colors.black, 48, FontWeight.normal);
+      _drawText(canvas, 'BARK! BARK! (tone(8, 1200))', Offset(cx + 25, cy - 10), const Color(0xFFDC2626), 14, FontWeight.w900);
+    } else {
+      _drawText(canvas, '🐕💤', Offset(cx - 30, cy - 25), Colors.black, 48, FontWeight.normal);
+      _drawText(canvas, 'Sleeping quietly (noTone(8))', Offset(cx + 35, cy - 10), const Color(0xFF15803D), 13, FontWeight.w800);
+    }
+  }
+
   void _drawText(Canvas canvas, String text, Offset pos, Color color, double size, FontWeight weight) {
     final tp = TextPainter(
       text: TextSpan(text: text, style: TextStyle(color: color, fontSize: size, fontWeight: weight, height: 1.3)),
@@ -2804,17 +3300,19 @@ class _LikeWaterWheelAnalogyPainter extends CustomPainter {
 }
 
 // =============================================================================
-// CUSTOM PAINTER 4: "WHY" TAB — BURNED LED (NO RESISTOR) VS SAFE LED (WITH 330 Ω)
+// CUSTOM PAINTER 4: "WHY" TAB — CAUSE & EFFECT (BURNED VS SAFE / ECHO DELAY)
 // =============================================================================
 class _WhyBurnVsSafePainter extends CustomPainter {
   final double progress;
   final int resistorOhms;
   final double currentMa;
+  final int dayNum;
 
   _WhyBurnVsSafePainter({
     required this.progress,
     required this.resistorOhms,
     required this.currentMa,
+    this.dayNum = 1,
   });
 
   @override
@@ -2883,10 +3381,12 @@ class _WhyBurnVsSafePainter extends CustomPainter {
 class _WhereRealWorldDevicesPainter extends CustomPainter {
   final double progress;
   final int selectedDeviceIdx;
+  final int dayNum;
 
   _WhereRealWorldDevicesPainter({
     required this.progress,
     required this.selectedDeviceIdx,
+    this.dayNum = 1,
   });
 
   @override
@@ -3004,11 +3504,13 @@ class _WhenTimelineTriggerPainter extends CustomPainter {
   final double progress;
   final int selectedRuleIdx;
   final int resistorOhms;
+  final int dayNum;
 
   _WhenTimelineTriggerPainter({
     required this.progress,
     required this.selectedRuleIdx,
     required this.resistorOhms,
+    this.dayNum = 1,
   });
 
   @override
