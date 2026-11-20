@@ -4,7 +4,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:http/http.dart' as http;
 import 'package:lucide_icons/lucide_icons.dart';
 import '../theme/app_theme.dart';
+import '../widgets/zola_avatar.dart';
 import '../widgets/interactive_card.dart';
+import '../widgets/picture_card.dart';
 
 class HomeScreen extends StatefulWidget {
   final String baseUrl;
@@ -347,6 +349,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
               SizedBox(height: isNarrow ? tokens.space20 : tokens.space32),
 
+              // Explore: illustrated cards like the live Learnix labs
+              Text('Explore Learnix', style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+              SizedBox(height: tokens.space12),
+              GridView.count(
+                crossAxisCount: constraints.maxWidth < 560 ? 1 : (constraints.maxWidth < 980 ? 2 : 4),
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 18,
+                mainAxisSpacing: 18,
+                childAspectRatio: 1.05,
+                children: [
+                  PictureCard(image: 'assets/labs/space.jpg', title: 'My Learning Path', subtitle: 'Day $currentDay of 10', color: const Color(0xFF3949AB), badge: 'Day $currentDay', onTap: () => widget.onNavigateToTab?.call(1)),
+                  PictureCard(image: 'assets/labs/math.jpg', title: 'Concept Studio', subtitle: 'Textbook to visuals', color: const Color(0xFFF59E0B), onTap: () => widget.onNavigateToTab?.call(2)),
+                  PictureCard(image: 'assets/labs/robotics.jpg', title: 'Virtual Lab', subtitle: 'Build circuits, no kit needed', color: const Color(0xFF1E88E5), onTap: () => widget.onNavigateToTab?.call(3)),
+                  PictureCard(image: 'assets/labs/ai.jpg', title: 'AI Tutor Zola', subtitle: 'Ask, invent, get unstuck', color: const Color(0xFF7E57C2), onTap: () => widget.onNavigateToTab?.call(4)),
+                ],
+              ).animate().fadeIn(delay: 150.ms, duration: 400.ms),
+              SizedBox(height: isNarrow ? tokens.space20 : tokens.space32),
+
               // 2. Hero Mission Card & Animated Progress Ring
               if (isNarrow)
                 Column(
@@ -377,14 +398,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: EdgeInsets.all(tokens.space12),
-                      decoration: BoxDecoration(
-                        color: tokens.accentLight,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Text('🤖', style: TextStyle(fontSize: 26)),
-                    ),
+                    const ZolaAvatar(size: 52),
                     SizedBox(width: tokens.space16),
                     Expanded(
                       child: Column(

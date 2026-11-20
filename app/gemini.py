@@ -550,7 +550,8 @@ def answer_concept_doubt(
     prompt = f'Student question: "{question}"\nReturn JSON: {{"answer": "...", "tip": "..."}}'
     try:
         return call_gemini_json(prompt, system_instruction=system_prompt)
-    except Exception:
+    except Exception as e:
+        print('Gemini failed in answer_concept_doubt -> using built-in sample:', e)
         q_low = question.lower()
         if "resistor" in q_low or "burn" in q_low:
             return {
@@ -719,7 +720,8 @@ Return JSON:
 }}"""
     try:
         return call_gemini_json(user_prompt, system_instruction=system_prompt)
-    except Exception:
+    except Exception as e:
+        print('Gemini failed in build_circuit_from_words -> using built-in sample:', e)
         low = (idea or "").lower()
         if any(k in low for k in ["alarm", "intruder", "closer", "distance", "ultrasonic", "burglar", "beep", "radar", "obstacle"]):
             return {

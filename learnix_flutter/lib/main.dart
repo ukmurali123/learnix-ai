@@ -3,17 +3,32 @@ import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'learnix_live/concept_studio_live_screen.dart';
+import 'learnix_live/lx_brand.dart';
+import 'learnix_live/welcome_screen.dart';
 import 'widgets/bubble_background.dart';
 import 'screens/coach_screen.dart';
 import 'screens/concept_studio_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/learning_path_screen.dart';
 import 'screens/reports_screen.dart';
+import 'screens/virtual_lab_hub.dart';
 import 'screens/virtual_lab_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
+  // Welcome page "Get Started" opens the student main page.
+  lxOnGetStarted = (context) => Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MainShellScreen()),
+      );
   runApp(const LearnixApp());
+}
+
+/// Logout: back to the Welcome page, clearing the student pages behind it.
+void lxLogout(BuildContext context) {
+  Navigator.of(context).pushAndRemoveUntil(
+    MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+    (_) => false,
+  );
 }
 
 class LearnixApp extends StatelessWidget {
@@ -25,7 +40,7 @@ class LearnixApp extends StatelessWidget {
       title: 'Learnix AI — Modern STEM & Robotics Learning',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const MainShellScreen(),
+      home: const WelcomeScreen(),
     );
   }
 }
@@ -190,8 +205,39 @@ class _MainShellScreenState extends State<MainShellScreen> {
             ),
           ),
         ),
+        Padding(
+          padding: EdgeInsets.only(right: isCompactHeader ? 6 : 16),
+          child: isCompactHeader
+              ? IconButton(tooltip: 'Logout', onPressed: () => _confirmLogout(context), icon: const Icon(LucideIcons.logOut, size: 20))
+              : OutlinedButton.icon(
+                  onPressed: () => _confirmLogout(context),
+                  icon: const Icon(LucideIcons.logOut, size: 16),
+                  label: const Text('Logout'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFDC2626),
+                    side: const BorderSide(color: Color(0xFFFCA5A5)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+        ),
       ],
     );
+  }
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Log out?'),
+        content: const Text('You will go back to the Welcome page.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Logout')),
+        ],
+      ),
+    );
+    if (ok == true && context.mounted) lxLogout(context);
   }
 
   // Side navigation styled like the live Learnix app: dark navy gradient, white text,
@@ -331,7 +377,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
           studentId: _studentId,
         );
       case 3:
-        return VirtualLabScreen(
+        return VirtualLabHub(
           baseUrl: _baseUrl,
         );
       case 4:

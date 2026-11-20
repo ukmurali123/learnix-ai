@@ -46,7 +46,7 @@ class _InteractiveCardState extends State<InteractiveCard> {
         onTapCancel: () => setState(() => _isPressed = false),
         onTap: widget.onTap,
         child: AnimatedScale(
-          scale: _isPressed ? 0.98 : (_isHovered ? 1.015 : 1.0),
+          scale: _isPressed ? 0.985 : 1.0,
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
           child: AnimatedContainer(
@@ -54,14 +54,16 @@ class _InteractiveCardState extends State<InteractiveCard> {
             width: widget.width,
             height: widget.height,
             padding: widget.padding ?? EdgeInsets.all(tokens.space24),
+            // Lifts 3 px on hover; thin border so the shadow does the work.
+            transform: Matrix4.translationValues(0, _isHovered ? -3 : 0, 0),
             decoration: BoxDecoration(
               color: widget.backgroundColor ?? tokens.cardBg,
-              borderRadius: tokens.borderRadius16,
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: _isHovered
-                    ? tokens.primary.withOpacity(0.4)
-                    : (widget.borderColor ?? tokens.borderSubtle),
-                width: 1.5,
+                    ? tokens.primary.withOpacity(0.25)
+                    : (widget.borderColor ?? const Color(0xFFEEF2F6)),
+                width: 1,
               ),
               boxShadow: _isHovered ? tokens.hoverShadow : tokens.cardShadow,
             ),

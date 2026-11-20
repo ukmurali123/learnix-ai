@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:http/http.dart' as http;
 import 'package:lucide_icons/lucide_icons.dart';
 import '../theme/app_theme.dart';
+import '../widgets/zola_avatar.dart';
 
 class VirtualLabScreen extends StatefulWidget {
   final String baseUrl;
@@ -434,7 +435,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('🤖', style: TextStyle(fontSize: 13)),
+                    const Icon(Icons.smart_toy_rounded, size: 15, color: Color(0xFF0077B6)),
                     if (!isNarrow) ...[
                       const SizedBox(width: 4),
                       const Text(
@@ -880,14 +881,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF0077B6),
-                  shape: BoxShape.circle,
-                ),
-                child: const Text('🤖', style: TextStyle(fontSize: 15)),
-              ),
+              const ZolaAvatar(size: 30),
               const SizedBox(width: 10),
               Flexible(
                 child: Column(

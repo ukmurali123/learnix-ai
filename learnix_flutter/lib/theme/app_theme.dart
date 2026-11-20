@@ -53,19 +53,14 @@ class AppTokens extends ThemeExtension<AppTokens> {
     this.space32 = 32.0,
     this.radius16 = 16.0,
     this.borderRadius16 = const BorderRadius.all(Radius.circular(16)),
+    // Layered, soft "floating card" shadows: a tight contact shadow + a wide blue-tinted ambient shadow.
     this.cardShadow = const [
-      BoxShadow(
-        color: Color(0x080F172A),
-        blurRadius: 12,
-        offset: Offset(0, 4),
-      ),
+      BoxShadow(color: Color(0x0F0F172A), blurRadius: 3, offset: Offset(0, 1)),
+      BoxShadow(color: Color(0x140B4A6E), blurRadius: 24, spreadRadius: -4, offset: Offset(0, 10)),
     ],
     this.hoverShadow = const [
-      BoxShadow(
-        color: Color(0x140F172A),
-        blurRadius: 20,
-        offset: Offset(0, 8),
-      ),
+      BoxShadow(color: Color(0x140F172A), blurRadius: 4, offset: Offset(0, 2)),
+      BoxShadow(color: Color(0x260B4A6E), blurRadius: 36, spreadRadius: -6, offset: Offset(0, 18)),
     ],
   });
 

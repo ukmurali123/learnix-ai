@@ -1,0 +1,396 @@
+import 'dart:math';
+import 'package:confetti/confetti.dart';
+import 'package:flutter/material.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+import 'learnix_live/concept_studio_live_screen.dart';
+import 'learnix_live/lx_brand.dart';
+import 'learnix_live/welcome_screen.dart';
+import 'widgets/bubble_background.dart';
+import 'screens/coach_screen.dart';
+import 'screens/concept_studio_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/learning_path_screen.dart';
+import 'screens/reports_screen.dart';
+import 'screens/virtual_lab_screen.dart';
+import 'theme/app_theme.dart';
+
+void main() {
+  // Welcome page "Get Started" opens the student main page.
+  lxOnGetStarted = (context) => Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MainShellScreen()),
+      );
+  runApp(const LearnixApp());
+}
+
+/// Logout: back to the Welcome page, clearing the student pages behind it.
+void lxLogout(BuildContext context) {
+  Navigator.of(context).pushAndRemoveUntil(
+    MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+    (_) => false,
+  );
+}
+
+class LearnixApp extends StatelessWidget {
+  const LearnixApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Learnix AI — Modern STEM & Robotics Learning',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      home: const WelcomeScreen(),
+    );
+  }
+}
+
+class MainShellScreen extends StatefulWidget {
+  const MainShellScreen({super.key});
+
+  @override
+  State<MainShellScreen> createState() => _MainShellScreenState();
+}
+
+class _MainShellScreenState extends State<MainShellScreen> {
+  int _selectedIndex = 0;
+  // Backend: the local server while developing on localhost, otherwise the live Cloud Run service.
+  final String _baseUrl = (Uri.base.host == 'localhost' || Uri.base.host == '127.0.0.1')
+      ? 'http://localhost:8000'
+      : 'https://learnix-ai-248424564253.asia-southeast1.run.app';
+  final int _studentId = 1;
+  late ConfettiController _confettiController;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth > 900;
+        final isCompactHeader = constraints.maxWidth < 680;
+
+        return Scaffold(
+          appBar: _buildAppBar(context, tokens, isWide, isCompactHeader),
+          drawer: isWide ? null : _buildDrawer(tokens),
+          bottomNavigationBar: isWide ? null : _buildBottomNavigationBar(tokens),
+          body: Stack(
+            children: [
+              Row(
+                children: [
+                  if (isWide) ...[
+                    _buildSidebar(tokens),
+                    VerticalDivider(thickness: 1, width: 1, color: tokens.borderSubtle),
+                  ],
+                  Expanded(
+                    child: BubbleBackground(
+                      child: _buildCurrentScreen(),
+                    ),
+                  ),
+                ],
+              ),
+              Align(
+                alignment: Alignment.topCenter,
+                child: ConfettiWidget(
+                  confettiController: _confettiController,
+                  blastDirection: pi / 2,
+                  maxBlastForce: 5,
+                  minBlastForce: 2,
+                  emissionFrequency: 0.05,
+                  numberOfParticles: 50,
+                  gravity: 0.1,
+                  colors: const [
+                    Color(0xFF0077B6),
+                    Color(0xFFE65100),
+                    Color(0xFF16A34A),
+                    Colors.amber,
+                    Colors.purple,
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+    AppTokens tokens,
+    bool isWide,
+    bool isCompactHeader,
+  ) {
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      scrolledUnderElevation: 1,
+      titleSpacing: isCompactHeader ? 4 : 16,
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1),
+        child: Container(color: tokens.borderSubtle, height: 1),
+      ),
+      leading: isWide
+          ? null
+          : Builder(
+              builder: (ctx) => IconButton(
+                icon: const Icon(LucideIcons.menu),
+                onPressed: () => Scaffold.of(ctx).openDrawer(),
+              ),
+            ),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset('assets/learnix_logo.png', height: isCompactHeader ? 28 : 34, fit: BoxFit.contain),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!isCompactHeader)
+                  const Text(
+                    'AI · Robotics Lab For Every Child',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        // Student Profile Badge
+        Padding(
+          padding: EdgeInsets.only(right: isCompactHeader ? 10 : tokens.space24),
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: isCompactHeader ? 8 : tokens.space12,
+              vertical: tokens.space4,
+            ),
+            decoration: BoxDecoration(
+              color: tokens.primaryLight,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 11,
+                  backgroundColor: tokens.primary,
+                  child: const Text('A', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  isCompactHeader ? 'Aarav' : 'Aarav (Grade 8)',
+                  style: TextStyle(
+                    fontSize: isCompactHeader ? 11 : 12,
+                    fontWeight: FontWeight.bold,
+                    color: tokens.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.only(right: isCompactHeader ? 6 : 16),
+          child: isCompactHeader
+              ? IconButton(tooltip: 'Logout', onPressed: () => _confirmLogout(context), icon: const Icon(LucideIcons.logOut, size: 20))
+              : OutlinedButton.icon(
+                  onPressed: () => _confirmLogout(context),
+                  icon: const Icon(LucideIcons.logOut, size: 16),
+                  label: const Text('Logout'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFDC2626),
+                    side: const BorderSide(color: Color(0xFFFCA5A5)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Log out?'),
+        content: const Text('You will go back to the Welcome page.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Logout')),
+        ],
+      ),
+    );
+    if (ok == true && context.mounted) lxLogout(context);
+  }
+
+  // Side navigation styled like the live Learnix app: dark navy gradient, white text,
+  // a soft white highlight with a coloured border and icon on the selected item.
+  static const _sidebarGradient = LinearGradient(
+    colors: [Color(0xFF0C4A6E), Color(0xFF0B1220)],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
+  static const _navItems = <(int, IconData, String, Color)>[
+    (0, LucideIcons.home, 'Home Dashboard', Color(0xFF38BDF8)),
+    (1, LucideIcons.milestone, 'My Learning Path', Color(0xFFA78BFA)),
+    (2, LucideIcons.camera, 'Concept Studio', Color(0xFFF472B6)),
+    (3, LucideIcons.flaskConical, 'Virtual Lab', Color(0xFF34D399)),
+    (4, LucideIcons.bot, 'AI Tutor', Color(0xFFFB923C)),
+    (5, LucideIcons.barChart2, 'Reports', Color(0xFF60A5FA)),
+  ];
+
+  Widget _sidebarBody(AppTokens tokens, {bool drawer = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (drawer)
+          Container(
+            margin: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+            child: Image.asset('assets/learnix_logo.png', height: 36, fit: BoxFit.contain),
+          ),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 4, 20, 8),
+          child: Text('LEARN', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white60, letterSpacing: 1.2)),
+        ),
+        for (final it in _navItems) _buildSidebarNavItem(it.$1, it.$2, it.$3, it.$4, closeDrawer: drawer),
+      ],
+    );
+  }
+
+  Widget _buildSidebar(AppTokens tokens) {
+    return Container(
+      width: 240,
+      decoration: const BoxDecoration(gradient: _sidebarGradient),
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: _sidebarBody(tokens),
+    );
+  }
+
+  Widget _buildSidebarNavItem(int index, IconData icon, String label, Color accent, {bool closeDrawer = false}) {
+    final isSelected = _selectedIndex == index;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () => closeDrawer ? _selectAndClose(index) : setState(() => _selectedIndex = index),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            decoration: BoxDecoration(
+              color: isSelected ? Colors.white.withOpacity(0.12) : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: isSelected ? accent.withOpacity(0.4) : Colors.transparent),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, size: 20, color: isSelected ? accent : Colors.white70),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isSelected ? Colors.white : Colors.white70,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrawer(AppTokens tokens) {
+    return Drawer(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        decoration: const BoxDecoration(gradient: _sidebarGradient),
+        child: SafeArea(child: _sidebarBody(tokens, drawer: true)),
+      ),
+    );
+  }
+
+  void _selectAndClose(int idx) {
+    setState(() => _selectedIndex = idx);
+    Navigator.of(context).pop();
+  }
+
+  Widget _buildBottomNavigationBar(AppTokens tokens) {
+    return NavigationBar(
+      selectedIndex: _selectedIndex,
+      onDestinationSelected: (idx) => setState(() => _selectedIndex = idx),
+      backgroundColor: Colors.white,
+      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      destinations: const [
+        NavigationDestination(icon: Icon(LucideIcons.home, size: 20), label: 'Home'),
+        NavigationDestination(icon: Icon(LucideIcons.milestone, size: 20), label: 'Path'),
+        NavigationDestination(icon: Icon(LucideIcons.camera, size: 20), label: 'Studio'),
+        NavigationDestination(icon: Icon(LucideIcons.flaskConical, size: 20), label: 'Lab'),
+        NavigationDestination(icon: Icon(LucideIcons.bot, size: 20), label: 'Tutor'),
+        NavigationDestination(icon: Icon(LucideIcons.barChart2, size: 20), label: 'Reports'),
+      ],
+    );
+  }
+
+  Widget _buildCurrentScreen() {
+    switch (_selectedIndex) {
+      case 0:
+        return HomeScreen(
+          baseUrl: _baseUrl,
+          studentId: _studentId,
+          onNavigateToTab: (idx) => setState(() => _selectedIndex = idx),
+        );
+      case 1:
+        return LearningPathScreen(
+          baseUrl: _baseUrl,
+          studentId: _studentId,
+          confettiController: _confettiController,
+        );
+      case 2:
+        return ConceptStudioLiveScreen(
+          baseUrl: _baseUrl,
+          studentId: _studentId,
+        );
+      case 3:
+        return VirtualLabScreen(
+          baseUrl: _baseUrl,
+        );
+      case 4:
+        return CoachScreen(
+          baseUrl: _baseUrl,
+          studentId: _studentId,
+        );
+      case 5:
+        return ReportsScreen(
+          baseUrl: _baseUrl,
+          studentId: _studentId,
+        );
+      default:
+        return const Center(child: Text('Screen not found'));
+    }
+  }
+}

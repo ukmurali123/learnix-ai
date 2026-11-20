@@ -7,6 +7,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:http/http.dart' as http;
 import 'package:lucide_icons/lucide_icons.dart';
 import '../theme/app_theme.dart';
+import '../widgets/zola_avatar.dart';
 import '../widgets/interactive_card.dart';
 
 class CoachScreen extends StatefulWidget {
@@ -51,7 +52,6 @@ class _CoachScreenState extends State<CoachScreen> {
   void initState() {
     super.initState();
     // Pre-populate the default invention blueprint so the screen starts rich and interactive
-    _sparkedPlan = _buildLocalBlueprint(_ideaController.text);
     _fetchCoachData();
     _startSimTimer();
   }
@@ -230,12 +230,11 @@ void loop() {
     final text = _ideaController.text.trim();
     if (text.isEmpty) return;
 
-    // Immediately compute local tailored blueprint so user never sees an empty/failed response
-    final fallbackPlan = _buildLocalBlueprint(text);
     setState(() {
       _isSparking = true;
-      _sparkedPlan = fallbackPlan;
+      _sparkedPlan = null;
     });
+    var gotAi = false;
 
     try {
       final res = await http
@@ -247,21 +246,34 @@ void loop() {
               'student_id': widget.studentId,
             }),
           )
-          .timeout(const Duration(seconds: 6));
+          .timeout(const Duration(seconds: 90));
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as Map<String, dynamic>;
         final plan = data['plan'] != null ? Map<String, dynamic>.from(data['plan'] as Map) : data;
         if ((plan['title'] ?? '').toString().isNotEmpty && (plan['code'] ?? '').toString().isNotEmpty) {
+          gotAi = true;
           if (mounted) {
             setState(() => _sparkedPlan = plan);
           }
         }
+      } else {
+        debugPrint('Zola blueprint error ${res.statusCode}: ${res.body}');
       }
     } catch (e) {
-      debugPrint('Using local invention blueprint fallback: $e');
+      debugPrint('Zola blueprint failed: $e');
     } finally {
-      if (mounted) setState(() => _isSparking = false);
+      if (mounted) {
+        setState(() {
+          _isSparking = false;
+          if (!gotAi) _sparkedPlan = _buildLocalBlueprint(text);
+        });
+        if (!gotAi) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Zola could not reach the AI right now, so this is a sample blueprint. Check the backend and try again.'),
+          ));
+        }
+      }
     }
   }
 
@@ -284,7 +296,7 @@ void loop() {
               'question': q,
             }),
           )
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 60));
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as Map<String, dynamic>;
         if (mounted) {
@@ -294,13 +306,16 @@ void loop() {
               'answer': (data['answer'] ?? '').toString(),
               'tip': (data['tip'] ?? '').toString(),
             };
+            _isAskingTutor = false;
           });
           return;
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Zola question failed: $e');
+    }
 
-    // Local intelligent response fallback
+    // Built-in tip (only when the AI could not be reached)
     final low = q.toLowerCase();
     String ans;
     String tip;
@@ -326,6 +341,9 @@ void loop() {
         _tutorAnswer = {'question': q, 'answer': ans, 'tip': tip};
         _isAskingTutor = false;
       });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Zola could not reach the AI right now, so this is a built-in tip. Check the backend and try again.'),
+      ));
     }
   }
 
@@ -907,7 +925,7 @@ void loop() {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '🤖 Zola on "${_tutorAnswer!['question']}":',
+                            'Zola on "${_tutorAnswer!['question']}":',
                             style: const TextStyle(
                               fontWeight: FontWeight.w800,
                               fontSize: 12.5,
@@ -947,7 +965,7 @@ void loop() {
             children: [
               // Header
               Text(
-                '🤖 AI Tutor Zola — Diagnostic & Invention Engine',
+                'AI Tutor Zola — Diagnostic & Invention Engine',
                 style: isNarrow ? textTheme.headlineMedium : textTheme.displayLarge,
               ),
               SizedBox(height: tokens.space8),
@@ -965,14 +983,7 @@ void loop() {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: EdgeInsets.all(tokens.space12),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF0077B6),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Text('🤖', style: TextStyle(fontSize: 26)),
-                    ),
+                    const ZolaAvatar(size: 52),
                     SizedBox(width: tokens.space16),
                     Expanded(
                       child: Column(

@@ -3,6 +3,7 @@ import 'dart:html' as html;
 import 'dart:math' as math;
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
+import '../widgets/zola_avatar.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:http/http.dart' as http;
 import 'package:lucide_icons/lucide_icons.dart';
@@ -361,7 +362,7 @@ class _LearningPathScreenState extends State<LearningPathScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Text('🤖', style: TextStyle(fontSize: 24)),
+            ZolaAvatar(size: 40),
             SizedBox(width: 12),
             Expanded(child: Text('AI Tutor: Quick Revision Step')),
           ],

@@ -16,12 +16,12 @@ class _Bubble {
 }
 
 class _BubbleBackgroundState extends State<BubbleBackground> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(seconds: 60))..repeat();
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(seconds: 90));
   late final List<_Bubble> _bubbles = () {
     final r = math.Random(7);
     return [
-      for (var i = 0; i < 26; i++)
-        _Bubble(r.nextDouble(), 10 + r.nextDouble() * 60, 0.6 + r.nextDouble() * 1.4, 10 + r.nextDouble() * 30, r.nextDouble()),
+      for (var i = 0; i < 18; i++)
+        _Bubble(r.nextDouble(), 8 + r.nextDouble() * 44, 0.5 + r.nextDouble() * 1.0, 8 + r.nextDouble() * 22, r.nextDouble()),
     ];
   }();
 
@@ -38,14 +38,9 @@ class _BubbleBackgroundState extends State<BubbleBackground> with SingleTickerPr
         child: IgnorePointer(
           child: RepaintBoundary(
             child: DecoratedBox(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFFDDF0FA), Color(0xFFF1F8FD), Color(0xFFFFF4E8)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: CustomPaint(painter: _BubblePainter(_c, _bubbles), size: Size.infinite),
+              decoration: const BoxDecoration(color: Colors.white),
+              // Bubbles turned off (plain white page). To bring them back, use bubble_background.dart.with-bubbles.
+              child: const SizedBox.expand(),
             ),
           ),
         ),
@@ -67,8 +62,11 @@ class _BubblePainter extends CustomPainter {
     final rim = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2
-      ..color = const Color(0xFF0077B6).withOpacity(0.10);
-    final shine = Paint()..color = Colors.white.withOpacity(0.9);
+      ..color = const Color(0xFF94A3B8).withOpacity(0.35);
+    final shine = Paint()..color = const Color(0xFFE2E8F0);
+    final shadow = Paint()
+      ..color = const Color(0xFF0F172A).withOpacity(0.06)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
     for (final b in bubbles) {
       // Each bubble rises from below the bottom edge to above the top edge, then starts again.
       final p = (t.value * b.speed + b.phase) % 1.0;
@@ -78,8 +76,9 @@ class _BubblePainter extends CustomPainter {
       final r = b.size / 2;
       fill.shader = RadialGradient(
         center: const Alignment(-0.35, -0.35),
-        colors: [Colors.white.withOpacity(0.95), Colors.white.withOpacity(0.45)],
+        colors: [Colors.white, Colors.white.withOpacity(0.92)],
       ).createShader(Rect.fromCircle(center: c, radius: r));
+      canvas.drawCircle(c + Offset(0, r * 0.12), r, shadow);
       canvas.drawCircle(c, r, fill);
       canvas.drawCircle(c, r, rim);
       canvas.drawCircle(c + Offset(-r * 0.35, -r * 0.35), r * 0.18, shine);

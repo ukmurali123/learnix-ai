@@ -60,6 +60,10 @@ dev_dependencies:
 flutter:
   assets:
     - assets/learnix_logo.png
+    - assets/hero_robot.png
+    - assets/bg_branding.png
+    - assets/logo.jpg
+    - assets/labs/
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

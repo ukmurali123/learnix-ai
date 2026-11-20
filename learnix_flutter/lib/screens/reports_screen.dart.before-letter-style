@@ -1,0 +1,642 @@
+// ignore_for_file: avoid_web_libraries_in_flutter
+import 'dart:convert';
+import 'dart:html' as html;
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:http/http.dart' as http;
+import 'package:lucide_icons/lucide_icons.dart';
+import '../theme/app_theme.dart';
+import '../widgets/interactive_card.dart';
+
+/// Parent report: progress at a glance (tiles, learning path, quiz trend, skills, labs, common mistakes),
+/// the AI-written weekly letter in the family's language, and a "Download PDF" report.
+class ReportsScreen extends StatefulWidget {
+  final String baseUrl;
+  final int studentId;
+  const ReportsScreen({super.key, required this.baseUrl, required this.studentId});
+  @override
+  State<ReportsScreen> createState() => _ReportsScreenState();
+}
+
+class _ReportsScreenState extends State<ReportsScreen> {
+  String _parentLang = 'English';
+  String? _parentLetter;
+  bool _isLoadingParent = true;
+  bool _isLoadingData = true;
+  Map<String, dynamic>? _progress;
+  Map<String, dynamic>? _path;
+
+  final List<String> _languages = ['English', 'Tamil', 'Hindi', 'Marathi', 'Arabic'];
+  static const _catColors = [Color(0xFF0077B6), Color(0xFFE65100), Color(0xFF16A34A), Color(0xFF7C3AED), Color(0xFFDB2777), Color(0xFF0891B2)];
+
+  /// Sample weekly letters (used when the AI letter cannot be made), one per language.
+  static const _sampleLetters = <String, String>{
+    'English': 'Dear Parent,\n\nAarav had a wonderful week in Learnix! He finished Day 6 of his learning path, built a working Buzzer + Button circuit in the Virtual Lab, and scored full marks on the "If-else decisions" quiz. He is getting faster at spotting wiring mistakes like a missing resistor.\n\nNext week: Variables and the Ultrasonic distance sensor. Ask him to show you how the Distance Alarm beeps faster as your hand comes closer!',
+    'Tamil': 'அன்புள்ள பெற்றோருக்கு,\n\nஇந்த வாரம் Learnix-இல் ஆரவ் அருமையாகக் கற்றான்! தனது கற்றல் பாதையில் 6-ஆம் நாளை முடித்தான், Virtual Lab-இல் Buzzer + Button சுற்றை வெற்றிகரமாக உருவாக்கினான், "If-else முடிவுகள்" வினாடி வினாவில் முழு மதிப்பெண் பெற்றான். Resistor இல்லாதது போன்ற இணைப்புத் தவறுகளை இப்போது விரைவாகக் கண்டுபிடிக்கிறான்.\n\nஅடுத்த வாரம்: Variables மற்றும் Ultrasonic தூர சென்சார். உங்கள் கை அருகில் வரும்போது Distance Alarm எப்படி வேகமாக ஒலிக்கிறது என்று அவனிடம் காட்டச் சொல்லுங்கள்!',
+    'Hindi': 'प्रिय अभिभावक,\n\nइस सप्ताह आरव ने Learnix में बहुत अच्छा सीखा! उसने अपनी लर्निंग पाथ का दिन 6 पूरा किया, Virtual Lab में Buzzer + Button सर्किट सफलतापूर्वक बनाया, और "If-else निर्णय" क्विज़ में पूरे अंक प्राप्त किए। अब वह Resistor न लगाने जैसी वायरिंग की गलतियाँ जल्दी पकड़ लेता है।\n\nअगले सप्ताह: Variables और Ultrasonic दूरी सेंसर। उससे कहिए कि वह दिखाए कि आपका हाथ पास आने पर Distance Alarm कैसे तेज़ी से बजता है!',
+    'Marathi': 'प्रिय पालक,\n\nया आठवड्यात आरवने Learnix मध्ये छान शिकले! त्याने आपल्या लर्निंग पाथचा दिवस 6 पूर्ण केला, Virtual Lab मध्ये Buzzer + Button सर्किट यशस्वीपणे तयार केले, आणि "If-else निर्णय" क्विझमध्ये पूर्ण गुण मिळवले. आता तो Resistor न लावण्यासारख्या वायरिंगच्या चुका पटकन ओळखतो.\n\nपुढील आठवड्यात: Variables आणि Ultrasonic अंतर सेन्सर. तुमचा हात जवळ आल्यावर Distance Alarm कसा वेगाने वाजतो ते त्याला दाखवायला सांगा!',
+    'Arabic': 'عزيزي ولي الأمر،\n\nقضى آراف أسبوعًا رائعًا في Learnix! أنهى اليوم السادس من مسار تعلّمه، وبنى دائرة Buzzer + Button تعمل بنجاح في المختبر الافتراضي، وحصل على الدرجة الكاملة في اختبار "قرارات If-else". وأصبح أسرع في اكتشاف أخطاء التوصيل مثل نسيان المقاومة.\n\nالأسبوع القادم: المتغيرات وحسّاس المسافة بالموجات فوق الصوتية. اطلب منه أن يريك كيف يُصدر إنذار المسافة صوتًا أسرع كلما اقتربت يدك!',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchParentReport();
+    _fetchData();
+  }
+
+  Future<void> _fetchParentReport() async {
+    setState(() {
+      _isLoadingParent = true;
+      _parentLetter = null;
+    });
+    try {
+      final res = await http.get(Uri.parse('${widget.baseUrl}/api/reports/parent/${widget.studentId}?language=$_parentLang')).timeout(const Duration(seconds: 60));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        final report = data['report'];
+        String formatted = '';
+        if (report is Map) {
+          final goal = report['next_week_goal'] ?? '';
+          formatted = [report['greeting'] ?? '', report['note'] ?? '', if (goal.toString().isNotEmpty) 'Next week: $goal']
+              .where((s) => s.toString().trim().isNotEmpty)
+              .join('\n\n');
+        } else if (report is String) {
+          formatted = report;
+        } else {
+          formatted = (data['ai_letter'] ?? '').toString();
+        }
+        setState(() => _parentLetter = formatted);
+      }
+    } catch (e) {
+      debugPrint('Error loading parent report: $e');
+    } finally {
+      if (_parentLetter == null || _parentLetter!.trim().isEmpty) {
+        _parentLetter = _sampleLetters[_parentLang] ?? _sampleLetters['English'];
+      }
+      if (mounted) setState(() => _isLoadingParent = false);
+    }
+  }
+
+  Future<void> _fetchData() async {
+    setState(() => _isLoadingData = true);
+    try {
+      final r = await Future.wait([
+        http.get(Uri.parse('${widget.baseUrl}/api/students/${widget.studentId}/progress')),
+        http.get(Uri.parse('${widget.baseUrl}/api/path/${widget.studentId}')),
+      ]);
+      if (r[0].statusCode == 200) _progress = jsonDecode(r[0].body) as Map<String, dynamic>;
+      if (r[1].statusCode == 200) _path = jsonDecode(r[1].body) as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('Error loading report data: $e');
+    } finally {
+      // Prototype data so the report is never empty in a demo (real data replaces it as soon as it exists).
+      if (_quizzes.isEmpty && _labs.isEmpty) _progress = _demoProgress();
+      if (_days.isEmpty) _path = _demoPath();
+      if (mounted) setState(() => _isLoadingData = false);
+    }
+  }
+
+  static Map<String, dynamic> _demoProgress() {
+    const quiz = [
+      // concept, category, score/3, date
+      ('What is an LED', 'Electronics', 2, '2026-11-02'),
+      ('Resistors and why we need them', 'Electronics', 2, '2026-11-03'),
+      ('Ground and complete circuits', 'Electronics', 3, '2026-11-05'),
+      ('Digital output pins', 'Arduino', 2, '2026-11-06'),
+      ('Loops in code', 'Coding', 1, '2026-11-08'),
+      ('Loops in code', 'Coding', 2, '2026-11-09'),
+      ('Buttons and digital input', 'Arduino', 3, '2026-11-11'),
+      ('If-else decisions', 'Coding', 3, '2026-11-12'),
+      ('Buzzers and sound', 'Electronics', 3, '2026-11-14'),
+      ('Variables', 'Coding', 2, '2026-11-15'),
+      ('Ultrasonic distance sensor', 'Sensors', 2, '2026-11-17'),
+      ('What is AI', 'AI', 3, '2026-11-18'),
+    ];
+    const labs = [
+      // experiment, success, error
+      ('LED Blink', false, 'missing_resistor'),
+      ('LED Blink', false, 'wrong_pin'),
+      ('LED Blink', true, 'none'),
+      ('Buzzer + Button', false, 'code_logic'),
+      ('Buzzer + Button', true, 'none'),
+      ('Distance Alarm', false, 'wrong_pin'),
+      ('Distance Alarm', false, 'missing_ground'),
+      ('Distance Alarm', true, 'none'),
+      ('LED Blink', true, 'none'),
+      ('Buzzer + Button', true, 'none'),
+    ];
+    final q = [for (final x in quiz) {'concept_title': x.$1, 'category': x.$2, 'score': x.$3, 'max_score': 3, 'attempted_at': '${x.$4} 17:00:00'}];
+    final l = [for (final x in labs) {'experiment_title': x.$1, 'success': x.$2, 'error_type': x.$3}];
+    final tot = quiz.fold<int>(0, (a, x) => a + x.$3);
+    final ok = labs.where((x) => x.$2).length;
+    return {
+      'student': {'first_name': 'Aarav', 'grade': 8, 'centre_name': 'Learnix Namakkal'},
+      'summary': {
+        'total_quizzes': quiz.length,
+        'avg_quiz_pct': (tot / (quiz.length * 3) * 100).roundToDouble(),
+        'concepts_mastered_count': 9,
+        'total_concepts': 15,
+        'total_lab_runs': labs.length,
+        'successful_lab_runs': ok,
+        'lab_success_rate_pct': (ok / labs.length * 100).roundToDouble(),
+        'experiments_completed_count': 3,
+        'total_experiments': 3,
+        'overall_progress_pct': 62,
+      },
+      'quiz_attempts': q,
+      'lab_runs': l,
+      'demo': true,
+    };
+  }
+
+  static Map<String, dynamic> _demoPath() {
+    const titles = ['What is an LED', 'Resistors', 'Ground and complete circuits', 'Digital output pins + loops', 'Buttons and digital input', 'Buzzers + if-else', 'Variables', 'Ultrasonic distance sensor', 'What is AI', 'Image recognition basics'];
+    const scores = [2, 3, 3, 2, 3, 3];
+    return {
+      'completed_count': 6,
+      'current_day': 7,
+      'total_days': 10,
+      'days': [
+        for (var i = 0; i < 10; i++)
+          {'day_number': i + 1, 'title': titles[i], 'status': i < 6 ? 'done' : (i == 6 ? 'current' : 'locked'), 'quiz_score': i < 6 ? scores[i] : null},
+      ],
+      'demo': true,
+    };
+  }
+
+  // ---------- data helpers ----------
+  Map<String, dynamic> get _summary => Map<String, dynamic>.from((_progress?['summary'] as Map?) ?? {});
+  Map<String, dynamic> get _student => Map<String, dynamic>.from((_progress?['student'] as Map?) ?? {});
+  List<Map<String, dynamic>> get _quizzes => [for (final q in (_progress?['quiz_attempts'] as List?) ?? []) Map<String, dynamic>.from(q as Map)];
+  List<Map<String, dynamic>> get _labs => [for (final q in (_progress?['lab_runs'] as List?) ?? []) Map<String, dynamic>.from(q as Map)];
+  List<Map<String, dynamic>> get _days => [for (final d in (_path?['days'] as List?) ?? []) Map<String, dynamic>.from(d as Map)];
+  double _num(Object? v) => double.tryParse('${v ?? 0}') ?? 0;
+  String get _name => '${_student['first_name'] ?? 'Your child'}';
+
+  /// Quiz % over time (oldest first, last 12 attempts).
+  List<double> get _trend {
+    final q = [..._quizzes]..sort((a, b) => '${a['attempted_at']}'.compareTo('${b['attempted_at']}'));
+    final last = q.length > 12 ? q.sublist(q.length - 12) : q;
+    return [for (final x in last) _num(x['max_score']) > 0 ? _num(x['score']) / _num(x['max_score']) * 100 : 0];
+  }
+
+  /// Average quiz % per subject area.
+  List<(String, double)> get _skills {
+    final tot = <String, double>{}, max = <String, double>{};
+    for (final q in _quizzes) {
+      final c = '${q['category'] ?? 'Other'}';
+      tot[c] = (tot[c] ?? 0) + _num(q['score']);
+      max[c] = (max[c] ?? 0) + _num(q['max_score']);
+    }
+    final out = [for (final c in tot.keys) if ((max[c] ?? 0) > 0) (c, tot[c]! / max[c]! * 100)];
+    out.sort((a, b) => b.$2.compareTo(a.$2));
+    return out;
+  }
+
+  /// Per experiment: (title, tries, successes).
+  List<(String, int, int)> get _labStats {
+    final tries = <String, int>{}, ok = <String, int>{};
+    for (final r in _labs) {
+      final t = '${r['experiment_title'] ?? 'Experiment'}';
+      tries[t] = (tries[t] ?? 0) + 1;
+      if (r['success'] == true) ok[t] = (ok[t] ?? 0) + 1;
+    }
+    return [for (final t in tries.keys) (t, tries[t]!, ok[t] ?? 0)];
+  }
+
+  /// Most common lab mistakes.
+  List<(String, int)> get _mistakes {
+    final m = <String, int>{};
+    for (final r in _labs) {
+      final e = '${r['error_type'] ?? ''}';
+      if (e.isEmpty || e == 'none' || e == 'null') continue;
+      m[e] = (m[e] ?? 0) + 1;
+    }
+    final out = [for (final e in m.entries) (e.key, e.value)]..sort((a, b) => b.$2.compareTo(a.$2));
+    return out.take(5).toList();
+  }
+
+  static const _mistakeNames = {
+    'wrong_pin': 'Wrong pin',
+    'missing_ground': 'Missing ground (GND)',
+    'missing_resistor': 'Missing resistor',
+    'reversed_polarity': 'LED turned the wrong way',
+    'code_logic': 'Code logic',
+    'code_syntax': 'Code typing (syntax)',
+    'wrong_component': 'Wrong component',
+  };
+
+  // ---------- PDF (browser print to PDF, so Tamil / Hindi text prints correctly) ----------
+  String _esc(String s) => s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+
+  void _downloadPdf() => _openPrint(_fullReportHtml());
+
+  String _fullReportHtml() {
+    final s = _summary;
+    final trend = _trend;
+    final skills = _skills;
+    final labs = _labStats;
+    final mistakes = _mistakes;
+    final days = _days;
+    final today = DateTime.now();
+    final date = '${today.day.toString().padLeft(2, '0')}-${today.month.toString().padLeft(2, '0')}-${today.year}';
+
+    String trendSvg() {
+      if (trend.length < 2) return '<p class="muted">Not enough quizzes yet for a trend.</p>';
+      const w = 520.0, h = 150.0;
+      final pts = [for (var i = 0; i < trend.length; i++) '${(20 + i * (w - 40) / (trend.length - 1)).toStringAsFixed(1)},${(h - 15 - trend[i] / 100 * (h - 30)).toStringAsFixed(1)}'];
+      return '<svg width="$w" height="$h" viewBox="0 0 $w $h"><line x1="20" y1="${h - 15}" x2="${w - 20}" y2="${h - 15}" stroke="#cbd5e1"/>'
+          '<polyline fill="none" stroke="#0077B6" stroke-width="3" points="${pts.join(' ')}"/>'
+          '${pts.map((p) => '<circle cx="${p.split(',')[0]}" cy="${p.split(',')[1]}" r="4" fill="#E65100"/>').join()}</svg>';
+    }
+
+    String bar(String label, double pct, String color) =>
+        '<div class="bar"><div class="bl">${_esc(label)}</div><div class="bt"><div class="bf" style="width:${pct.clamp(0, 100).toStringAsFixed(0)}%;background:$color"></div></div><div class="bv">${pct.toStringAsFixed(0)}%</div></div>';
+
+    final letter = _esc(_parentLetter ?? '').replaceAll('\n', '<br>');
+    final doc = '''<!doctype html><html><head><meta charset="utf-8"><title>Learnix report - ${_esc(_name)}</title>
+<style>
+@page{size:A4;margin:14mm}body{font-family:Segoe UI,Roboto,"Noto Sans Tamil","Noto Sans Devanagari",sans-serif;color:#0f172a;margin:0}
+.top{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #0077B6;padding-bottom:10px;margin-bottom:16px}
+.top h1{margin:0;font-size:22px;color:#0077B6}.muted{color:#64748b;font-size:12px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}.k{border:1px solid #e2e8f0;border-radius:12px;padding:12px;text-align:center}
+.k b{display:block;font-size:24px;color:#0077B6}.k span{font-size:11px;color:#64748b}
+h2{font-size:15px;margin:18px 0 8px;color:#0f172a;border-left:4px solid #E65100;padding-left:8px}
+.days{display:flex;gap:6px;flex-wrap:wrap}.d{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff}
+.bar{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:12px}.bl{width:170px}.bt{flex:1;height:10px;background:#e2e8f0;border-radius:6px;overflow:hidden}.bf{height:10px}.bv{width:40px;text-align:right;font-weight:700}
+.letter{background:#f1f8fd;border-radius:12px;padding:14px;font-size:13px;line-height:1.7}
+table{width:100%;border-collapse:collapse;font-size:12px}td,th{border-bottom:1px solid #e2e8f0;padding:6px;text-align:left}
+.foot{margin-top:20px;font-size:10px;color:#94a3b8;text-align:center}
+</style></head><body>
+<div class="top"><div><h1>Learnix Progress Report</h1><div class="muted">${_esc(_name)} &middot; Grade ${_esc('${_student['grade'] ?? ''}')} &middot; ${_esc('${_student['centre_name'] ?? ''}')}</div></div><div class="muted">Report date: $date</div></div>
+<div class="kpis">
+<div class="k"><b>${_num(s['overall_progress_pct']).toStringAsFixed(0)}%</b><span>Overall progress</span></div>
+<div class="k"><b>${_num(s['avg_quiz_pct']).toStringAsFixed(0)}%</b><span>Average quiz score</span></div>
+<div class="k"><b>${s['concepts_mastered_count'] ?? 0}/${s['total_concepts'] ?? 15}</b><span>Concepts mastered</span></div>
+<div class="k"><b>${_num(s['lab_success_rate_pct']).toStringAsFixed(0)}%</b><span>Lab success rate</span></div>
+</div>
+<h2>Learning path (${_path?['completed_count'] ?? 0} of ${_path?['total_days'] ?? 10} days done)</h2>
+<div class="days">${days.map((d) => '<div class="d" style="background:${d['status'] == 'done' ? '#16A34A' : d['status'] == 'current' ? '#0077B6' : '#cbd5e1'}">D${d['day_number']}</div>').join()}</div>
+<h2>Quiz scores over time</h2>${trendSvg()}
+<h2>Skills by subject</h2>${skills.isEmpty ? '<p class="muted">No quizzes yet.</p>' : skills.map((x) => bar(x.$1, x.$2, '#0077B6')).join()}
+<h2>Virtual Lab experiments</h2>
+<table><tr><th>Experiment</th><th>Tries</th><th>Worked</th></tr>${labs.map((l) => '<tr><td>${_esc(l.$1)}</td><td>${l.$2}</td><td>${l.$3}</td></tr>').join()}</table>
+<h2>Most common lab mistakes</h2>${mistakes.isEmpty ? '<p class="muted">No mistakes recorded.</p>' : mistakes.map((m) => bar(_mistakeNames[m.$1] ?? m.$1, mistakes.first.$2 == 0 ? 0 : m.$2 / mistakes.first.$2 * 100, '#E65100').replaceFirst(RegExp(r'\d+%</div></div>$'), '${m.$2}x</div></div>')).join()}
+<h2>Weekly letter ($_parentLang)</h2><div class="letter"${_parentLang == 'Arabic' ? ' dir="rtl"' : ''}>${letter.isEmpty ? 'Letter not available yet.' : letter}</div>
+<div class="foot">Learnix by Thinkzon &middot; AI-written parts can have mistakes, please verify.</div>
+<script>window.onload=function(){setTimeout(function(){window.print()},500)}</script>
+</body></html>''';
+    return doc;
+  }
+
+  /// The weekly letter on its own page, in the chosen language.
+  void _downloadLetterPdf() {
+    final today = DateTime.now();
+    final date = '${today.day.toString().padLeft(2, '0')}-${today.month.toString().padLeft(2, '0')}-${today.year}';
+    final rtl = _parentLang == 'Arabic';
+    final letter = _esc(_parentLetter ?? '').replaceAll('\n', '<br>');
+    _openPrint('''<!doctype html><html${rtl ? ' dir="rtl"' : ''}><head><meta charset="utf-8"><title>Learnix weekly letter - ${_esc(_name)}</title>
+<style>@page{size:A4;margin:18mm}body{font-family:Segoe UI,Roboto,"Noto Sans Tamil","Noto Sans Devanagari","Noto Naskh Arabic",sans-serif;color:#0f172a}
+.top{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #0077B6;padding-bottom:10px;margin-bottom:22px}
+.top h1{margin:0;font-size:22px;color:#0077B6}.muted{color:#64748b;font-size:12px}
+.letter{font-size:15px;line-height:1.9;background:#f1f8fd;border-radius:14px;padding:22px}
+.foot{margin-top:24px;font-size:10px;color:#94a3b8;text-align:center}</style></head><body>
+<div class="top"><div><h1>Weekly Parent Letter</h1><div class="muted">${_esc(_name)} &middot; Grade ${_esc('${_student['grade'] ?? ''}')} &middot; $_parentLang</div></div><div class="muted">$date</div></div>
+<div class="letter">$letter</div>
+<div class="foot">Learnix by Thinkzon &middot; AI-written parts can have mistakes, please verify.</div>
+<script>window.onload=function(){setTimeout(function(){window.print()},500)}</script></body></html>''');
+  }
+
+  void _openPrint(String doc) {
+    final blob = html.Blob([doc], 'text/html');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    html.window.open(url, '_blank');
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Opened in a new tab. In the print window choose "Save as PDF".')));
+  }
+
+  // ---------- UI ----------
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    final textTheme = Theme.of(context).textTheme;
+
+    return LayoutBuilder(builder: (context, constraints) {
+      final isNarrow = constraints.maxWidth < 750;
+      final pad = isNarrow ? tokens.space16 : tokens.space32;
+      final cardPad = EdgeInsets.all(isNarrow ? tokens.space16 : tokens.space24);
+      final s = _summary;
+
+      Widget title(IconData i, String t, Color c) => Row(children: [
+            Icon(i, color: c, size: 20),
+            SizedBox(width: tokens.space8),
+            Expanded(child: Text(t, style: textTheme.titleMedium)),
+          ]);
+
+      final tiles = [
+        _kpi('Overall progress', _num(s['overall_progress_pct']), '${_num(s['overall_progress_pct']).toStringAsFixed(0)}%', const Color(0xFF0077B6), ring: true),
+        _kpi('Average quiz score', _num(s['avg_quiz_pct']), '${_num(s['avg_quiz_pct']).toStringAsFixed(0)}%', const Color(0xFF7C3AED), ring: true),
+        _kpi('Concepts mastered', _num(s['concepts_mastered_count']) / math.max(1, _num(s['total_concepts'] ?? 15)) * 100, '${s['concepts_mastered_count'] ?? 0}/${s['total_concepts'] ?? 15}', const Color(0xFF16A34A), ring: true),
+        _kpi('Lab success rate', _num(s['lab_success_rate_pct']), '${_num(s['lab_success_rate_pct']).toStringAsFixed(0)}%', const Color(0xFFE65100), ring: true),
+      ];
+
+      final pathCard = InteractiveCard(
+        padding: cardPad,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          title(LucideIcons.milestone, 'Learning Path  ·  ${_path?['completed_count'] ?? 0} of ${_path?['total_days'] ?? 10} days done', const Color(0xFF7C3AED)),
+          SizedBox(height: tokens.space16),
+          Wrap(spacing: 10, runSpacing: 10, children: [
+            for (final d in _days) _dayDot(d),
+            if (_days.isEmpty) const Text('No learning path data yet.', style: TextStyle(color: Colors.black54)),
+          ]),
+        ]),
+      );
+
+      final trendCard = InteractiveCard(
+        padding: cardPad,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          title(LucideIcons.trendingUp, 'Quiz Scores Over Time', const Color(0xFF0077B6)),
+          SizedBox(height: tokens.space16),
+          SizedBox(
+            height: 180,
+            child: _trend.length < 2
+                ? const Center(child: Text('Not enough quizzes yet for a trend.', style: TextStyle(color: Colors.black54)))
+                : CustomPaint(painter: _TrendPainter(_trend), size: Size.infinite),
+          ),
+        ]),
+      );
+
+      final skillsCard = InteractiveCard(
+        padding: cardPad,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          title(LucideIcons.brainCircuit, 'Skills by Subject', const Color(0xFF16A34A)),
+          SizedBox(height: tokens.space16),
+          if (_skills.isEmpty) const Text('No quizzes yet.', style: TextStyle(color: Colors.black54)),
+          for (var i = 0; i < _skills.length; i++) ...[
+            _hBar(_skills[i].$1, _skills[i].$2, '${_skills[i].$2.toStringAsFixed(0)}%', _catColors[i % _catColors.length]),
+            SizedBox(height: tokens.space12),
+          ],
+        ]),
+      );
+
+      final labCard = InteractiveCard(
+        padding: cardPad,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          title(LucideIcons.flaskConical, 'Virtual Lab Experiments', const Color(0xFF0891B2)),
+          SizedBox(height: tokens.space16),
+          if (_labStats.isEmpty) const Text('No lab runs yet.', style: TextStyle(color: Colors.black54)),
+          for (final l in _labStats) ...[
+            _hBar(l.$1, l.$2 == 0 ? 0 : l.$3 / l.$2 * 100, '${l.$3}/${l.$2} worked', const Color(0xFF0891B2)),
+            SizedBox(height: tokens.space12),
+          ],
+          SizedBox(height: tokens.space8),
+          title(LucideIcons.alertTriangle, 'Most Common Mistakes', const Color(0xFFE65100)),
+          SizedBox(height: tokens.space12),
+          if (_mistakes.isEmpty) const Text('No mistakes recorded.', style: TextStyle(color: Colors.black54)),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final m in _mistakes)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(color: const Color(0xFFFFF3E0), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFFFCC80))),
+                child: Text('${_mistakeNames[m.$1] ?? m.$1}  ·  ${m.$2}x', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFFB45309))),
+              ),
+          ]),
+        ]),
+      );
+
+      final sentimentCard = InteractiveCard(
+        padding: cardPad,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          title(LucideIcons.smile, 'Feedback Sentiment (AI.EXTRACT)', tokens.success),
+          SizedBox(height: tokens.space16),
+          _hBar('Positive & Excited', 84, '84%', tokens.success),
+          SizedBox(height: tokens.space12),
+          _hBar('Neutral / Asking Questions', 12, '12%', tokens.primary),
+          SizedBox(height: tokens.space12),
+          _hBar('Needs Hardware Help', 4, '4%', tokens.accent),
+        ]),
+      );
+
+      final letterCard = InteractiveCard(
+        padding: cardPad,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Wrap(spacing: 12, runSpacing: 12, alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, children: [
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: tokens.primaryLight, shape: BoxShape.circle), child: Icon(LucideIcons.mail, color: tokens.primary, size: 20)),
+              SizedBox(width: tokens.space12),
+              Text('Weekly Parent Progress Letter', style: textTheme.titleMedium),
+            ]),
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              OutlinedButton.icon(
+                onPressed: _isLoadingParent ? null : _downloadLetterPdf,
+                icon: const Icon(LucideIcons.download, size: 16),
+                label: const Text('Letter PDF'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFE65100),
+                  side: const BorderSide(color: Color(0xFFFDBA74)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text('Language: ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+              SizedBox(width: tokens.space8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(color: tokens.surfaceBg, borderRadius: BorderRadius.circular(20), border: Border.all(color: tokens.borderSubtle)),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _parentLang,
+                    items: _languages.map((l) => DropdownMenuItem(value: l, child: Text(l, style: const TextStyle(fontSize: 13)))).toList(),
+                    onChanged: (v) {
+                      if (v != null) {
+                        setState(() => _parentLang = v);
+                        _fetchParentReport();
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ]),
+          ]),
+          SizedBox(height: tokens.space16),
+          _isLoadingParent
+              ? const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
+              : Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(tokens.space20),
+                  decoration: BoxDecoration(color: tokens.surfaceBg, borderRadius: tokens.borderRadius16, border: Border.all(color: tokens.borderSubtle)),
+                  child: SelectableText(
+                    textDirection: _parentLang == 'Arabic' ? TextDirection.rtl : TextDirection.ltr,
+                    (_parentLetter == null || _parentLetter!.isEmpty) ? 'The letter could not be made right now. Please try again.' : _parentLetter!,
+                    style: textTheme.bodyMedium?.copyWith(color: tokens.textPrimary, height: 1.7, fontSize: 15),
+                  ),
+                ),
+        ]),
+      );
+
+      Widget pair(Widget a, Widget b) => isNarrow
+          ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [a, SizedBox(height: tokens.space16), b])
+          : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: a), SizedBox(width: tokens.space24), Expanded(child: b)]);
+
+      return SingleChildScrollView(
+        padding: EdgeInsets.all(pad),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Wrap(spacing: 16, runSpacing: 12, alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, children: [
+            Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Text('Parent Report', style: isNarrow ? textTheme.headlineMedium : textTheme.displayLarge),
+              SizedBox(height: tokens.space8),
+              Text('$_name\'s learning at a glance, with a weekly letter in your language.', style: textTheme.bodyMedium),
+              if (_progress?['demo'] == true)
+                const Padding(
+                  padding: EdgeInsets.only(top: 6),
+                  child: Text('Showing sample data until real progress is recorded.', style: TextStyle(fontSize: 11.5, color: Colors.black45)),
+                ),
+            ]),
+            FilledButton.icon(
+              onPressed: _isLoadingData || _isLoadingParent ? null : _downloadPdf,
+              icon: const Icon(LucideIcons.download, size: 18),
+              label: const Text('Download PDF Report'),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFE65100),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+          ]),
+          SizedBox(height: isNarrow ? tokens.space20 : tokens.space32),
+          if (_isLoadingData)
+            const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+          else ...[
+            GridView.count(
+              crossAxisCount: isNarrow ? 2 : 4,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: isNarrow ? 1.0 : 1.25,
+              children: tiles,
+            ).animate().fadeIn(duration: 400.ms),
+            SizedBox(height: tokens.space24),
+            pathCard.animate().fadeIn(delay: 100.ms, duration: 400.ms),
+            SizedBox(height: tokens.space24),
+            pair(trendCard, skillsCard).animate().fadeIn(delay: 200.ms, duration: 400.ms),
+            SizedBox(height: tokens.space24),
+            pair(labCard, sentimentCard).animate().fadeIn(delay: 300.ms, duration: 400.ms),
+            SizedBox(height: tokens.space24),
+          ],
+          letterCard.animate().fadeIn(delay: 350.ms, duration: 400.ms),
+          SizedBox(height: tokens.space32),
+        ]),
+      );
+    });
+  }
+
+  Widget _kpi(String label, double pct, String value, Color color, {bool ring = false}) {
+    return InteractiveCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        SizedBox(
+          width: 86,
+          height: 86,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: (pct / 100).clamp(0, 1)),
+            duration: const Duration(milliseconds: 1200),
+            curve: Curves.easeOutCubic,
+            builder: (_, v, __) => Stack(alignment: Alignment.center, children: [
+              SizedBox(width: 86, height: 86, child: CircularProgressIndicator(value: v, strokeWidth: 9, backgroundColor: color.withOpacity(0.12), color: color, strokeCap: StrokeCap.round)),
+              Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+      ]),
+    );
+  }
+
+  Widget _dayDot(Map<String, dynamic> d) {
+    final st = '${d['status']}';
+    final done = st == 'done', cur = st == 'current';
+    final color = done ? const Color(0xFF16A34A) : cur ? const Color(0xFF0077B6) : const Color(0xFFCBD5E1);
+    final concept = (d['concept'] is Map) ? '${(d['concept'] as Map)['title'] ?? ''}' : '';
+    return Tooltip(
+      message: 'Day ${d['day_number']}: ${d['title'] ?? concept}${done && d['quiz_score'] != null ? '  ·  quiz ${d['quiz_score']}/3' : ''}',
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            boxShadow: cur ? [BoxShadow(color: color.withOpacity(0.45), blurRadius: 12, spreadRadius: 2)] : null,
+          ),
+          alignment: Alignment.center,
+          child: done
+              ? const Icon(Icons.check_rounded, color: Colors.white)
+              : cur
+                  ? const Icon(Icons.play_arrow_rounded, color: Colors.white)
+                  : const Icon(Icons.lock_rounded, color: Colors.white, size: 18),
+        ),
+        const SizedBox(height: 4),
+        Text('Day ${d['day_number']}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: done || cur ? color : Colors.black45)),
+      ]),
+    );
+  }
+
+  Widget _hBar(String label, double pct, String value, Color color) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Expanded(child: Text(label, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
+        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color)),
+      ]),
+      const SizedBox(height: 6),
+      TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: (pct / 100).clamp(0, 1)),
+        duration: const Duration(milliseconds: 900),
+        builder: (_, v, __) => LinearProgressIndicator(value: v, backgroundColor: const Color(0xFFE2E8F0), color: color, minHeight: 8, borderRadius: BorderRadius.circular(4)),
+      ),
+    ]);
+  }
+}
+
+class _TrendPainter extends CustomPainter {
+  final List<double> v;
+  _TrendPainter(this.v);
+  @override
+  void paint(Canvas canvas, Size size) {
+    const l = 34.0, b = 22.0, t = 8.0, r = 8.0;
+    final w = size.width - l - r, h = size.height - t - b;
+    final grid = Paint()..color = const Color(0xFFE2E8F0)..strokeWidth = 1;
+    final tp = TextPainter(textDirection: TextDirection.ltr);
+    for (final g in [0, 50, 100]) {
+      final y = t + h - g / 100 * h;
+      canvas.drawLine(Offset(l, y), Offset(l + w, y), grid);
+      tp.text = TextSpan(text: '$g%', style: const TextStyle(fontSize: 10, color: Colors.black45));
+      tp.layout();
+      tp.paint(canvas, Offset(0, y - 6));
+    }
+    final pts = [for (var i = 0; i < v.length; i++) Offset(l + i * w / (v.length - 1), t + h - v[i].clamp(0, 100) / 100 * h)];
+    final area = Path()..moveTo(pts.first.dx, t + h);
+    for (final p in pts) {
+      area.lineTo(p.dx, p.dy);
+    }
+    area..lineTo(pts.last.dx, t + h)..close();
+    canvas.drawPath(area, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0x550077B6), Color(0x000077B6)]).createShader(Rect.fromLTWH(l, t, w, h)));
+    final line = Path()..moveTo(pts.first.dx, pts.first.dy);
+    for (final p in pts.skip(1)) {
+      line.lineTo(p.dx, p.dy);
+    }
+    canvas.drawPath(line, Paint()..color = const Color(0xFF0077B6)..strokeWidth = 3..style = PaintingStyle.stroke..strokeJoin = StrokeJoin.round);
+    for (final p in pts) {
+      canvas.drawCircle(p, 5, Paint()..color = Colors.white);
+      canvas.drawCircle(p, 4, Paint()..color = const Color(0xFFE65100));
+    }
+    tp.text = const TextSpan(text: 'Older  →  Latest quizzes', style: TextStyle(fontSize: 10, color: Colors.black45));
+    tp.layout();
+    tp.paint(canvas, Offset(l + w / 2 - tp.width / 2, size.height - 14));
+  }
+
+  @override
+  bool shouldRepaint(covariant _TrendPainter old) => old.v != v;
+}
