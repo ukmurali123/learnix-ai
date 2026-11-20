@@ -49,7 +49,8 @@ static_dir.mkdir(parents=True, exist_ok=True)
 # The older HTML version stays available at /classic
 app.mount("/classic", StaticFiles(directory=str(static_dir), html=True), name="static")
 if flutter_dir.exists():
-    # The Flutter app is the main site: opening the Cloud Run URL shows it directly
+    # Both / and /flutter are supported
+    app.mount("/flutter", StaticFiles(directory=str(flutter_dir), html=True), name="flutter_alias")
     app.mount("/", StaticFiles(directory=str(flutter_dir), html=True), name="flutter")
 else:
     app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static_root")
