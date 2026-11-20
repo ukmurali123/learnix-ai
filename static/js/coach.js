@@ -2,7 +2,7 @@
  * Learnix AI — AI Coach Page JS
  */
 
-const STUDENT_ID = 1;
+var STUDENT_ID = window.STUDENT_ID || 1;
 
 const ERROR_TIPS = {
   missing_resistor: {

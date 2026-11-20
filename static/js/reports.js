@@ -6,7 +6,7 @@
  *     students needing help, plus AI.EXTRACT feedback sentiment summary via /api/reports/centres.
  */
 
-const STUDENT_ID = 1;
+var STUDENT_ID = window.STUDENT_ID || 1;
 let currentParentLanguage = "English";
 let centresDataCache = null;
 let currentChartMetric = "quiz"; // 'quiz' | 'lab' | 'help'

@@ -8,7 +8,7 @@
  * - Weak concepts needing practice with diagnostic reasons
  */
 
-const STUDENT_ID = 1;
+var STUDENT_ID = window.STUDENT_ID || 1;
 
 document.addEventListener("DOMContentLoaded", () => {
   loadStudentDashboard();

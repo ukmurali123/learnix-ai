@@ -13,7 +13,7 @@
  */
 
 // Global State
-const STUDENT_ID = 1;
+var STUDENT_ID = window.STUDENT_ID || 1;
 let currentLanguage = "English";
 let currentUploadedFile = null;
 let activeConcepts = [];
@@ -50,6 +50,10 @@ const recentPillsList = document.getElementById("recent-pills-list");
 // 1. INITIALIZATION & TAB SWITCHING
 // ============================================================================
 document.addEventListener("DOMContentLoaded", () => {
+  if (!document.getElementById("concepts-container") && !document.getElementById("topic-text-input")) {
+    // Only initialize studio page handlers if on Concept Studio page
+    return;
+  }
   setupTabEvents();
   setupUploadEvents();
   setupTopicEvents();

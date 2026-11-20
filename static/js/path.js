@@ -10,7 +10,7 @@
  * - If score < 50%, shows AI Coach revision step with analogy and encouragement before unlocking!
  */
 
-const STUDENT_ID = 1;
+var STUDENT_ID = window.STUDENT_ID || 1;
 let currentPathData = null;
 let activeDayNumber = 1;
 let activeDayContent = null;
@@ -18,11 +18,17 @@ let currentMissionStep = "learn";
 let quizAnswers = {};
 let latestQuizScore = 0;
 
-document.addEventListener("DOMContentLoaded", () => {
+function initPathPage() {
   loadLearningPath();
   setupModalEvents();
   setupMissionStepNav();
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initPathPage);
+} else {
+  initPathPage();
+}
 
 // ============================================================================
 // 1. LOAD & RENDER LEARNING PATH ROADMAP
@@ -437,3 +443,7 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
+
+window.openDayMission = openDayMission;
+window.switchMissionStep = switchMissionStep;
+window.loadLearningPath = loadLearningPath;
