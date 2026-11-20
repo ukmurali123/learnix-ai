@@ -1,4 +1,5 @@
 import '../widgets/bubble_background.dart';
+import '../widgets/breadboard_3d_view.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -1387,7 +1388,28 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
-                      child: Center(
+                      // 3D: the live Learnix 3D breadboard renderer (lit solids, tube wires, glowing LED).
+                      child: _is3DMode
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: CustomPaint(
+                                size: Size.infinite,
+                                painter: Scene3Painter(
+                                  build: () => buildCircuitBoardScene(
+                                    running: _isRunning,
+                                    hasResistor: _hasResistor,
+                                    switchClosed: _switchClosed,
+                                    ohms: _resistorOhms.toDouble(),
+                                    progress: _electronController.value,
+                                  ),
+                                  yaw: _rotZ * 1.6,
+                                  pitch: 1.25 + _rotX * 0.7,
+                                  zoom: _zoomLevel,
+                                  repaint: _electronController,
+                                ),
+                              ),
+                            )
+                          : Center(
                         child: Transform.scale(
                           scale: _zoomLevel,
                           child: AnimatedContainer(

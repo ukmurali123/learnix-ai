@@ -475,11 +475,13 @@ function hideZola(){ zolaBox.style.display='none'; }
 function send(o){ const s=JSON.stringify(o); try{ if(window.LxBridge) window.LxBridge.postMessage(s); else window.parent.postMessage(s,'*'); }catch(e){} }
 document.getElementById('zolaBtn').onclick=()=>{
   zolaBox.style.display='block'; zolaText.textContent='Zola is looking at your code...';
+  const asked=Date.now(); window.__zolaAsked=asked;
+  setTimeout(()=>{ if(window.__zolaAsked===asked && zolaText.textContent.startsWith('Zola is looking')) zolaText.textContent='Zola is taking too long to answer. Please check that the Learnix backend is running, then press Ask Zola again.'; },45000);
   const lines=[...serialEl.childNodes].slice(-15).map(n=>n.textContent).join('\n');
   send({type:'zola', mission:mission.title, goal:mission.goal, code:code.value, serial:lines, status:statusEl.textContent, error:lastError, question:document.getElementById('ask').value.trim(),
         sensors:{distance_cm:ultrasonicCm(), motor_left:Math.round(car.vl), motor_right:Math.round(car.vr), crashes, driven_cm:Math.round(car.dist)}});
 };
-function onAppMessage(s){ try{ const m=JSON.parse(s); if(m.type==='zola'){ zolaBox.style.display='block'; zolaText.textContent=m.text; } }catch(e){} }
+function onAppMessage(s){ try{ const m=JSON.parse(s); if(m.type==='zola' && typeof m.text==='string'){ window.__zolaAsked=0; zolaBox.style.display='block'; zolaText.textContent=m.text; } }catch(e){} }
 window.__lxIn=onAppMessage;
 window.addEventListener('message',e=>{ if(typeof e.data==='string') onAppMessage(e.data); });
 

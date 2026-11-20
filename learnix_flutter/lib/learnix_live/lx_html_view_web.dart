@@ -23,8 +23,10 @@ class LxHtmlViewImpl extends StatelessWidget {
           ..style.height = '100%';
         if (b != null) {
           b.toPage = (String m) => f.contentWindow?.postMessage(m, '*');
+          // Note: comparing e.source with f.contentWindow is unreliable on the web (each read gives a new
+          // wrapper object), so messages are accepted by content instead: only pages that use a bridge send them.
           dhtml.window.onMessage.listen((e) {
-            if (e.source == f.contentWindow && e.data is String) b.onMessage?.call(e.data as String);
+            if (e.data is String && (e.data as String).startsWith('{')) b.onMessage?.call(e.data as String);
           });
         }
         return f;
