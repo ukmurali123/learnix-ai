@@ -1,0 +1,496 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Learnix Robo Car Lab</title>
+<style>
+html,body{margin:0;height:100%;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#0f172a;color:#e2e8f0;overflow:hidden}
+*{box-sizing:border-box}
+#app{display:flex;height:100%;width:100%}
+#stage{position:relative;flex:1 1 60%;min-width:0;background:linear-gradient(#1e3a5f,#0f172a)}
+#stage canvas{display:block;width:100%;height:100%}
+#hud{position:absolute;left:12px;top:12px;background:rgba(15,23,42,.82);border:1px solid rgba(148,163,184,.25);border-radius:12px;padding:10px 12px;font-size:12.5px;line-height:1.55;min-width:190px;backdrop-filter:blur(6px)}
+#hud b{color:#fff}.k{color:#94a3b8}
+#status{position:absolute;left:50%;top:12px;transform:translateX(-50%);padding:7px 14px;border-radius:20px;font-weight:800;font-size:13px;background:#334155;color:#fff;white-space:nowrap}
+#status.ok{background:#16a34a}#status.bad{background:#dc2626}#status.run{background:#0077b6}
+#camBtns{position:absolute;right:12px;top:12px;display:flex;gap:6px}
+#camBtns button,.btn{border:0;border-radius:10px;padding:9px 12px;font-weight:800;font-size:12.5px;cursor:pointer;background:#1e293b;color:#e2e8f0;border:1px solid #334155}
+#camBtns button.on{background:#0077b6;border-color:#0077b6}
+#panel{flex:0 0 40%;max-width:560px;min-width:330px;display:flex;flex-direction:column;background:#f8fafc;color:#0f172a;overflow:auto}
+.tabs{display:flex;gap:6px;padding:12px 12px 0;flex-wrap:wrap}
+.tab{border:1px solid #cbd5e1;background:#fff;border-radius:20px;padding:8px 12px;font-weight:800;font-size:12.5px;cursor:pointer;color:#334155}
+.tab.on{background:#e53935;border-color:#e53935;color:#fff}
+.card{margin:10px 12px;padding:12px;background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 6px 18px rgba(15,23,42,.06)}
+.card h3{margin:0 0 6px;font-size:15px}.goal{font-size:13px;color:#334155;line-height:1.5}
+.pins{font-size:11.5px;color:#475569;margin-top:6px;line-height:1.6}
+.pins code{background:#eef2f7;border-radius:5px;padding:1px 5px;color:#0f172a}
+#code{width:100%;min-height:250px;resize:vertical;font:13px/1.5 Consolas,Menlo,monospace;background:#0b1220;color:#e2e8f0;border:0;border-radius:12px;padding:12px;outline:none;tab-size:2}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.run{background:#16a34a;color:#fff;border-color:#16a34a}.stop{background:#dc2626;color:#fff;border-color:#dc2626}
+.light{background:#fff;color:#0f172a;border:1px solid #cbd5e1}
+.zola{background:linear-gradient(135deg,#38bdf8,#0077b6,#7c3aed);color:#fff;border:0}
+#serial{height:110px;overflow:auto;background:#0b1220;color:#86efac;font:12px/1.45 Consolas,monospace;border-radius:10px;padding:8px;white-space:pre-wrap}
+#serial .err{color:#fca5a5}
+#zolaBox{display:none;border-left:4px solid #7c3aed;background:#f5f3ff}
+#zolaText{font-size:13.5px;line-height:1.6;white-space:pre-wrap;color:#1e1b4b}
+.zh{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-weight:900;color:#5b21b6}
+.av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#38bdf8,#0077b6,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;border:2px solid #fff;box-shadow:0 3px 8px rgba(0,119,182,.35)}
+#ask{width:100%;margin-top:8px;padding:9px 10px;border:1px solid #cbd5e1;border-radius:10px;font-size:13px}
+@media (max-width:820px){#app{flex-direction:column}#stage{flex:0 0 52%}#panel{max-width:none;min-width:0;flex:1 1 auto}}
+</style></head>
+<body><div id="app">
+<div id="stage"><div id="status">Ready</div>
+<div id="hud"></div>
+<div id="camBtns"><button id="camOrbit" class="on">3D view</button><button id="camFollow">Follow car</button><button id="camTop">Top view</button></div>
+</div>
+<div id="panel">
+  <div class="tabs" id="tabs"></div>
+  <div class="card"><h3 id="mTitle"></h3><div class="goal" id="mGoal"></div>
+    <div class="pins">Wiring (L298N motor driver): left motors <code>ENA=5 IN1=8 IN2=9</code>, right motors <code>ENB=6 IN3=10 IN4=11</code>. Ultrasonic <code>TRIG=12 ECHO=13</code>. IR line sensors <code>LEFT=2 RIGHT=3</code> (HIGH on the black line).<br>
+    Helpers: <code>forward(speed)</code> <code>backward(speed)</code> <code>turnLeft(speed)</code> <code>turnRight(speed)</code> <code>stopCar()</code> <code>readDistance()</code> (speed 0 to 255). Or drive the pins yourself with <code>digitalWrite</code> / <code>analogWrite</code>.</div></div>
+  <div class="card">
+    <textarea id="code" spellcheck="false"></textarea>
+    <div class="row">
+      <button class="btn run" id="runBtn">&#9654; Run</button>
+      <button class="btn stop" id="stopBtn">&#9632; Stop</button>
+      <button class="btn light" id="resetBtn">&#8634; Reset</button>
+      <button class="btn light" id="speedBtn">Speed 1x</button>
+      <button class="btn light" id="solBtn">Show solution</button>
+    </div>
+  </div>
+  <div class="card"><div style="font-weight:800;font-size:12.5px;margin-bottom:6px">Serial Monitor</div><div id="serial"></div></div>
+  <div class="card"><div class="row" style="margin-top:0"><button class="btn zola" id="zolaBtn">Ask Zola for help</button></div>
+    <input id="ask" placeholder="Optional: ask Zola a question, e.g. why does my car spin?"></div>
+  <div class="card" id="zolaBox"><div class="zh"><div class="av"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><rect x="5" y="8" width="14" height="11" rx="3"/><rect x="11" y="3" width="2" height="4"/><circle cx="12" cy="3" r="1.6"/><circle cx="9.5" cy="13" r="1.6" fill="#0077b6"/><circle cx="14.5" cy="13" r="1.6" fill="#0077b6"/><rect x="2.5" y="11" width="2" height="5" rx="1"/><rect x="19.5" y="11" width="2" height="5" rx="1"/></svg></div>AI Tutor Zola</div><div id="zolaText"></div></div>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+// ------------------------------------------------------------------ missions
+const MISSIONS = [
+ {id:'square', title:'Mission 1: Drive a square', goal:'Visit the 4 flags in order (the last one is back at the start). Drive forward, then turn left 90 degrees, four times.',
+  start:{x:60,y:60,th:0},
+  code:`// Mission 1: drive a square (about 80 cm each side)
+void setup() {
+  Serial.begin(9600);
+  Serial.println("Square mission start!");
+}
+
+void loop() {
+  for (int side = 0; side < 4; side++) {
+    forward(200);     // drive straight
+    delay(2550);
+    stopCar();
+    delay(300);
+    turnLeft(200);    // spin left about 90 degrees
+    delay(350);
+    stopCar();
+    delay(300);
+    Serial.print("Side done: ");
+    Serial.println(side + 1);
+  }
+  stopCar();
+  while (true) { delay(1000); }   // finished
+}`,
+  solution:null},
+ {id:'avoid', title:'Mission 2: Obstacle avoider', goal:'Drive around the arena for 20 seconds without bumping into a wall or a box, and travel at least 150 cm. Use the ultrasonic sensor: if something is closer than about 25 cm, back up and turn.',
+  start:{x:40,y:40,th:0},
+  code:`// Mission 2: avoid obstacles with the ultrasonic sensor
+void setup() {
+  Serial.begin(9600);
+}
+
+void loop() {
+  int d = readDistance();     // distance in cm
+  Serial.println(d);
+  if (d > 25) {
+    forward(170);
+  } else {
+    // TODO: something is close! Stop, back up a little and turn.
+    stopCar();
+  }
+  delay(50);
+}`,
+  solution:`// Mission 2 solution
+void setup() {
+  Serial.begin(9600);
+}
+
+void loop() {
+  int d = readDistance();
+  if (d > 28) {
+    forward(170);
+  } else {
+    stopCar();
+    delay(150);
+    backward(150);
+    delay(350);
+    turnRight(170);
+    delay(420);
+  }
+  delay(40);
+}`},
+ {id:'line', title:'Mission 3: Line follower', goal:'Follow the black line for one full lap. The IR sensors read HIGH when they are over the black line: if the LEFT sensor sees the line, turn left; if the RIGHT sensor sees it, turn right; otherwise go straight.',
+  start:{x:150,y:45,th:Math.PI},
+  code:`// Mission 3: follow the black line with two IR sensors
+const int IR_LEFT = 2;
+const int IR_RIGHT = 3;
+
+void setup() {
+  pinMode(IR_LEFT, INPUT);
+  pinMode(IR_RIGHT, INPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  int L = digitalRead(IR_LEFT);
+  int R = digitalRead(IR_RIGHT);
+  if (L == LOW && R == LOW) {
+    forward(140);            // line is between the sensors
+  } else if (L == HIGH) {
+    turnLeft(130);           // line moved under the left sensor
+  } else if (R == HIGH) {
+    // TODO: what should the car do here?
+    stopCar();
+  }
+  delay(10);
+}`,
+  solution:`// Mission 3 solution
+const int IR_LEFT = 2;
+const int IR_RIGHT = 3;
+
+void setup() {
+  pinMode(IR_LEFT, INPUT);
+  pinMode(IR_RIGHT, INPUT);
+}
+
+void loop() {
+  int L = digitalRead(IR_LEFT);
+  int R = digitalRead(IR_RIGHT);
+  if (L == LOW && R == LOW) {
+    forward(140);
+  } else if (L == HIGH) {
+    turnLeft(130);
+  } else if (R == HIGH) {
+    turnRight(130);
+  }
+  delay(10);
+}`}
+];
+MISSIONS[0].solution = MISSIONS[0].code;
+
+// ------------------------------------------------------------------ world (cm)
+const W = 300, H = 200, VMAX = 40, TRACK = 14, CAR_R = 11;
+let mission = MISSIONS[0];
+let obstacles = [];           // {x,y,w,h}
+let flags = [];               // {x,y,done}
+let linePts = [];             // sampled line path
+const car = {x:0,y:0,th:0,vl:0,vr:0,spinL:0,spinR:0,dist:0,crash:false};
+const pins = {};
+let simT = 0, waits = [], running = false, stopReq = false, speed = 1;
+let result = '', missionClock = 0, flagIdx = 0, lineProg = 0, lineMaxIdx = 0, lineLost = false, crashes = 0;
+const STOP = {stop:true};
+
+function buildLine(){
+  const pts = [], cx1 = 80, cx2 = 220, cy = 100, r = 55;
+  for (let x = 80; x < 220; x += 3) pts.push([x, cy - r]);
+  for (let a = -Math.PI/2; a < Math.PI/2; a += 0.06) pts.push([cx2 + r*Math.cos(a), cy + r*Math.sin(a)]);
+  for (let x = 220; x > 80; x -= 3) pts.push([x, cy + r]);
+  for (let a = Math.PI/2; a < 3*Math.PI/2; a += 0.06) pts.push([cx1 + r*Math.cos(a), cy + r*Math.sin(a)]);
+  return pts;
+}
+function distSeg(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;let t=l?((px-ax)*dx+(py-ay)*dy)/l:0;t=Math.max(0,Math.min(1,t));const qx=ax+t*dx-px,qy=ay+t*dy-py;return Math.sqrt(qx*qx+qy*qy);}
+function lineNear(px,py){let best=1e9,bi=0;for(let i=0;i<linePts.length;i++){const a=linePts[i],b=linePts[(i+1)%linePts.length];const d=distSeg(px,py,a[0],a[1],b[0],b[1]);if(d<best){best=d;bi=i;}}return {d:best,i:bi};}
+
+function setupMission(m){
+  mission = m;
+  obstacles = []; flags = []; linePts = [];
+  if (m.id === 'square') flags = [{x:140,y:60},{x:140,y:140},{x:60,y:140},{x:60,y:60}].map(f=>({...f,done:false}));
+  if (m.id === 'avoid') obstacles = [{x:110,y:20,w:24,h:60},{x:180,y:120,w:60,h:24},{x:70,y:130,w:30,h:30},{x:230,y:40,w:26,h:26}];
+  if (m.id === 'line') linePts = buildLine();
+  resetCar();
+  buildScene();
+}
+function resetCar(){
+  Object.assign(car,{x:mission.start.x,y:mission.start.y,th:mission.start.th,vl:0,vr:0,dist:0,crash:false});
+  for (const k in pins) delete pins[k];
+  simT = 0; missionClock = 0; stallT = 0; stallX = car.x; stallY = car.y; flagIdx = 0; lineProg = 0; lineMaxIdx = 0; lineLost = false; crashes = 0; result = '';
+  flags.forEach(f=>f.done=false);
+  if (mission.id==='line'){ const n=lineNear(car.x,car.y); lineProg=n.i; lineMaxIdx=0; }
+}
+
+// ------------------------------------------------------------------ Arduino API
+const HIGH=1, LOW=0, OUTPUT=1, INPUT=0, INPUT_PULLUP=2;
+function pin(p){return pins[p]||(pins[p]={mode:0,v:0,pwm:null});}
+function pinMode(p,m){pin(p).mode=m;}
+function digitalWrite(p,v){const q=pin(p);q.v=v?1:0;}
+function analogWrite(p,v){pin(p).pwm=Math.max(0,Math.min(255,Math.round(v)));}
+function sensorPoint(side){const fx=10, s=side*4;return [car.x+fx*Math.cos(car.th)-s*Math.sin(car.th), car.y+fx*Math.sin(car.th)+s*Math.cos(car.th)];}
+function irRead(side){ if(!linePts.length) return LOW; const p=sensorPoint(side); return lineNear(p[0],p[1]).d<=2.2?HIGH:LOW; }
+function digitalRead(p){ if(p===2) return irRead(1); if(p===3) return irRead(-1); return pin(p).v; }
+function analogRead(p){ return 0; }
+function ultrasonicCm(){ let b=300; for(const a of [-0.26,-0.13,0,0.13,0.26]) b=Math.min(b,rayCm(car.th+a)); return Math.max(2,Math.round(b)); }
+function rayCm(th){
+  const ox=car.x+11*Math.cos(car.th), oy=car.y+11*Math.sin(car.th), dx=Math.cos(th), dy=Math.sin(th);
+  let best=300;
+  const rects=[...obstacles,{x:-10,y:-10,w:W+20,h:10},{x:-10,y:H,w:W+20,h:10},{x:-10,y:0,w:10,h:H},{x:W,y:0,w:10,h:H}];
+  for(const r of rects){ // ray vs box (slab)
+    let t0=0,t1=1e9;
+    for(const [o,d,lo,hi] of [[ox,dx,r.x,r.x+r.w],[oy,dy,r.y,r.y+r.h]]){
+      if(Math.abs(d)<1e-9){ if(o<lo||o>hi){t0=1e9;break;} }
+      else { let a=(lo-o)/d,b=(hi-o)/d; if(a>b)[a,b]=[b,a]; t0=Math.max(t0,a); t1=Math.min(t1,b); }
+    }
+    if(t0<=t1 && t0<best) best=t0;
+  }
+  return best;
+}
+function readDistance(){ return ultrasonicCm(); }
+function pulseIn(p,v){ return ultrasonicCm()*58; }
+function delayMicroseconds(){ }
+function millis(){ return Math.floor(simT); }
+function micros(){ return Math.floor(simT*1000); }
+function map(x,a,b,c,d){ return (x-a)*(d-c)/(b-a)+c; }
+function constrain(x,a,b){ return Math.max(a,Math.min(b,x)); }
+function random(a,b){ if(b===undefined){b=a;a=0;} return Math.floor(a+Math.random()*(b-a)); }
+const abs=Math.abs, min=Math.min, max=Math.max, sqrt=Math.sqrt, pow=Math.pow;
+function motors(l,r,sp){ // l,r: 1 forward, -1 back, 0 stop
+  sp = sp===undefined?200:sp;
+  digitalWrite(8,l>0); digitalWrite(9,l<0); digitalWrite(10,r>0); digitalWrite(11,r<0);
+  analogWrite(5,sp); analogWrite(6,sp);
+}
+function forward(s){motors(1,1,s);} function backward(s){motors(-1,-1,s);}
+function turnLeft(s){motors(-1,1,s);} function turnRight(s){motors(1,-1,s);} function stopCar(){motors(0,0,0);}
+const Serial = {begin(){}, print(x){serialOut(String(x),false);}, println(x){serialOut(x===undefined?'':String(x),true);}};
+let serialLine='';
+function serialOut(s,nl){ serialLine+=s; if(nl){ addSerial(serialLine); serialLine=''; } }
+let delayCount=0;
+function delay(ms){ ms=Math.max(0,+ms||0); delayCount++; return new Promise((res,rej)=>{ if(stopReq) return rej(STOP); waits.push({until:simT+ms,res,rej}); }); }
+let yields=0;
+// Inside while/for loops: every 500 passes, wait one simulator step so a loop without delay() cannot freeze the page.
+function __y(){ if(stopReq) return Promise.reject(STOP); if(++yields%500===0) return delay(0); return Promise.resolve(); }
+
+const API = {HIGH,LOW,OUTPUT,INPUT,INPUT_PULLUP,pinMode,digitalWrite,digitalRead,analogWrite,analogRead,delay,delayMicroseconds,millis,micros,map,constrain,random,abs,min,max,sqrt,pow,Serial,forward,backward,turnLeft,turnRight,stopCar,readDistance,pulseIn,__y};
+const AWAITED = ['delay'];
+
+function translate(src){
+  let s = src.replace(/\/\*[\s\S]*?\*\//g,'').replace(/\/\/.*$/gm,'');
+  s = s.replace(/^\s*#include.*$/gm,'');
+  s = s.replace(/^\s*#define\s+(\w+)\s+(.+)$/gm,'const $1 = $2;');
+  s = s.replace(/\((?:unsigned\s+)?(?:int|long|float|double|byte|char|bool|boolean)\)/g,'');
+  const fns=[];
+  s = s.replace(/\b(?:void|int|long|float|double|bool|boolean|byte|char|String|unsigned\s+int|unsigned\s+long)\s+(\w+)\s*\(([^)]*)\)\s*\{/g,(m,name,params)=>{
+    fns.push(name);
+    const ps = params.split(',').map(x=>x.trim()).filter(x=>x && x!=='void').map(x=>x.split(/[\s*&]+/).pop());
+    return `async function ${name}(${ps.join(', ')}) {`;
+  });
+  s = s.replace(/\b(?:const\s+)?(?:unsigned\s+)?(?:int|long|float|double|bool|boolean|byte|char|String)\s+(?=[A-Za-z_])/g,'let ');
+  s = s.replace(/\bboolean\b/g,'let');
+  for (const n of [...fns, ...AWAITED]) s = s.replace(new RegExp(`(?<!function\\s)(?<![\\w.])${n}\\s*\\(`,'g'), `await ${n}(`);
+  s = s.replace(/\b(while|for)\s*\(((?:[^()]|\([^()]*\))*)\)\s*\{/g, m => m + ' await __y();');
+  s = s.replace(/\bdo\s*\{/g, m => m + ' await __y();');
+  return s + '\nreturn {setup: typeof setup==="function"?setup:null, loop: typeof loop==="function"?loop:null};';
+}
+function compile(src){
+  const js = translate(src);
+  const AF = Object.getPrototypeOf(async function(){}).constructor;
+  const names = Object.keys(API);
+  const f = new AF(...names, js);
+  return f(...names.map(n=>API[n]));
+}
+
+async function run(){
+  if (running) return;
+  resetCar(); clearSerial(); hideZola();
+  stopReq=false; waits=[]; yields=0; running=true; setStatus('Running...','run');
+  let prog;
+  try { prog = await compile(code.value); }
+  catch(e){ running=false; addSerial('Code error: '+e.message,true); setStatus('Code error','bad'); lastError=e.message; return; }
+  lastError='';
+  try {
+    if (prog.setup) await prog.setup();
+    if (!prog.loop) addSerial('No loop() found.',true);
+    while (!stopReq && prog.loop) { const c=delayCount; await prog.loop(); if(delayCount===c) await delay(0); }
+  } catch(e){ if(e!==STOP){ addSerial('Runtime error: '+(e.message||e),true); setStatus('Runtime error','bad'); lastError=String(e.message||e);} }
+  running=false; stopCar();
+  if (!result && !lastError) setStatus('Stopped','');
+}
+function stop(){ stopReq=true; waits.forEach(w=>w.rej(STOP)); waits=[]; }
+let lastError='';
+
+// ------------------------------------------------------------------ physics
+function wheelSpeed(en,a,b){ const p=pins[en]; const pwm = p&&p.pwm!=null?p.pwm:(p&&p.v?255:255); const A=pins[a]?pins[a].v:0, B=pins[b]?pins[b].v:0; const dir = A&&!B?1:(!A&&B?-1:0); return dir*pwm/255*VMAX; }
+function hits(x,y){
+  if (x<CAR_R||y<CAR_R||x>W-CAR_R||y>H-CAR_R) return true;
+  for(const r of obstacles){ const cx=Math.max(r.x,Math.min(x,r.x+r.w)), cy=Math.max(r.y,Math.min(y,r.y+r.h)); if((x-cx)**2+(y-cy)**2<CAR_R*CAR_R) return true; }
+  return false;
+}
+function step(dt){ // dt in seconds
+  car.vl = wheelSpeed(5,8,9); car.vr = wheelSpeed(6,10,11);
+  const v=(car.vl+car.vr)/2, w=(car.vr-car.vl)/TRACK;
+  const nth=car.th+w*dt, nx=car.x+v*Math.cos(car.th)*dt, ny=car.y+v*Math.sin(car.th)*dt;
+  if (hits(nx,ny)) { if(!car.crash){crashes++; addSerial('BUMP! The car hit something.',true);} car.crash=true; car.th=nth; }
+  else { car.crash=false; car.dist+=Math.abs(v*dt); car.x=nx; car.y=ny; car.th=nth; }
+  car.spinL += car.vl*dt/3.3; car.spinR += car.vr*dt/3.3;
+  if (running) missionClock += dt;
+  checkMission();
+}
+let stallT=0, stallX=0, stallY=0;
+function checkMission(){
+  if (result || !running) return;
+  if (Math.hypot(car.x-stallX,car.y-stallY)>3){ stallX=car.x; stallY=car.y; stallT=missionClock; }
+  else if (missionClock-stallT>6 && mission.id!=='square'){ fail('The car has not moved for 6 seconds.'); return; }
+  if (mission.id==='square'){
+    const f=flags[flagIdx]; if(f && Math.hypot(car.x-f.x,car.y-f.y)<18){ f.done=true; flagIdx++; addSerial('Flag '+flagIdx+' reached!'); if(flagIdx===flags.length) win('Square complete! All 4 flags visited.'); }
+  } else if (mission.id==='avoid'){
+    if (crashes>0) fail('Bumped into an obstacle. Try turning earlier.');
+    else if (missionClock>=20 && car.dist>=150) win('20 seconds with no bumps, '+Math.round(car.dist)+' cm driven!');
+    else if (missionClock>=20) fail('No bumps, but the car only drove '+Math.round(car.dist)+' cm. Keep moving!');
+  } else if (mission.id==='line'){
+    const n=lineNear(car.x,car.y);
+    if (n.d>25){ fail('The car lost the line.'); return; }
+    let di = n.i - lineProg; const N=linePts.length; if(di< -N/2) di+=N; if(di> N/2) di-=N;
+    if (Math.abs(di)<20){ lineMaxIdx += di; lineProg = n.i; }
+    if (Math.abs(lineMaxIdx) >= N-4) win('One full lap on the line!');
+  }
+}
+function win(msg){ result='win'; setStatus('Mission complete!','ok'); addSerial('*** '+msg+' ***'); confetti(); stop(); }
+function fail(msg){ result='fail'; setStatus('Try again','bad'); addSerial('Mission failed: '+msg,true); stop(); }
+
+// ------------------------------------------------------------------ 3D scene
+const stage=document.getElementById('stage');
+let renderer, scene, camera, carG, wheelL=[], wheelR=[], flagMeshes=[], world, usBeam;
+let camMode='orbit', camTheta=-0.9, camPhi=0.95, camDist=340;
+const has3D = typeof THREE!=='undefined';
+function M(c,opts){return new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.55,metalness:.1},opts||{}));}
+function init3D(){
+  renderer = new THREE.WebGLRenderer({antialias:true}); renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
+  renderer.shadowMap.enabled=true; stage.insertBefore(renderer.domElement, stage.firstChild);
+  scene = new THREE.Scene(); scene.background=new THREE.Color(0x0f1b2d); scene.fog=new THREE.Fog(0x0f1b2d,500,1100);
+  camera = new THREE.PerspectiveCamera(45,1,1,3000);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x334155,.85));
+  const sun=new THREE.DirectionalLight(0xffffff,.9); sun.position.set(120,260,90); sun.castShadow=true;
+  sun.shadow.mapSize.set(1024,1024); Object.assign(sun.shadow.camera,{left:-220,right:220,top:220,bottom:-220,far:700}); scene.add(sun); scene.add(sun.target); sun.target.position.set(W/2,0,-H/2);
+  carG = makeCar(); scene.add(carG);
+  // drag to orbit, wheel to zoom
+  let drag=null; const c=renderer.domElement;
+  c.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,t:camTheta,p:camPhi}; c.setPointerCapture(e.pointerId);});
+  c.addEventListener('pointermove',e=>{ if(!drag) return; camTheta=drag.t-(e.clientX-drag.x)*0.008; camPhi=Math.max(0.25,Math.min(1.45,drag.p-(e.clientY-drag.y)*0.006)); });
+  c.addEventListener('pointerup',()=>drag=null);
+  c.addEventListener('wheel',e=>{e.preventDefault(); camDist=Math.max(120,Math.min(800,camDist*(e.deltaY>0?1.1:0.9)));},{passive:false});
+}
+function makeCar(){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.BoxGeometry(22,5,15),M(0xe53935,{roughness:.35,metalness:.25})); body.position.y=6; body.castShadow=true; g.add(body);
+  const deck=new THREE.Mesh(new THREE.BoxGeometry(16,1.2,12),M(0xb71c1c)); deck.position.set(-1,9.1,0); g.add(deck);
+  const uno=new THREE.Mesh(new THREE.BoxGeometry(9,0.8,6.5),M(0x1565c0)); uno.position.set(-2,10.1,0); g.add(uno);
+  const chip=new THREE.Mesh(new THREE.BoxGeometry(3,0.6,1.2),M(0x111827)); chip.position.set(-2,10.7,0); g.add(chip);
+  const bat=new THREE.Mesh(new THREE.BoxGeometry(6,3,5),M(0x1f2937)); bat.position.set(-7.5,10.8,0); g.add(bat);
+  // ultrasonic "eyes"
+  const pcb=new THREE.Mesh(new THREE.BoxGeometry(1,3.2,8),M(0x0d47a1)); pcb.position.set(11.4,8,0); g.add(pcb);
+  for(const z of [-2.2,2.2]){ const e=new THREE.Mesh(new THREE.CylinderGeometry(1.4,1.4,2,20),M(0xcfd8dc,{metalness:.6,roughness:.3})); e.rotation.z=Math.PI/2; e.position.set(12.4,8,z); g.add(e);
+    const pupil=new THREE.Mesh(new THREE.CylinderGeometry(0.8,0.8,0.3,16),M(0x111111)); pupil.rotation.z=Math.PI/2; pupil.position.set(13.45,8,z); g.add(pupil); }
+  // IR sensors under the front
+  for(const z of [-4,4]){ const ir=new THREE.Mesh(new THREE.BoxGeometry(1.4,0.8,1.4),M(0x16a34a)); ir.position.set(10,2.2,z); g.add(ir); }
+  // 4 wheels (the two on each side turn together)
+  const mkW=(x,z,list)=>{ const p=new THREE.Group(); p.position.set(x,3.3,z);
+    const t=new THREE.Mesh(new THREE.CylinderGeometry(3.3,3.3,2.6,24),M(0x1f2937,{roughness:.9})); t.rotation.x=Math.PI/2; t.castShadow=true; p.add(t);
+    const hub=new THREE.Mesh(new THREE.BoxGeometry(4.2,1,2.7),M(0xfbbf24)); p.add(hub);
+    g.add(p); list.push(p); };
+  mkW(6.5,9,wheelL); mkW(-6.5,9,wheelL); mkW(6.5,-9,wheelR); mkW(-6.5,-9,wheelR);
+  // beam to show the ultrasonic reading
+  usBeam=new THREE.Mesh(new THREE.BoxGeometry(1,0.4,0.4),new THREE.MeshBasicMaterial({color:0x38bdf8,transparent:true,opacity:.55})); usBeam.position.y=8; g.add(usBeam);
+  return g;
+}
+function buildScene(){
+  if(!has3D) return;
+  if(world) scene.remove(world);
+  world=new THREE.Group(); scene.add(world);
+  const floor=new THREE.Mesh(new THREE.BoxGeometry(W,2,H),M(mission.id==='line'?0xf8fafc:0xe2e8f0,{roughness:.95})); floor.position.set(W/2,-1,-H/2); floor.receiveShadow=true; world.add(floor);
+  const grid=new THREE.GridHelper(300,30,0x94a3b8,0xcbd5e1); grid.position.set(W/2,0.05,-H/2); grid.scale.z=H/W; world.add(grid);
+  const wallM=M(0x64748b);
+  for(const [x,z,w,d] of [[W/2,4,W+8,8],[W/2,-H-4,W+8,8],[-4,-H/2,8,H],[W+4,-H/2,8,H]]){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,12,d),wallM); m.position.set(x,6,z); m.castShadow=true; world.add(m); }
+  const cols=[0xf97316,0x0ea5e9,0xa855f7,0x22c55e];
+  obstacles.forEach((r,i)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(r.w,18,r.h),M(cols[i%4])); m.position.set(r.x+r.w/2,9,-(r.y+r.h/2)); m.castShadow=true; m.receiveShadow=true; world.add(m); });
+  if(linePts.length){ const lm=new THREE.MeshBasicMaterial({color:0x111111});
+    for(let i=0;i<linePts.length;i++){ const a=linePts[i], b=linePts[(i+1)%linePts.length]; const len=Math.hypot(b[0]-a[0],b[1]-a[1]);
+      const s=new THREE.Mesh(new THREE.BoxGeometry(len+0.6,0.3,4.4),lm); s.position.set((a[0]+b[0])/2,0.2,-(a[1]+b[1])/2); s.rotation.y=Math.atan2(b[1]-a[1],b[0]-a[0]); world.add(s); } }
+  flagMeshes=[];
+  flags.forEach((f,i)=>{ const g=new THREE.Group(); const pole=new THREE.Mesh(new THREE.CylinderGeometry(.5,.5,24,8),M(0x94a3b8)); pole.position.y=12; g.add(pole);
+    const cloth=new THREE.Mesh(new THREE.BoxGeometry(9,6,.4),M(0xef4444)); cloth.position.set(4.8,21,0); g.add(cloth);
+    const pad=new THREE.Mesh(new THREE.CylinderGeometry(18,18,.3,32),new THREE.MeshBasicMaterial({color:0xfde68a,transparent:true,opacity:.55})); pad.position.y=.2; g.add(pad);
+    g.position.set(f.x,0,-f.y); world.add(g); flagMeshes.push({cloth,pad}); });
+  const start=new THREE.Mesh(new THREE.CylinderGeometry(14,14,.25,32),new THREE.MeshBasicMaterial({color:0x22c55e,transparent:true,opacity:.35})); start.position.set(mission.start.x,.15,-mission.start.y); world.add(start);
+}
+function resize(){ if(!has3D) return; const w=stage.clientWidth||600, h=stage.clientHeight||400; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+function draw(){
+  if(!has3D) return;
+  carG.position.set(car.x,0,-car.y); carG.rotation.y=car.th;
+  wheelL.forEach(w=>w.rotation.z=-car.spinL); wheelR.forEach(w=>w.rotation.z=-car.spinR);
+  const d=ultrasonicCm(); usBeam.scale.x=Math.min(d,300); usBeam.position.x=13.5+Math.min(d,300)/2; usBeam.material.color.set(d<25?0xef4444:0x38bdf8);
+  flagMeshes.forEach((f,i)=>{ const done=flags[i].done; f.cloth.material.color.set(done?0x22c55e:(i===flagIdx?0xef4444:0xf59e0b)); f.pad.material.color.set(done?0x86efac:0xfde68a); });
+  if(camMode==='follow'){ const bx=car.x-70*Math.cos(car.th), by=car.y-70*Math.sin(car.th); camera.position.set(bx,55,-by); camera.lookAt(car.x+30*Math.cos(car.th),5,-(car.y+30*Math.sin(car.th))); }
+  else if(camMode==='top'){ camera.position.set(W/2,330,-H/2+0.01); camera.lookAt(W/2,0,-H/2); }
+  else { const cx=W/2, cz=-H/2; camera.position.set(cx+camDist*Math.sin(camPhi)*Math.cos(camTheta), camDist*Math.cos(camPhi), cz+camDist*Math.sin(camPhi)*Math.sin(camTheta)); camera.lookAt(cx,0,cz); }
+  renderer.render(scene,camera);
+}
+
+// ------------------------------------------------------------------ loop
+let last=performance.now(), busy=false;
+function tick(){ return new Promise(r=>{ const ch=new MessageChannel(); ch.port1.onmessage=()=>r(); ch.port2.postMessage(0); }); }
+async function frame(now){
+  requestAnimationFrame(frame);
+  if(busy) return; busy=true;
+  let dt=Math.min(0.05,(now-last)/1000); last=now;
+  let budget=dt*speed*1000, guard=0;
+  while(budget>0 && guard++<400){
+    const h=Math.min(5,budget); budget-=h; simT+=h; step(h/1000);
+    const due=waits.filter(w=>w.until<=simT);
+    if(due.length){ waits=waits.filter(w=>w.until>simT); due.forEach(w=>w.res()); await tick(); }
+  }
+  draw(); hud(); busy=false;
+}
+
+// ------------------------------------------------------------------ UI
+const code=document.getElementById('code'), serialEl=document.getElementById('serial'), statusEl=document.getElementById('status');
+const tabsEl=document.getElementById('tabs');
+function setStatus(t,c){ statusEl.textContent=t; statusEl.className=c||''; }
+function addSerial(t,err){ const d=document.createElement('div'); if(err) d.className='err'; d.textContent=t; serialEl.appendChild(d); while(serialEl.childNodes.length>200) serialEl.removeChild(serialEl.firstChild); serialEl.scrollTop=serialEl.scrollHeight; }
+function clearSerial(){ serialEl.innerHTML=''; serialLine=''; }
+function hud(){
+  const ir = linePts.length?`<span class="k">IR L / R:</span> <b>${irRead(1)?'HIGH':'LOW'}</b> / <b>${irRead(-1)?'HIGH':'LOW'}</b><br>`:'';
+  document.getElementById('hud').innerHTML=`<b>${mission.title}</b><br><span class="k">Distance ahead:</span> <b>${ultrasonicCm()} cm</b><br>${ir}<span class="k">Motor L / R:</span> <b>${Math.round(car.vl)}</b> / <b>${Math.round(car.vr)}</b> cm/s<br><span class="k">Time:</span> <b>${missionClock.toFixed(1)} s</b> &nbsp;<span class="k">Driven:</span> <b>${Math.round(car.dist)} cm</b>`+(mission.id==='square'?`<br><span class="k">Flags:</span> <b>${flagIdx}/4</b>`:'')+(mission.id==='line'?`<br><span class="k">Lap:</span> <b>${Math.max(0,Math.min(100,Math.round(Math.abs(lineMaxIdx)/linePts.length*100)))}%</b>`:'');
+}
+function selectMission(m){ stop(); setTimeout(()=>{ setupMission(m); code.value=m.code; renderTabs(); document.getElementById('mTitle').textContent=m.title; document.getElementById('mGoal').textContent=m.goal; clearSerial(); hideZola(); setStatus('Ready',''); },30); }
+function renderTabs(){ tabsEl.innerHTML=''; MISSIONS.forEach(m=>{ const b=document.createElement('button'); b.className='tab'+(m===mission?' on':''); b.textContent=m.title.split(':')[0]+': '+m.title.split(': ')[1]; b.onclick=()=>selectMission(m); tabsEl.appendChild(b); }); }
+document.getElementById('runBtn').onclick=()=>{ if(running){ stop(); setTimeout(run,60);} else run(); };
+document.getElementById('stopBtn').onclick=()=>{ stop(); };
+document.getElementById('resetBtn').onclick=()=>{ stop(); setTimeout(()=>{ resetCar(); setStatus('Ready',''); },40); };
+const speedBtn=document.getElementById('speedBtn'); speedBtn.onclick=()=>{ speed=speed===1?2:(speed===2?4:1); speedBtn.textContent='Speed '+speed+'x'; };
+document.getElementById('solBtn').onclick=()=>{ if(confirm('Replace your code with the solution?')) code.value=mission.solution; };
+code.addEventListener('keydown',e=>{ if(e.key==='Tab'){ e.preventDefault(); const s=code.selectionStart; code.value=code.value.slice(0,s)+'  '+code.value.slice(code.selectionEnd); code.selectionStart=code.selectionEnd=s+2; } });
+for(const [id,m] of [['camOrbit','orbit'],['camFollow','follow'],['camTop','top']]) document.getElementById(id).onclick=()=>{ camMode=m; document.querySelectorAll('#camBtns button').forEach(b=>b.classList.remove('on')); document.getElementById(id).classList.add('on'); };
+
+// ------------------------------------------------------------------ Zola (via the app)
+const zolaBox=document.getElementById('zolaBox'), zolaText=document.getElementById('zolaText');
+function hideZola(){ zolaBox.style.display='none'; }
+function send(o){ const s=JSON.stringify(o); try{ if(window.LxBridge) window.LxBridge.postMessage(s); else window.parent.postMessage(s,'*'); }catch(e){} }
+document.getElementById('zolaBtn').onclick=()=>{
+  zolaBox.style.display='block'; zolaText.textContent='Zola is looking at your code...';
+  const asked=Date.now(); window.__zolaAsked=asked;
+  setTimeout(()=>{ if(window.__zolaAsked===asked && zolaText.textContent.startsWith('Zola is looking')) zolaText.textContent='Zola is taking too long to answer. Please check that the Learnix backend is running, then press Ask Zola again.'; },45000);
+  const lines=[...serialEl.childNodes].slice(-15).map(n=>n.textContent).join('\n');
+  send({type:'zola', mission:mission.title, goal:mission.goal, code:code.value, serial:lines, status:statusEl.textContent, error:lastError, question:document.getElementById('ask').value.trim(),
+        sensors:{distance_cm:ultrasonicCm(), motor_left:Math.round(car.vl), motor_right:Math.round(car.vr), crashes, driven_cm:Math.round(car.dist)}});
+};
+function onAppMessage(s){ try{ const m=JSON.parse(s); if(m.type==='zola' && typeof m.text==='string'){ window.__zolaAsked=0; zolaBox.style.display='block'; zolaText.textContent=m.text; } }catch(e){} }
+window.__lxIn=onAppMessage;
+window.addEventListener('message',e=>{ if(typeof e.data==='string') onAppMessage(e.data); });
+
+// ------------------------------------------------------------------ start
+if(has3D){ init3D(); window.addEventListener('resize',resize); new ResizeObserver(resize).observe(stage); }
+else { stage.insertAdjacentHTML('beforeend','<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#cbd5e1;padding:20px;text-align:center">The 3D view needs internet (three.js). Your code still runs and the readings still update.</div>'); }
+selectMission(MISSIONS[0]);
+setTimeout(resize,60);
+requestAnimationFrame(frame);
+})();
+</script>
+</body></html>

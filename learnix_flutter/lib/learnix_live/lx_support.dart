@@ -31,10 +31,10 @@ Future<List<String>?> aiTranslateList(List<String> texts, String lang) async {
 }
 
 /// Short Gemini text call (used for the small real-life scene in the explanation).
-Future<Object?> lxGeminiText({required String system, required String prompt, double temperature = 0.3, int maxTokens = 400}) async {
+Future<Object?> lxGeminiText({required String system, required String prompt, double temperature = 0.3, int maxTokens = 400, String checkText = ''}) async {
   try {
     final r = await http
-        .post(Uri.parse('$lxApiBase/api/concept-studio/text'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'system': system, 'prompt': prompt, 'temperature': temperature, 'maxTokens': maxTokens}))
+        .post(Uri.parse('$lxApiBase/api/concept-studio/text'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'system': system, 'prompt': prompt, 'temperature': temperature, 'maxTokens': maxTokens, 'check_text': checkText}))
         .timeout(const Duration(seconds: 40));
     if (r.statusCode != 200) return null;
     return Map<String, dynamic>.from(jsonDecode(r.body) as Map);

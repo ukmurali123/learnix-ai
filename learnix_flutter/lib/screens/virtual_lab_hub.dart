@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../learnix_live/models_lab_screen.dart';
 import '../learnix_live/robo_car_lab_screen.dart';
 import 'virtual_lab_screen.dart';
 
@@ -51,6 +52,7 @@ class _VirtualLabHubState extends State<VirtualLabHub> {
             child: Row(children: [
               _chip(0, Icons.cable_rounded, 'Circuit Lab', const Color(0xFF0077B6)),
               _chip(1, Icons.directions_car_filled_rounded, 'Robo Car Lab (3D)', const Color(0xFFE53935)),
+              _chip(2, Icons.view_in_ar_rounded, '3D Working Models', const Color(0xFF7C3AED)),
             ]),
           ),
         ),
@@ -58,11 +60,17 @@ class _VirtualLabHubState extends State<VirtualLabHub> {
           // Only the open lab is built (the 3D page is a web view that should not stay on screen behind the other lab).
           child: lab == 0
               ? VirtualLabScreen(key: const ValueKey('circuit'), baseUrl: widget.baseUrl)
-              : Padding(
-                  key: const ValueKey('robo'),
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                  child: RoboCarLabScreen(baseUrl: widget.baseUrl),
-                ),
+              : lab == 1
+                  ? Padding(
+                      key: const ValueKey('robo'),
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                      child: RoboCarLabScreen(baseUrl: widget.baseUrl),
+                    )
+                  : Padding(
+                      key: const ValueKey('models'),
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                      child: ModelsLabScreen(baseUrl: widget.baseUrl),
+                    ),
         ),
       ]),
     );

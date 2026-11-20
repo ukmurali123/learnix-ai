@@ -250,6 +250,20 @@ void loop() {
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as Map<String, dynamic>;
+        if (data['blocked'] == true) {
+          gotAi = true;
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (c) => AlertDialog(
+                title: const Row(children: [Icon(Icons.shield_rounded, color: Color(0xFF0077B6)), SizedBox(width: 8), Text('Let\'s pick a safe idea')]),
+                content: Text('${data['message'] ?? 'That is not something we can build in Learnix. Try a safe and fun idea!'}'),
+                actions: [FilledButton(onPressed: () => Navigator.pop(c), child: const Text('OK'))],
+              ),
+            );
+          }
+          return;
+        }
         final plan = data['plan'] != null ? Map<String, dynamic>.from(data['plan'] as Map) : data;
         if ((plan['title'] ?? '').toString().isNotEmpty && (plan['code'] ?? '').toString().isNotEmpty) {
           gotAi = true;
@@ -1168,6 +1182,15 @@ void loop() {
     );
   }
 
+  /// e.g. "ESP32 · ARDUINO C++ (sketch.ino)" or "RASPBERRY PI PICO · MICROPYTHON (main.py)".
+  String _codeTitle(Map<String, dynamic> plan) {
+    final board = (plan['board'] ?? 'Arduino Uno').toString();
+    final lang = (plan['code_language'] ?? 'Arduino C++').toString();
+    final l = lang.toLowerCase();
+    final file = l.contains('python') ? 'main.py' : (l.contains('makecode') || l.contains('javascript') ? 'main.ts' : 'sketch.ino');
+    return '${board.toUpperCase()} · ${lang.toUpperCase()} ($file)';
+  }
+
   Widget _buildInventionBlueprintWorkspace(
     Map<String, dynamic> plan,
     bool isNarrow,
@@ -1198,7 +1221,24 @@ void loop() {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Live Interactive Blueprint Circuit Simulation Canvas
-        Container(
+        if ((plan['simulatable'] ?? true) == false)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFBFDBFE))),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Icon(Icons.developer_board_rounded, color: Color(0xFF0077B6)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'This design is for ${plan['board'] ?? 'another board'}. The live simulator runs Arduino Uno projects, so build this one for real: follow the wiring steps and upload the code below.',
+                  style: const TextStyle(fontSize: 13.5, height: 1.5, color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600),
+                ),
+              ),
+            ]),
+          )
+        else
+          Container(
           width: double.infinity,
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -1389,11 +1429,11 @@ void loop() {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
-                children: const [
-                  Icon(LucideIcons.code2, size: 16, color: Color(0xFF38BDF8)),
-                  SizedBox(width: 8),
+                children: [
+                  const Icon(LucideIcons.code2, size: 16, color: Color(0xFF38BDF8)),
+                  const SizedBox(width: 8),
                   Text(
-                    'ARDUINO C++ SKETCH (sketch.ino)',
+                    _codeTitle(plan),
                     style: TextStyle(
                       color: Color(0xFF38BDF8),
                       fontSize: 11.5,

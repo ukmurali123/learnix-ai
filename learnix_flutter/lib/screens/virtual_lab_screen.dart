@@ -216,6 +216,15 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
     }
   }
 
+  /// The circuit as a 3D scene (live Learnix renderer). Reads the current switch / resistor / run state each frame.
+  Scene3 _board3DScene() => buildCircuitBoardScene(
+        running: _isRunning,
+        hasResistor: _hasResistor,
+        switchClosed: _switchClosed,
+        ohms: _resistorOhms.toDouble(),
+        progress: _electronController.value,
+      );
+
   @override
   Widget build(BuildContext context) {
     // Material ancestor: this screen is also pushed as its own route from the
@@ -1392,22 +1401,32 @@ class _VirtualLabScreenState extends State<VirtualLabScreen>
                       child: _is3DMode
                           ? ClipRRect(
                               borderRadius: BorderRadius.circular(16),
-                              child: CustomPaint(
-                                size: Size.infinite,
-                                painter: Scene3Painter(
-                                  build: () => buildCircuitBoardScene(
-                                    running: _isRunning,
-                                    hasResistor: _hasResistor,
-                                    switchClosed: _switchClosed,
-                                    ohms: _resistorOhms.toDouble(),
-                                    progress: _electronController.value,
+                              child: Stack(children: [
+                                Positioned.fill(
+                                  child: CustomPaint(
+                                    painter: Scene3Painter(
+                                      build: _board3DScene,
+                                      yaw: _rotZ * 1.6,
+                                      pitch: 1.25 + _rotX * 0.7,
+                                      zoom: _zoomLevel,
+                                      repaint: _electronController,
+                                    ),
                                   ),
-                                  yaw: _rotZ * 1.6,
-                                  pitch: 1.25 + _rotX * 0.7,
-                                  zoom: _zoomLevel,
-                                  repaint: _electronController,
                                 ),
-                              ),
+                                Positioned(
+                                  top: 10,
+                                  right: 10,
+                                  child: FilledButton.icon(
+                                    onPressed: () => Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(
+                                      fullscreenDialog: true,
+                                      builder: (_) => Board3DFullScreen(build: _board3DScene, repaint: _electronController, yaw: _rotZ * 1.6, pitch: 1.25 + _rotX * 0.7),
+                                    )),
+                                    icon: const Icon(Icons.fullscreen_rounded, size: 18),
+                                    label: const Text('Full screen'),
+                                    style: FilledButton.styleFrom(backgroundColor: Colors.black54, visualDensity: VisualDensity.compact),
+                                  ),
+                                ),
+                              ]),
                             )
                           : Center(
                         child: Transform.scale(

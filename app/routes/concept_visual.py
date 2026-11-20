@@ -178,10 +178,16 @@ class TextRequest(BaseModel):
     prompt: str
     temperature: float = 0.3
     maxTokens: int = 400
+    check_text: str = ""  # what the child typed: checked for safety first
 
 
 @router.post("/text")
 def gemini_text(req: TextRequest):
+    if req.check_text.strip():
+        from app.gemini import child_safety_check
+        safe = child_safety_check(req.check_text)
+        if not safe["ok"]:
+            return {"success": True, "text": safe["reason"], "blocked": True}
     r = _gemini(req.system, [], req.prompt, max(64, min(req.maxTokens, 4000)), False, 40)
     return {"success": bool(r), "text": (r or {}).get("text", "")}
 

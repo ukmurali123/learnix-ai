@@ -7,3 +7,14 @@ scratch/
 *.log
 .DS_Store
 Thumbs.db
+
+# Flutter: only the built web app (build/web) is needed in the container
+learnix_flutter/.dart_tool/
+learnix_flutter/android/
+learnix_flutter/ios/
+learnix_flutter/linux/
+learnix_flutter/macos/
+learnix_flutter/windows/
+learnix_flutter/test/
+*.before-*
+learnix_local.db

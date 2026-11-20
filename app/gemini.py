@@ -535,6 +535,38 @@ Available curriculum concepts for matching `concept_id`:
     return _build_fallback_page_visual_spec(language, filename, extracted_text)
 
 
+# ---------------------------------------------------------------- child safety (ages 8-16)
+# 1) a quick word check, 2) a Gemini check like the live Learnix "concept-visual" screen.
+_BLOCK_WORDS = [
+    "bomb", "explosive", "detonat", "gun", "pistol", "rifle", "weapon", "taser", "stun gun", "knife attack", "kill", "murder",
+    "poison", "drug", "cocaine", "weed", "vape", "alcohol", "beer", "cigarette", "sex", "porn", "nude", "naked", "dating",
+    "suicide", "self harm", "self-harm", "hurt myself", "hack wifi", "hack password", "steal password", "spy on", "track my",
+    "keylogger", "phishing", "230v", "220v mains", "110v mains", "mains power", "wall socket", "electric shock someone",
+]
+
+
+def child_safety_check(text: str, age: int = 12) -> Dict[str, Any]:
+    """Returns {"ok": True} or {"ok": False, "reason": "..."} for a student's request or question."""
+    low = (text or "").lower()
+    if any(w in low for w in _BLOCK_WORDS):
+        return {"ok": False, "reason": "That is not something we can build or explain in Learnix. Let's make something safe and fun instead, like a smart night light, a robot car or a plant watering alarm!"}
+    system = (
+        "You screen requests in a learning app for school children aged 8 to 16. Be generous: any school subject, "
+        "electronics, robotics, coding, AI, science or 'how does it work' question is fine, for any board or kit. "
+        "Turn away ONLY things that are unsafe or not suitable for children: weapons or harming people or animals, "
+        "mains electricity (110-240 V) projects, dangerous chemicals or fire, drugs or alcohol, adult or violent content, "
+        "hacking, spying on or tracking people, collecting personal data, or medical advice. "
+        'Answer ONLY JSON: {"ok": true} or {"ok": false, "reason": "one short friendly sentence for a child, suggesting a safe idea"}.'
+    )
+    try:
+        r = call_gemini_json(f"Student (age {age}) wrote: \"{text}\"", system_instruction=system)
+        if isinstance(r, dict) and r.get("ok") is False:
+            return {"ok": False, "reason": str(r.get("reason") or "Let's try a different, safe idea!")[:300]}
+    except Exception as e:  # if the check itself fails, the word check above still applies
+        print("child_safety_check failed:", e)
+    return {"ok": True}
+
+
 def answer_concept_doubt(
     concept_title: str,
     question: str,
@@ -542,10 +574,18 @@ def answer_concept_doubt(
 ) -> Dict[str, Any]:
     age = int(student.get("age", 11))
     language = student.get("language", "English")
+    safe = child_safety_check(question, age)
+    if not safe["ok"]:
+        return {"answer": safe["reason"], "tip": "Ask me about electronics, robots, coding, AI or any school topic!", "blocked": True}
     system_prompt = (
-        f"You are Learnix Concept Studio answering a student's doubt about '{concept_title}'. "
+        f"You are Zola, the Learnix AI Tutor, answering a school student's question (topic area: '{concept_title}'). "
         f"Student age: {age}, preferred language: {language}. "
-        "Reply in 2-3 short, friendly sentences using a simple analogy. Keep technical words (LED, Arduino, resistor, sensor, GND) in English."
+        "You can help with ANY board or kit (Arduino Uno, Nano, Mega, ESP32, ESP8266, Raspberry Pi Pico, Raspberry Pi, BBC micro:bit, "
+        "LEGO and other robot kits), any sensor or motor, coding (Arduino C++, MicroPython, Python, Scratch, MakeCode, Blocks), AI, and "
+        "school science and maths. Rules: answer for the student's age (8-11: no formulas, use stories; 12-16: one simple formula is fine); "
+        "2-4 short, friendly sentences with a simple analogy; keep technical words in English; be accurate, and if unsure keep it simple; "
+        "only safe low-voltage (under 12 V, batteries or USB) projects, never mains electricity; never ask for or use personal information; "
+        "if the question is not suitable for a child, gently refuse and suggest a safe topic."
     )
     prompt = f'Student question: "{question}"\nReturn JSON: {{"answer": "...", "tip": "..."}}'
     try:
@@ -684,29 +724,34 @@ def build_circuit_from_words(
     student: Dict[str, Any],
 ) -> Dict[str, Any]:
     language = student.get("language", "English")
-    system_prompt = f"""You are the Learnix Virtual Lab AI builder. The student describes an idea in words, and you return a working virtual circuit and Arduino subset code using our available components:
+    age = int(student.get("age", 12))
+    safe = child_safety_check(idea, age)
+    if not safe["ok"]:
+        return {"blocked": True, "message": safe["reason"]}
+    system_prompt = f"""You are Zola, the Learnix AI invention builder for school students aged 8-16 (this student is {age}).
+The student describes an idea. Design a SAFE, low-voltage project (batteries or USB only, never mains electricity) on the board that fits
+the idea best: Arduino Uno, Arduino Nano, ESP32 (Wi-Fi/Bluetooth), Raspberry Pi Pico, BBC micro:bit or Raspberry Pi. If the student names
+a board, use that board. Use common kit parts (LEDs, resistors, buttons, buzzers, servos, DC motors with a driver, HC-SR04, IR, LDR, DHT11,
+soil moisture, PIR, OLED, NeoPixel, relay modules only for low-voltage loads).
+Write the code in the board's usual language: Arduino C++ for Arduino and ESP32, MicroPython for Pico and Raspberry Pi, MakeCode
+JavaScript for micro:bit. Keep it short and well commented for a child.
+
+Our live simulator can only run Arduino Uno projects built from these parts, so set "simulatable" accordingly:
 - Arduino Uno pins: 5V, GND, D2, D8, D9, D10, D13
-- Components & terminals:
-  * LED1: `LED1.anode`, `LED1.cathode`
-  * R1 (220 ohm resistor): `R1.a`, `R1.b`
-  * BTN1 (push button): `BTN1.a`, `BTN1.b`
-  * BUZ1 (buzzer): `BUZ1.pos`, `BUZ1.neg`
-  * US1 (HC-SR04 sensor): `US1.vcc`, `US1.trig`, `US1.echo`, `US1.gnd`
-- Supported Arduino subset functions ONLY:
-  `pinMode(pin, OUTPUT|INPUT|INPUT_PULLUP);`
-  `digitalWrite(pin, HIGH|LOW);`
-  `digitalRead(pin)`
-  `delay(ms);`
-  `tone(pin, freq);`
-  `noTone(pin);`
-  `long d = readDistance();`
-  `if (...) {{ ... }} else {{ ... }}`
-Choose the closest `experiment_id` (1 for LED Blink, 2 for Buzzer + Button, 3 for Distance Alarm).
-Reply with explanation in `{language}`."""
+- LED1 (`LED1.anode`, `LED1.cathode`), R1 220 ohm (`R1.a`, `R1.b`), BTN1 (`BTN1.a`, `BTN1.b`), BUZ1 (`BUZ1.pos`, `BUZ1.neg`),
+  US1 HC-SR04 (`US1.vcc`, `US1.trig`, `US1.echo`, `US1.gnd`)
+- code subset: pinMode, digitalWrite, digitalRead, delay, tone, noTone, readDistance(), if/else
+When simulatable is true, "circuit" must use those terminal names and experiment_id is the closest of 1 LED Blink, 2 Buzzer + Button,
+3 Distance Alarm. When it is false, "circuit" lists the real wiring steps (e.g. {{"from": "GPIO 2", "to": "LED anode via 220 ohm"}}).
+Reply with title, explanation and safety notes in `{language}`."""
 
     user_prompt = f"""Student idea: "{idea}"
 Return JSON:
 {{
+  "board": "Arduino Uno",
+  "code_language": "Arduino C++",
+  "simulatable": true,
+  "safety_notes": ["one short safety tip for a child"],
   "experiment_id": 1,
   "title": "Short project title",
   "explanation": "1-2 sentence explanation in {language}",

@@ -1,0 +1,742 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Learnix 3D Working Models</title>
+<style>
+html,body{margin:0;height:100%;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#0f172a;color:#0f172a;overflow:hidden}
+*{box-sizing:border-box}
+#app{display:flex;height:100%}
+#stage{position:relative;flex:1 1 58%;min-width:0;background:#bfe3f7}
+#stage canvas{display:block;width:100%;height:100%}
+#badge{position:absolute;left:12px;top:12px;background:rgba(255,255,255,.92);border-radius:12px;padding:8px 12px;font-weight:800;font-size:13px;box-shadow:0 4px 14px rgba(15,23,42,.15)}
+#status{position:absolute;left:50%;top:12px;transform:translateX(-50%);padding:7px 14px;border-radius:20px;font-weight:800;font-size:13px;background:#334155;color:#fff;white-space:nowrap}
+#status.run{background:#0077b6}#status.bad{background:#dc2626}
+#pins{position:absolute;left:12px;bottom:12px;background:rgba(15,23,42,.86);color:#e2e8f0;border-radius:12px;padding:8px 10px;font:12px/1.5 Consolas,monospace;min-width:230px;max-width:46%}
+#pins .on{color:#4ade80;font-weight:700}#pins .lbl{color:#94a3b8}
+#hint{position:absolute;right:12px;bottom:12px;background:rgba(255,255,255,.85);border-radius:10px;padding:6px 10px;font-size:11.5px;color:#334155}
+#panel{flex:0 0 42%;max-width:580px;min-width:330px;background:#f8fafc;overflow:auto}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;padding:12px}
+.tab{border:1px solid #cbd5e1;background:#fff;border-radius:20px;padding:8px 12px;font-weight:800;font-size:12.5px;cursor:pointer;color:#334155}
+.tab.on{background:#7c3aed;border-color:#7c3aed;color:#fff}
+.card{margin:0 12px 12px;padding:14px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 6px 18px rgba(15,23,42,.06)}
+.card h2{margin:0 0 6px;font-size:18px}.card p{margin:0;font-size:13.5px;line-height:1.55;color:#334155}
+.sh{font-weight:900;font-size:12px;letter-spacing:.06em;color:#64748b;margin:0 0 8px;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+.boards{display:flex;gap:6px}.boards button{border:1px solid #cbd5e1;background:#fff;border-radius:16px;padding:5px 10px;font-weight:800;font-size:12px;cursor:pointer}
+.boards button.on{background:#0077b6;border-color:#0077b6;color:#fff}
+table.parts{width:100%;border-collapse:collapse;font-size:12.5px}
+table.parts td,table.parts th{padding:6px 4px;border-bottom:1px solid #eef2f7;text-align:left}
+table.parts th{font-size:11px;color:#64748b;text-transform:uppercase}
+table.parts code{background:#eef2ff;color:#3730a3;border-radius:5px;padding:1px 5px;font-weight:700}
+.inp{margin:8px 0}.inp label{display:flex;justify-content:space-between;font-weight:800;font-size:13px}
+.inp input[type=range]{width:100%}
+.tgl{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid #e2e8f0;border-radius:12px;margin:6px 0;cursor:pointer;user-select:none;font-weight:800;font-size:13px}
+.tgl .tg{width:46px;height:26px;border-radius:13px;background:#cbd5e1;position:relative;transition:.2s}
+.tgl .tg::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+.tgl.on .tg{background:#16a34a}.tgl.on .tg::after{left:23px}
+#code{width:100%;min-height:240px;resize:vertical;font:13px/1.5 Consolas,Menlo,monospace;background:#0b1220;color:#e2e8f0;border:0;border-radius:12px;padding:12px;outline:none;tab-size:2}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn{border-radius:10px;padding:9px 12px;font-weight:800;font-size:12.5px;cursor:pointer;border:1px solid #cbd5e1;background:#fff;color:#0f172a}
+.run{background:#16a34a;color:#fff;border-color:#16a34a}.stop{background:#dc2626;color:#fff;border-color:#dc2626}
+.zbtn{border:0;border-radius:12px;padding:10px 14px;font-weight:800;color:#fff;cursor:pointer;background:linear-gradient(135deg,#38bdf8,#0077b6,#7c3aed)}
+#serial{height:100px;overflow:auto;background:#0b1220;color:#86efac;font:12px/1.45 Consolas,monospace;border-radius:10px;padding:8px;white-space:pre-wrap}
+#serial .err{color:#fca5a5}
+.how{margin:0;padding-left:18px;font-size:13px;line-height:1.6;color:#334155}
+#ask{width:100%;margin-top:8px;padding:9px 10px;border:1px solid #cbd5e1;border-radius:10px;font-size:13px}
+#zola{display:none;border-left:4px solid #7c3aed;background:#f5f3ff}
+#zolaText{font-size:13.5px;line-height:1.6;white-space:pre-wrap;color:#1e1b4b}
+.zh{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-weight:900;color:#5b21b6}
+.av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#38bdf8,#0077b6,#7c3aed);display:flex;align-items:center;justify-content:center;border:2px solid #fff}
+.warn{display:none;margin-top:8px;padding:8px 10px;border-radius:10px;background:#fef2f2;color:#b91c1c;font-weight:800;font-size:12.5px}
+#builder{display:none}
+.cat{font-size:11px;font-weight:900;color:#7c3aed;text-transform:uppercase;letter-spacing:.05em;margin:8px 0 4px}
+.kinds{display:flex;flex-wrap:wrap;gap:5px}.kinds button{border:1px solid #ddd6fe;background:#faf5ff;border-radius:10px;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer;color:#4c1d95}
+.kinds button:hover{background:#ede9fe}
+.insp{margin-top:12px;padding:10px;border-radius:12px;background:#f5f3ff;border:1px solid #ddd6fe}
+.mini{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700}.mini input{flex:1}
+.beh{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#fff;border:1px solid #e9d5ff;border-radius:10px;padding:6px 8px;margin:4px 0;font-size:12.5px}
+.beh button{margin-left:auto;border:0;background:#fee2e2;color:#b91c1c;border-radius:6px;cursor:pointer;font-weight:900}
+.addbeh{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.addbeh select{padding:6px;border-radius:8px;border:1px solid #cbd5e1;font-size:12px}
+.tip{font-size:12.5px;color:#64748b;margin:10px 0 0}
+.tab.create{border-style:dashed;border-color:#7c3aed;color:#7c3aed}.tab.create.on{color:#fff}
+@media (max-width:860px){#app{flex-direction:column}#stage{flex:0 0 50%}#panel{max-width:none;min-width:0;flex:1 1 auto}}
+</style></head>
+<body><div id="app">
+<div id="stage"><div id="badge"></div><div id="status">Ready</div><div id="pins"></div><div id="hint">Drag to rotate · scroll to zoom</div></div>
+<div id="panel">
+  <div class="tabs" id="tabs"></div>
+  <div class="card"><h2 id="title"></h2><p id="desc"></p><div class="warn" id="warn"></div></div>
+  <div class="card" id="builder"></div>
+  <div class="card"><div class="sh">Circuit <div class="boards"><button id="bUno">Arduino Uno</button><button id="bEsp">ESP32</button></div></div><table class="parts" id="parts"></table></div>
+  <div class="card"><div class="sh">Sensors and inputs (change them while the code runs)</div><div id="inputs"></div></div>
+  <div class="card"><div class="sh"><span id="codeTitle">Code</span></div><textarea id="code" spellcheck="false"></textarea>
+    <div class="row"><button class="btn run" id="runBtn">&#9654; Upload &amp; Run</button><button class="btn stop" id="stopBtn">&#9632; Stop</button><button class="btn" id="resetBtn">&#8634; Reset code</button></div></div>
+  <div class="card"><div class="sh">Serial Monitor</div><div id="serial"></div></div>
+  <div class="card"><div class="sh">How it works</div><ol class="how" id="how"></ol></div>
+  <div class="card"><button class="zbtn" id="zbtn">Ask Zola about this circuit</button><input id="ask" placeholder="Optional question, e.g. why do we need a relay for the pump?"></div>
+  <div class="card" id="zola"><div class="zh"><div class="av"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><rect x="5" y="8" width="14" height="11" rx="3"/><rect x="11" y="3" width="2" height="4"/><circle cx="12" cy="3" r="1.6"/><circle cx="9.5" cy="13" r="1.6" fill="#0077b6"/><circle cx="14.5" cy="13" r="1.6" fill="#0077b6"/></svg></div>AI Tutor Zola</div><div id="zolaText"></div></div>
+</div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const has3D = typeof THREE !== 'undefined';
+const stage = document.getElementById('stage');
+let renderer, scene, camera, world, sun, hemi, clock = 0;
+let camTheta = -0.6, camPhi = 0.95, camDist = 360;
+let model = null, board = 'uno', anim = [];
+const inputs = {};          // input id -> value (0..100 for sliders, 0/1 for toggles)
+const sim = {};             // model-specific simulated values (tank level, box at sensor, ...)
+
+// ---------------------------------------------------------------- 3D helpers
+const M = (c, o) => new THREE.MeshStandardMaterial(Object.assign({color: c, roughness: .6, metalness: .05}, o || {}));
+function box(w, h, d, c, x, y, z, o){ const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), M(c, o)); m.position.set(x||0, (y||0) + h/2, z||0); m.castShadow = m.receiveShadow = true; return m; }
+function cyl(rt, rb, h, c, x, y, z, seg, o){ const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg||24), M(c, o)); m.position.set(x||0, (y||0) + h/2, z||0); m.castShadow = m.receiveShadow = true; return m; }
+function sph(r, c, x, y, z, o){ const m = new THREE.Mesh(new THREE.SphereGeometry(r, 20, 14), M(c, o)); m.position.set(x||0, y||0, z||0); m.castShadow = true; return m; }
+function ground(w, d, c){ const g = box(w, 4, d, c, 0, -4, 0); g.castShadow = false; return g; }
+function person(shirt, x, z, skin){ const g = new THREE.Group(); g.add(cyl(3, 3, 12, 0x1e293b, -2.2, 0, 0, 10)); g.add(cyl(3, 3, 12, 0x1e293b, 2.2, 0, 0, 10));
+  g.add(box(10, 13, 6, shirt, 0, 12, 0)); g.add(sph(4.2, skin||0xf2c9a0, 0, 29, 0)); g.position.set(x, 0, z); return g; }
+function tree(x, z){ const g = new THREE.Group(); g.add(cyl(2.5, 3, 16, 0x8b5a2b, 0, 0, 0, 10)); g.add(sph(12, 0x2f9e44, 0, 24, 0)); g.add(sph(9, 0x37b24d, 5, 30, 3)); g.position.set(x, 0, z); return g; }
+function carMesh(color){ const g = new THREE.Group(); g.add(box(34, 8, 16, color, 0, 3, 0, {metalness: .3, roughness: .35})); g.add(box(18, 7, 14, 0x93c5fd, -2, 11, 0, {metalness: .2, roughness: .2}));
+  for (const [x, z] of [[11, 8], [-11, 8], [11, -8], [-11, -8]]){ const w = cyl(4, 4, 3, 0x111827, x, 0, z, 16); w.rotation.x = Math.PI/2; w.position.y = 4; g.add(w); }
+  const hl = box(1, 2.5, 3, 0xfff7c2, 17.2, 6, 4); const hr = hl.clone(); hr.material = hl.material; hr.position.z = -4; g.add(hl, hr); g.userData.lights = [hl]; return g; }
+function label(text, color){ const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x = c.getContext('2d');
+  x.fillStyle = 'rgba(255,255,255,.92)'; x.beginPath(); x.roundRect ? x.roundRect(2, 8, 252, 48, 14) : x.rect(2, 8, 252, 48); x.fill();
+  x.fillStyle = color || '#0f172a'; x.font = 'bold 26px system-ui,Segoe UI,sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(text, 128, 33);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({map: new THREE.CanvasTexture(c), depthTest: false})); s.scale.set(44, 11, 1); return s; }
+/// The controller board in the scene (blue Arduino Uno or black ESP32), with a label.
+function controller(x, z){ const g = new THREE.Group();
+  if (board === 'uno'){ g.add(box(34, 2, 26, 0x0b6fa4, 0, 0, 0)); g.add(box(8, 6, 7, 0xb0bec5, -14, 2, -6)); g.add(box(12, 2.5, 4, 0x111827, 4, 2, 0)); g.add(box(26, 3, 2, 0x111827, 2, 2, 11)); }
+  else { g.add(box(26, 2, 14, 0x111111, 0, 0, 0)); g.add(box(12, 3, 10, 0xb0bec5, 4, 2, 0)); g.add(box(6, 2, 4, 0x9ca3af, -11, 2, 0)); }
+  const l = label(board === 'uno' ? 'Arduino Uno' : 'ESP32', '#0077b6'); l.position.set(0, 16, 0); g.add(l); g.position.set(x, 0, z); world.add(g); return g; }
+function wire(a, b, color){ const pts = []; for (let i = 0; i <= 16; i++){ const t = i/16; pts.push(new THREE.Vector3(a[0] + (b[0]-a[0])*t, a[1] + (b[1]-a[1])*t + Math.sin(Math.PI*t)*10, a[2] + (b[2]-a[2])*t)); }
+  const m = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, .8, 6, false), M(color)); world.add(m); }
+
+// ---------------------------------------------------------------- Arduino runtime (pins driven by the student's code)
+const HIGH = 1, LOW = 0, OUTPUT = 1, INPUT = 0, INPUT_PULLUP = 2, A0 = 14, A1 = 15, A2 = 16, A3 = 17, A4 = 18, A5 = 19;
+let pins = {}, simT = 0, waits = [], running = false, stopReq = false, delayCount = 0, yields = 0, lastError = '';
+const STOP = {stop: true};
+const ADC = () => board === 'uno' ? 1023 : 4095;
+function P(key){ return model.pins[board][key][0]; }          // pin number for a part on this board
+function pinOf(n){ return pins[n] || (pins[n] = {mode: 0, v: 0, pwm: null, servo: null}); }
+function pinMode(p, m){ pinOf(p).mode = m; }
+function digitalWrite(p, v){ const q = pinOf(p); q.v = v ? 1 : 0; q.pwm = null; }
+function analogWrite(p, v){ const q = pinOf(p); q.pwm = Math.max(0, Math.min(255, Math.round(v))); q.v = q.pwm > 0 ? 1 : 0; }
+function keyOfPin(p){ for (const k in model.pins[board]) if (model.pins[board][k][0] === p) return k; return null; }
+function analogRead(p){ const k = keyOfPin(p); if (!k) return 0; if (model.read && model.read[k]) return Math.round(model.read[k]()*ADC());
+  const inp = model.inputs.find(i => i.pin === k); return inp ? Math.round((inputs[inp.id]||0)/100*ADC()) : 0; }
+function digitalRead(p){ const k = keyOfPin(p); if (!k) return pinOf(p).v; if (model.read && model.read[k]) return model.read[k]() ? HIGH : LOW;
+  const inp = model.inputs.find(i => i.pin === k); return inp ? (inputs[inp.id] ? HIGH : LOW) : LOW; }
+function level(key){ const q = pins[P(key)]; if (!q) return 0; return q.pwm != null ? q.pwm/255 : q.v; }
+function servoAngle(key, def){ const q = pins[P(key)]; return q && q.servo != null ? q.servo : def; }
+class Servo { attach(p){ this.p = p; pinOf(p).mode = OUTPUT; } write(a){ if (this.p != null) pinOf(this.p).servo = Math.max(0, Math.min(180, +a)); } read(){ return this.p != null ? (pinOf(this.p).servo || 0) : 0; } }
+function millis(){ return Math.floor(simT); }
+function map(x, a, b, c, d){ return Math.round((x - a)*(d - c)/(b - a) + c); }
+function constrain(x, a, b){ return Math.max(a, Math.min(b, x)); }
+function random(a, b){ if (b === undefined){ b = a; a = 0; } return Math.floor(a + Math.random()*(b - a)); }
+const abs = Math.abs, min = Math.min, max = Math.max;
+let serialLine = '';
+const Serial = {begin(){}, print(x){ serialLine += String(x); }, println(x){ serialLine += (x === undefined ? '' : String(x)); addSerial(serialLine); serialLine = ''; }};
+function delay(ms){ ms = Math.max(0, +ms || 0); delayCount++; return new Promise((res, rej) => { if (stopReq) return rej(STOP); waits.push({until: simT + ms, res, rej}); }); }
+function __y(){ if (stopReq) return Promise.reject(STOP); if (++yields % 500 === 0) return delay(0); return Promise.resolve(); }
+const API = {HIGH, LOW, OUTPUT, INPUT, INPUT_PULLUP, A0, A1, A2, A3, A4, A5, pinMode, digitalWrite, digitalRead, analogWrite, analogRead, delay, millis, map, constrain, random, abs, min, max, Serial, Servo, __y};
+const AWAITED = ['delay'];
+function translate(src){
+  let s = src.replace(/\/\*[\s\S]*?\*\//g,'').replace(/\/\/.*$/gm,'');
+  s = s.replace(/^\s*#include.*$/gm,'');
+  s = s.replace(/^\s*#define\s+(\w+)\s+(.+)$/gm,'const $1 = $2;');
+  s = s.replace(/\((?:unsigned\s+)?(?:int|long|float|double|byte|char|bool|boolean)\)/g,'');
+  const fns=[];
+  s = s.replace(/\b(?:void|int|long|float|double|bool|boolean|byte|char|String|unsigned\s+int|unsigned\s+long)\s+(\w+)\s*\(([^)]*)\)\s*\{/g,(m,name,params)=>{
+    fns.push(name);
+    const ps = params.split(',').map(x=>x.trim()).filter(x=>x && x!=='void').map(x=>x.split(/[\s*&]+/).pop());
+    return `async function ${name}(${ps.join(', ')}) {`;
+  });
+  s = s.replace(/\b(?:const\s+)?(?:unsigned\s+)?(?:int|long|float|double|bool|boolean|byte|char|String)\s+(?=[A-Za-z_])/g,'let ');
+  s = s.replace(/\bboolean\b/g,'let');
+  for (const n of [...fns, ...AWAITED]) s = s.replace(new RegExp(`(?<!function\\s)(?<![\\w.])${n}\\s*\\(`,'g'), `await ${n}(`);
+  s = s.replace(/\b(while|for)\s*\(((?:[^()]|\([^()]*\))*)\)\s*\{/g, m => m + ' await __y();');
+  s = s.replace(/\bdo\s*\{/g, m => m + ' await __y();');
+  return s + '\nreturn {setup: typeof setup==="function"?setup:null, loop: typeof loop==="function"?loop:null};';
+}
+
+function translate2(src){ return translate(src.replace(/\bServo\s+(\w+)\s*;/g, 'Servo $1 = new Servo();').replace(/\bServo\s+(\w+)\s*=\s*new Servo\(\)\s*;/g, 'let $1 = new Servo();')); }
+async function compile(src){ const AF = Object.getPrototypeOf(async function(){}).constructor; const names = Object.keys(API);
+  return new AF(...names, translate2(src))(...names.map(n => API[n])); }
+async function run(){
+  stop(); await new Promise(r => setTimeout(r, 30));
+  pins = {}; simT = 0; waits = []; stopReq = false; delayCount = 0; yields = 0; lastError = ''; clearSerial(); if (model.reset) model.reset();
+  let prog; try { prog = await compile(code.value); } catch(e){ lastError = e.message; addSerial('Code error: ' + e.message, true); setStatus('Code error', 'bad'); return; }
+  running = true; setStatus('Running on ' + (board === 'uno' ? 'Arduino Uno' : 'ESP32'), 'run');
+  try { if (prog.setup) await prog.setup(); while (!stopReq && prog.loop){ const c = delayCount; await prog.loop(); if (delayCount === c) await delay(0); } }
+  catch(e){ if (e !== STOP){ lastError = String(e.message || e); addSerial('Runtime error: ' + lastError, true); setStatus('Runtime error', 'bad'); } }
+  running = false; if (!lastError) setStatus('Stopped', '');
+}
+function stop(){ stopReq = true; waits.forEach(w => w.rej(STOP)); waits = []; }
+function tick(){ return new Promise(r => { const ch = new MessageChannel(); ch.port1.onmessage = () => r(); ch.port2.postMessage(0); }); }
+// ---------------------------------------------------------------- the 5 models: real parts, real pins, real code
+const B = b => b === 'uno' ? 'Arduino Uno' : 'ESP32';
+function codeHeader(m, b){ return `// ${m.name} - ${B(b)}\n` + m.partsList.map(([k, part]) => `const int ${k.padEnd(9)} = ${m.pins[b][k][1]};`.padEnd(32) + `// ${part}`).join('\n') + '\n'; }
+const MODELS = [
+ { id: 'street', name: 'Auto street lights', sky: 0xbfe3f7,
+   desc: 'A light sensor (LDR) tells the board when it gets dark. Your code switches the street lamp LEDs on at night and drives the car when its switch is on.',
+   partsList: [['LDR', 'Light sensor: LDR + 10k resistor'], ['LAMPS', 'Street lamp LEDs (220 ohm each)'], ['CAR_BTN', 'Car switch (slide switch)'], ['MOTOR', 'Car motor via L298N driver']],
+   pins: {uno: {LDR: [A0, 'A0'], LAMPS: [9, '9'], CAR_BTN: [2, '2'], MOTOR: [5, '5']}, esp: {LDR: [34, '34'], LAMPS: [25, '25'], CAR_BTN: [27, '27'], MOTOR: [26, '26']}},
+   inputs: [{id: 'day', type: 'range', label: 'Daylight on the LDR', pin: 'LDR', def: 80, unit: '%'}, {id: 'carsw', type: 'toggle', label: 'Car switch', pin: 'CAR_BTN', def: 0}],
+   code(b){ return codeHeader(this, b) + `
+void setup() {
+  pinMode(LAMPS, OUTPUT);
+  pinMode(MOTOR, OUTPUT);
+  pinMode(CAR_BTN, INPUT);
+  Serial.begin(${b === 'uno' ? 9600 : 115200});
+}
+
+void loop() {
+  int light = map(analogRead(LDR), 0, ${b === 'uno' ? 1023 : 4095}, 0, 100);   // 0 = dark, 100 = bright
+  Serial.print("Light: ");
+  Serial.println(light);
+
+  if (light < 30) {
+    digitalWrite(LAMPS, HIGH);   // dark: lamps ON
+  } else {
+    digitalWrite(LAMPS, LOW);    // bright: lamps OFF
+  }
+
+  if (digitalRead(CAR_BTN) == HIGH) {
+    analogWrite(MOTOR, 180);     // car drives
+  } else {
+    analogWrite(MOTOR, 0);       // car stops
+  }
+  delay(200);
+}`; },
+   how: ['The LDR resistance goes up in the dark, so the voltage on the analog pin changes. analogRead() turns it into a number.', 'map() changes that number to 0-100 so it is easy to compare. Below 30 means it is dark.', 'digitalWrite(LAMPS, HIGH) sends 5 V (3.3 V on ESP32) to the LEDs: the lamps turn on.', 'analogWrite() sets the motor speed with PWM (0 = stop, 255 = full speed). Try lamps that get brighter as it gets darker!'],
+   build(){ world.add(ground(300, 180, 0x7bc96f)); world.add(box(290, 1, 40, 0x374151, 0, 0, 15));
+     for (let x = -130; x < 140; x += 30) world.add(box(14, .3, 2, 0xf8fafc, x, 1, 15));
+     const lamps = []; for (const x of [-85, 0, 85]){ const g = new THREE.Group(); g.add(cyl(1.6, 2.2, 56, 0x4b5563, 0, 0, 0, 10)); g.add(box(18, 2, 4, 0x4b5563, 8, 56, 0));
+       const bulb = sph(4, 0xe5e7eb, 16, 54, 0); g.add(bulb); const pl = new THREE.PointLight(0xfff1b8, 0, 140); pl.position.set(16, 50, 0); g.add(pl);
+       g.position.set(x, 0, -10); world.add(g); lamps.push({bulb, pl}); }
+     const ldr = cyl(3, 3, 2, 0xf1c27d, -85, 60, -10, 16); world.add(ldr); const ll = label('LDR', '#b45309'); ll.position.set(-85, 70, -10); world.add(ll);
+     controller(-40, -60); wire([-40, 3, -60], [-85, 30, -10], 0xdc2626); wire([-36, 3, -60], [0, 20, -10], 0x16a34a); wire([-44, 3, -60], [-120, 2, 22], 0x2563eb);
+     world.add(tree(-140, -60)); world.add(tree(130, -65));
+     const car = carMesh(0xef4444); car.position.set(-120, 0, 22); world.add(car);
+     anim.push(dt => { const lamp = level('LAMPS'), dark = 1 - (inputs.day || 0)/100;
+       lamps.forEach(l => { l.pl.intensity = 1.6*lamp; l.bulb.material.emissive.setHex(lamp > 0 ? 0xffe680 : 0x000000); l.bulb.material.emissiveIntensity = lamp; });
+       car.userData.lights[0].material.emissive.setHex(dark > .6 ? 0xfff7c2 : 0x000000);
+       car.position.x += dt*60*level('MOTOR'); if (car.position.x > 150) car.position.x = -150;
+       setSky(new THREE.Color(0x0b1430).lerp(new THREE.Color(0xbfe3f7), 1 - dark).getHex(), .25 + .75*(1 - dark)); });
+   } },
+
+ { id: 'farm', name: 'Smart farm', sky: 0xbfe3f7,
+   desc: 'A water level sensor watches the tank. Your code switches the pump relay ON when the tank is low and OFF when it is full, and opens the gate with a servo when the farmer presses the button.',
+   partsList: [['TANK', 'Water level sensor'], ['PUMP', 'Relay module -> 5 V water pump'], ['GATE_BTN', 'Gate push button'], ['GATE', 'Servo motor on the gate'], ['WIND', 'Wind speed sensor (anemometer)']],
+   pins: {uno: {TANK: [A1, 'A1'], PUMP: [7, '7'], GATE_BTN: [2, '2'], GATE: [6, '6'], WIND: [A2, 'A2']}, esp: {TANK: [35, '35'], PUMP: [26, '26'], GATE_BTN: [27, '27'], GATE: [13, '13'], WIND: [32, '32']}},
+   inputs: [{id: 'use', type: 'range', label: 'Water used by the farm', pin: null, def: 50, unit: '%'}, {id: 'wind', type: 'range', label: 'Wind speed', pin: 'WIND', def: 40, unit: '%'}, {id: 'gatebtn', type: 'toggle', label: 'Gate button', pin: 'GATE_BTN', def: 0}],
+   read: {TANK: () => (sim.tank || 0)},
+   reset(){ sim.tank = .35; },
+   code(b){ return codeHeader(this, b) + `
+Servo gate;
+bool pumpOn = false;
+
+void setup() {
+  pinMode(PUMP, OUTPUT);
+  pinMode(GATE_BTN, INPUT);
+  gate.attach(GATE);
+  Serial.begin(${b === 'uno' ? 9600 : 115200});
+}
+
+void loop() {
+  int tank = map(analogRead(TANK), 0, ${b === 'uno' ? 1023 : 4095}, 0, 100);   // tank level in %
+
+  if (tank < 20) pumpOn = true;     // low: start filling
+  if (tank > 90) pumpOn = false;    // full: stop
+  digitalWrite(PUMP, pumpOn ? HIGH : LOW);
+
+  if (digitalRead(GATE_BTN) == HIGH) {
+    gate.write(90);                 // open the gate
+  } else {
+    gate.write(0);                  // close the gate
+  }
+
+  Serial.print("Tank: ");
+  Serial.print(tank);
+  Serial.println(pumpOn ? "%  pump ON" : "%  pump OFF");
+  delay(300);
+}`; },
+   how: ['The water level sensor gives a bigger reading when more of it is under water.', 'The pump uses more power than a pin can give, so the pin switches a RELAY, and the relay switches the pump.', 'Turning on below 20% and off above 90% (not at one number) stops the pump clicking on and off all the time. This is called hysteresis.', 'A servo turns to an exact angle: write(90) opens the gate, write(0) closes it. The windmill only needs wind!'],
+   build(){ world.add(ground(300, 190, 0x7bc96f));
+     const mill = new THREE.Group(); mill.add(cyl(3, 6, 70, 0xe5e7eb, 0, 0, 0, 12)); const hub = new THREE.Group(); hub.position.set(0, 70, 7);
+     for (let i = 0; i < 4; i++){ const b = box(5, 34, 1.5, 0xf8fafc, 0, 0, 0); b.position.y = 17; const arm = new THREE.Group(); arm.add(b); arm.rotation.z = i*Math.PI/2; hub.add(arm); }
+     hub.add(sph(4, 0xef4444, 0, 0, 0)); mill.add(hub); mill.position.set(-105, 0, -45); world.add(mill);
+     anim.push(dt => { hub.rotation.z -= dt*6*(inputs.wind || 0)/100; });
+     const tank = cyl(22, 22, 50, 0x94a3b8, 100, 0, -45, 32, {transparent: true, opacity: .35}); world.add(tank); world.add(cyl(23, 23, 3, 0x64748b, 100, 50, -45, 32));
+     const water = cyl(20.5, 20.5, 1, 0x38bdf8, 100, 0, -45, 32, {transparent: true, opacity: .85}); world.add(water);
+     const tl = label('Level sensor', '#0369a1'); tl.position.set(100, 66, -45); world.add(tl);
+     world.add(box(70, 4, 4, 0x475569, 40, 40, -45)); world.add(box(4, 40, 4, 0x475569, 5, 0, -45));
+     const pump = box(16, 12, 12, 0x0ea5e9, 5, 0, -45); world.add(pump); const relay = box(10, 6, 8, 0x1d4ed8, 25, 0, -20); world.add(relay); const rl = label('Relay', '#1d4ed8'); rl.position.set(25, 16, -20); world.add(rl);
+     const drops = []; for (let i = 0; i < 6; i++){ const d = sph(1.6, 0x0284c7, 0, 42, -45); world.add(d); drops.push(d); }
+     anim.push(dt => { const on = level('PUMP') > 0; sim.tank = Math.max(0, Math.min(1, (sim.tank || .35) + ((on ? .16 : 0) - .08*(inputs.use || 0)/100)*dt));
+       water.scale.y = Math.max(.01, sim.tank)*48; water.position.y = Math.max(.01, sim.tank)*24;
+       drops.forEach((d, i) => { d.visible = on; d.position.x = 5 + ((clock*40 + i*12) % 72); }); pump.material.emissive.setHex(on ? 0x0b4f8a : 0x000000); });
+     for (let x = -140; x <= 140; x += 14) if (Math.abs(x) > 18) world.add(box(2, 14, 2, 0x92400e, x, 0, 55));
+     world.add(box(120, 2, 1.5, 0xb45309, -79, 10, 55)); world.add(box(120, 2, 1.5, 0xb45309, 79, 10, 55));
+     const gate = new THREE.Group(); gate.add(box(32, 12, 2, 0xd97706, 16, 0, 0)); gate.add(box(6, 6, 6, 0x1e293b, 0, 0, 0)); gate.position.set(-16, 0, 55); world.add(gate);
+     const sl = label('Servo', '#1e293b'); sl.position.set(-16, 22, 55); world.add(sl);
+     anim.push(dt => { const tgt = -servoAngle('GATE', 0)*Math.PI/180; gate.rotation.y += (tgt - gate.rotation.y)*Math.min(1, dt*4); });
+     const cow = new THREE.Group(); cow.add(box(24, 12, 11, 0xffffff, 0, 8, 0)); cow.add(box(8, 8, 8, 0xffffff, 14, 14, 0)); cow.add(box(6, 6, 9, 0x111111, -3, 16, 0));
+     for (const [x, z] of [[8, 4], [-8, 4], [8, -4], [-8, -4]]) cow.add(cyl(1.5, 1.5, 8, 0x111111, x, 0, z, 8));
+     cow.position.set(-30, 0, 25); world.add(cow); let cowT = 0;
+     anim.push(dt => { const open = servoAngle('GATE', 0) > 60; cowT = open ? Math.min(1, cowT + dt*.25) : Math.max(0, cowT - dt*.25); cow.position.z = 25 + cowT*60; cow.position.x = -30 + cowT*14; });
+     controller(40, 10); wire([40, 3, 10], [100, 30, -45], 0xf59e0b); wire([44, 3, 10], [25, 6, -20], 0x2563eb); wire([36, 3, 10], [-16, 6, 55], 0xdc2626); wire([38, 3, 14], [-105, 10, -45], 0x16a34a);
+     world.add(person(0x2563eb, 70, 30)); world.add(tree(-140, 75)); world.add(tree(140, -80));
+   } },
+
+ { id: 'traffic', name: 'Traffic signal', sky: 0xbfe3f7,
+   desc: 'Three LEDs (red, yellow, green) and a WALK light for people. Your code switches them in order with delay(). Cars obey the LEDs, and the student crosses on WALK.',
+   partsList: [['RED', 'Red LED (220 ohm)'], ['YELLOW', 'Yellow LED (220 ohm)'], ['GREEN', 'Green LED (220 ohm)'], ['WALK', 'Walk light LED (220 ohm)'], ['BTN', 'Walk request push button']],
+   pins: {uno: {RED: [10, '10'], YELLOW: [11, '11'], GREEN: [12, '12'], WALK: [8, '8'], BTN: [2, '2']}, esp: {RED: [25, '25'], YELLOW: [26, '26'], GREEN: [27, '27'], WALK: [13, '13'], BTN: [14, '14']}},
+   inputs: [{id: 'btn', type: 'toggle', label: 'Walk request button', pin: 'BTN', def: 0}],
+   code(b){ return codeHeader(this, b) + `
+void setup() {
+  pinMode(RED, OUTPUT);
+  pinMode(YELLOW, OUTPUT);
+  pinMode(GREEN, OUTPUT);
+  pinMode(WALK, OUTPUT);
+  pinMode(BTN, INPUT);
+}
+
+void loop() {
+  // cars go
+  digitalWrite(RED, LOW);
+  digitalWrite(GREEN, HIGH);
+  delay(4000);
+
+  // get ready to stop
+  digitalWrite(GREEN, LOW);
+  digitalWrite(YELLOW, HIGH);
+  delay(1000);
+  digitalWrite(YELLOW, LOW);
+
+  // cars stop, people walk
+  digitalWrite(RED, HIGH);
+  digitalWrite(WALK, HIGH);
+  delay(4000);
+  digitalWrite(WALK, LOW);
+  delay(1000);
+}`; },
+   how: ['Each LED is on its own pin with a 220 ohm resistor so it does not burn out.', 'digitalWrite(pin, HIGH) turns an LED on, LOW turns it off, and delay() keeps it that way for some time.', 'Safety rule in code: WALK must only be HIGH while RED is HIGH. Never GREEN and WALK together!', 'Challenge: only give WALK when someone presses the button (use digitalRead(BTN)).'],
+   build(){ world.add(ground(300, 220, 0x7bc96f)); world.add(box(300, 1, 46, 0x374151, 0, 0, 0)); world.add(box(46, 1, 220, 0x374151, 40, .02, 0));
+     for (let x = -140; x < 140; x += 26) if (Math.abs(x - 40) > 30) world.add(box(12, .3, 2, 0xf8fafc, x, 1.1, 0));
+     for (let z = -20; z <= 20; z += 8) world.add(box(14, .3, 4.5, 0xf8fafc, -45, 1.15, z));
+     world.add(box(2, .3, 44, 0xf8fafc, -60, 1.15, 0));
+     const pole = new THREE.Group(); pole.add(cyl(1.6, 2, 50, 0x374151, 0, 0, 0, 10)); pole.add(box(8, 26, 10, 0x111827, 0, 46, 0));
+     const lamp = () => sph(3.2, 0x333333, 0, 0, 0); const red = lamp(), yel = lamp(), grn = lamp();
+     red.position.set(-4.2, 66, 0); yel.position.set(-4.2, 59, 0); grn.position.set(-4.2, 52, 0); pole.add(red, yel, grn); pole.position.set(-64, 0, 30); world.add(pole);
+     const wpole = new THREE.Group(); wpole.add(cyl(1.4, 1.8, 36, 0x374151, 0, 0, 0, 10)); wpole.add(box(8, 10, 8, 0x111827, 0, 34, 0)); const walk = box(6, 7, 1, 0x333333, 0, 35.5, 4.2); wpole.add(walk);
+     wpole.position.set(-30, 0, -32); world.add(wpole); const wl = label('WALK', '#15803d'); wl.position.set(-30, 52, -32); world.add(wl);
+     controller(-100, -60); wire([-100, 3, -60], [-64, 40, 30], 0xdc2626); wire([-96, 3, -60], [-30, 30, -32], 0x16a34a);
+     world.add(tree(-130, 80)); world.add(tree(120, -75)); world.add(tree(120, 80));
+     const car = carMesh(0x2563eb); car.position.set(-140, 0, 10); world.add(car);
+     const kid = person(0xf97316, -45, -32, 0xd9a066); kid.scale.setScalar(.8); world.add(kid); let kidT = 0;
+     const lit = (m, on, c) => { m.material.color.setHex(on ? c : 0x333333); m.material.emissive.setHex(on ? c : 0x000000); };
+     anim.push(dt => { const r = level('RED') > 0, y = level('YELLOW') > 0, g = level('GREEN') > 0, w = level('WALK') > 0;
+       lit(red, r, 0xff3030); lit(yel, y, 0xffc400); lit(grn, g, 0x22ff66); lit(walk, w, 0x22ff66);
+       const stopAt = -80, go = g || (!r && !y) && false, nx = car.position.x + dt*50;
+       if (g || car.position.x > stopAt || nx < stopAt) car.position.x = nx; else car.position.x = stopAt;
+       if (car.position.x > 150) car.position.x = -150;
+       kidT = w ? Math.min(1, kidT + dt*.22) : (kidT >= 1 ? 1 : Math.max(0, kidT - dt*.22)); if (kidT >= 1 && !w) kidT = 0;
+       kid.position.z = -32 + kidT*64;
+       const danger = g && (w || (kidT > 0 && kidT < 1)), wn = document.getElementById('warn'); wn.style.display = danger ? 'block' : 'none';
+       wn.textContent = 'Danger! GREEN is on while a person is crossing. Make sure WALK is only HIGH when RED is HIGH.'; });
+   } },
+
+ { id: 'factory', name: 'Factory line', sky: 0xdbeafe,
+   desc: 'An IR sensor sees a box at the end of the conveyor. Your code stops the belt, the servo arm moves the box onto the truck, and after 3 boxes the truck drives off.',
+   partsList: [['BELT', 'Conveyor motor via L298N'], ['IR', 'IR obstacle sensor (box detector)'], ['ARM', 'Servo motor (robot arm)'], ['TRUCK', 'Truck motor via L298N']],
+   pins: {uno: {BELT: [5, '5'], IR: [3, '3'], ARM: [6, '6'], TRUCK: [9, '9']}, esp: {BELT: [26, '26'], IR: [27, '27'], ARM: [13, '13'], TRUCK: [25, '25']}},
+   inputs: [{id: 'supply', type: 'toggle', label: 'Boxes arriving on the belt', pin: null, def: 1}],
+   read: {IR: () => sim.atEnd ? 1 : 0},
+   reset(){ sim.atEnd = false; sim.loaded = 0; },
+   code(b){ return codeHeader(this, b) + `
+Servo arm;
+int loaded = 0;
+
+void setup() {
+  pinMode(BELT, OUTPUT);
+  pinMode(TRUCK, OUTPUT);
+  pinMode(IR, INPUT);
+  arm.attach(ARM);
+  arm.write(30);
+  Serial.begin(${b === 'uno' ? 9600 : 115200});
+}
+
+void loop() {
+  if (digitalRead(IR) == HIGH) {     // a box is at the end
+    analogWrite(BELT, 0);            // stop the belt
+    arm.write(150);                  // swing the box onto the truck
+    delay(800);
+    arm.write(30);                   // back to start
+    delay(600);
+    loaded++;
+    Serial.print("Boxes loaded: ");
+    Serial.println(loaded);
+  } else {
+    analogWrite(BELT, 170);          // keep the belt moving
+  }
+
+  if (loaded >= 3) {                 // truck is full
+    digitalWrite(TRUCK, HIGH);
+    delay(3000);
+    digitalWrite(TRUCK, LOW);
+    loaded = 0;
+  }
+  delay(50);
+}`; },
+   how: ['The IR sensor sends out invisible light. When a box reflects it back, the sensor pin reads HIGH.', 'analogWrite() sets the belt speed; 0 stops it so the arm can pick the box safely.', 'The servo arm swings to 150 degrees to drop the box, then returns to 30 degrees.', 'A counter variable (loaded) remembers how many boxes are on the truck. At 3, the truck drives off.'],
+   build(){ world.add(ground(300, 190, 0xcbd5e1));
+     world.add(box(170, 10, 26, 0x334155, -40, 0, 20)); world.add(box(166, 1, 22, 0x111827, -40, 10, 20));
+     const ir = box(4, 10, 4, 0x16a34a, 42, 10, 36); world.add(ir); const il = label('IR sensor', '#15803d'); il.position.set(42, 30, 36); world.add(il);
+     const boxes = []; for (let i = 0; i < 4; i++){ const b = box(12, 12, 12, 0xd97706, -110 + i*36, 11, 20); world.add(b); boxes.push(b); }
+     const arm = new THREE.Group(); arm.add(cyl(9, 11, 8, 0xf59e0b, 0, 0, 0)); const turn = new THREE.Group(); turn.position.y = 8; arm.add(turn);
+     turn.add(box(6, 30, 6, 0xf59e0b, 0, 0, 0)); const fore = box(34, 5, 5, 0xfbbf24, 17, 30, 0); turn.add(fore); const claw = box(6, 8, 8, 0x111827, 33, 22, 0); turn.add(claw);
+     arm.position.set(60, 0, -5); world.add(arm); const al = label('Servo arm', '#b45309'); al.position.set(60, 52, -5); world.add(al);
+     const carry = box(12, 12, 12, 0xd97706, 0, 0, 0); carry.visible = false; turn.add(carry); carry.position.set(33, 10, 0);
+     const truck = new THREE.Group(); truck.add(box(46, 22, 22, 0xe5e7eb, -8, 4, 0)); truck.add(box(16, 16, 20, 0x0077b6, 22, 4, 0));
+     for (const [x, z] of [[20, 11], [-20, 11], [20, -11], [-20, -11]]){ const w = cyl(5, 5, 3, 0x111827, x, 0, z, 16); w.rotation.x = Math.PI/2; w.position.y = 5; truck.add(w); }
+     const bed = []; for (let i = 0; i < 3; i++){ const b = box(10, 10, 10, 0xd97706, -22 + i*12, 26, 0); b.visible = false; truck.add(b); bed.push(b); }
+     truck.position.set(60, 0, -55); truck.rotation.y = Math.PI/2; world.add(truck); let tx = 0;
+     controller(-40, -50); wire([-40, 3, -50], [-40, 10, 8], 0x2563eb); wire([-36, 3, -50], [42, 10, 36], 0x16a34a); wire([-44, 3, -50], [60, 8, -5], 0xdc2626);
+     let holding = false, prevAng = 30;
+     anim.push(dt => { const v = level('BELT')*32, ang = servoAngle('ARM', 30);
+       turn.rotation.y = (ang - 90)*Math.PI/180;
+       boxes.sort((a, b) => b.position.x - a.position.x);
+       sim.atEnd = false;
+       boxes.forEach((b, i) => { if (!b.visible) return; const limit = i === 0 ? 46 : boxes[i - 1].position.x - 14;
+         b.position.x = Math.min(limit, b.position.x + v*dt); if (i === 0 && b.position.x >= 45.5) sim.atEnd = true; });
+       if (ang > 120 && prevAng <= 120 && sim.atEnd){ const b = boxes[0]; b.visible = false; holding = true; carry.visible = true; }
+       if (ang < 60 && holding){ holding = false; carry.visible = false; const n = bed.findIndex(x => !x.visible); if (n >= 0) bed[n].visible = true; }
+       prevAng = ang;
+       boxes.forEach(b => { if (!b.visible && inputs.supply && boxes.every(o => !o.visible || o.position.x > -96)) { b.visible = true; b.position.x = -110; } });
+       if (level('TRUCK') > 0){ tx = Math.min(1, tx + dt*.6); } else if (tx > 0){ tx = Math.max(0, tx - dt*.6); if (tx === 0) bed.forEach(x => x.visible = false); }
+       truck.position.z = -55 - tx*80; if (tx > .95) bed.forEach(x => x.visible = false); });
+   } },
+
+ { id: 'gears', name: 'Gear train', sky: 0xe0f2fe,
+   desc: 'A potentiometer (knob) sets the speed. Your code reads it and drives the motor with PWM. The motor turns the small gear, and the big gear turns the other way at half the speed.',
+   partsList: [['KNOB', 'Potentiometer (10k knob)'], ['MOTOR', 'DC motor via L298N (PWM)']],
+   pins: {uno: {KNOB: [A0, 'A0'], MOTOR: [5, '5']}, esp: {KNOB: [34, '34'], MOTOR: [26, '26']}},
+   inputs: [{id: 'knob', type: 'range', label: 'Potentiometer knob', pin: 'KNOB', def: 50, unit: '%'}],
+   code(b){ return codeHeader(this, b) + `
+void setup() {
+  pinMode(MOTOR, OUTPUT);
+  Serial.begin(${b === 'uno' ? 9600 : 115200});
+}
+
+void loop() {
+  int knob = analogRead(KNOB);                       // 0 to ${b === 'uno' ? 1023 : 4095}
+  int speed = map(knob, 0, ${b === 'uno' ? 1023 : 4095}, 0, 255);           // PWM 0 to 255
+  analogWrite(MOTOR, speed);
+
+  int smallRpm = map(speed, 0, 255, 0, 120);
+  Serial.print("Small gear: ");
+  Serial.print(smallRpm);
+  Serial.print(" RPM   Big gear: ");
+  Serial.print(smallRpm / 2);
+  Serial.println(" RPM");
+  delay(250);
+}`; },
+   how: ['A potentiometer is a knob that changes voltage: analogRead() gives a bigger number as you turn it.', 'map() turns the knob reading into a motor speed from 0 to 255 (PWM).', 'The small gear has 12 teeth and the big gear 24, so the big gear turns at HALF the speed and the opposite way.', 'Slower but stronger: that is how bicycles, clocks and robot wheels trade speed for force (torque).'],
+   build(){ world.add(ground(260, 170, 0xe2e8f0)); world.add(box(220, 4, 130, 0xffffff, 0, 0, 0));
+     function gear(teeth, r, color){ const g = new THREE.Group(); g.add(cyl(r, r, 8, color, 0, 0, 0, 48));
+       for (let i = 0; i < teeth; i++){ const a = i*2*Math.PI/teeth; const t = box(5, 8, 5, color, 0, 0, 0); t.position.set(Math.cos(a)*(r + 2.2), 4, Math.sin(a)*(r + 2.2)); t.rotation.y = -a; g.add(t); }
+       g.add(cyl(3.5, 3.5, 11, 0x334155, 0, 0, 0, 16)); g.add(box(4, 1, r*.85, 0xffffff, 0, 8, r*.42)); return g; }
+     const small = gear(12, 18, 0xf97316), big = gear(24, 38, 0x0ea5e9);
+     small.position.set(-40, 4, 0); big.position.set(-40 + 18 + 38 + 4.4, 4, 0); world.add(small, big);
+     world.add(cyl(10, 10, 4, 0x475569, -40, 0, 0, 20)); world.add(box(26, 14, 18, 0x475569, -40, 0, -40)); world.add(box(3, 3, 22, 0x94a3b8, -40, 6, -20));
+     const ml = label('DC motor', '#334155'); ml.position.set(-40, 26, -40); world.add(ml);
+     const pot = cyl(5, 5, 6, 0x2563eb, -90, 0, 30, 20); world.add(pot); const knob = box(2, 4, 6, 0xffffff, -90, 6, 30); world.add(knob); const pl = label('Knob', '#2563eb'); pl.position.set(-90, 22, 30); world.add(pl);
+     controller(-90, -30); wire([-90, 3, -30], [-90, 6, 30], 0x2563eb); wire([-86, 3, -30], [-40, 7, -40], 0xdc2626);
+     anim.push(dt => { const w = level('MOTOR')*120/60*2*Math.PI; small.rotation.y -= dt*w; big.rotation.y = -small.rotation.y/2 + Math.PI/24; knob.rotation.y = (inputs.knob || 0)/100*4.5; });
+   } },
+];
+// ================================================================ CREATE YOUR OWN 3D MODEL (like the live Model Lab)
+// Put parts on the table, drag them around, then give each part a BEHAVIOUR that runs when a board PIN is HIGH or LOW:
+// glow, spin, move, fill, drain, flow, appear, disappear. Your Arduino / ESP32 code drives the pins.
+const KINDS = {
+  grass:     ['Grass patch', 'Nature',   () => { const g = new THREE.Group(); g.add(box(80, 2, 60, 0x7bc96f, 0, 0, 0)); return g; }],
+  road:      ['Road', 'Roads',           () => { const g = new THREE.Group(); g.add(box(100, 1.5, 30, 0x374151, 0, 0, 0)); for (let x = -40; x <= 40; x += 20) g.add(box(10, .3, 1.6, 0xf8fafc, x, 1.5, 0)); return g; }],
+  field:     ['Crop field', 'Nature',    () => { const g = new THREE.Group(); g.add(box(70, 2, 50, 0x8d6e3f, 0, 0, 0)); for (let z = -20; z <= 20; z += 8) g.add(box(64, 4, 3, 0x65a30d, 0, 2, z)); return g; }],
+  pond:      ['Pond', 'Nature',          () => { const g = new THREE.Group(); const w = cyl(26, 26, 1.5, 0x38bdf8, 0, 0, 0, 32); g.add(w); return g; }],
+  tree:      ['Tree', 'Nature',          () => tree(0, 0)],
+  rock:      ['Rock', 'Nature',          () => { const g = new THREE.Group(); g.add(sph(8, 0x9ca3af, 0, 4, 0)); return g; }],
+  house:     ['House', 'Buildings',      () => { const g = new THREE.Group(); g.add(box(36, 26, 28, 0xfca5a5, 0, 0, 0)); const r = cyl(0, 26, 16, 0xb91c1c, 0, 26, 0, 4); r.rotation.y = Math.PI/4; g.add(r); g.add(box(8, 14, 1, 0x7c2d12, 0, 0, 14.2)); return g; }],
+  school:    ['School', 'Buildings',     () => { const g = new THREE.Group(); g.add(box(70, 30, 30, 0xfde68a, 0, 0, 0)); g.add(box(74, 4, 34, 0xb45309, 0, 30, 0)); for (let x = -25; x <= 25; x += 12.5) g.add(box(7, 8, 1, 0x93c5fd, x, 14, 15.2)); return g; }],
+  factory:   ['Factory', 'Buildings',    () => { const g = new THREE.Group(); g.add(box(60, 28, 34, 0x94a3b8, 0, 0, 0)); g.add(cyl(4, 5, 30, 0x64748b, 20, 28, 0, 12)); return g; }],
+  watertank: ['Water tank', 'Farm',      () => { const g = new THREE.Group(); g.add(cyl(16, 16, 40, 0x94a3b8, 0, 0, 0, 28, {transparent: true, opacity: .35})); const w = cyl(15, 15, 1, 0x38bdf8, 0, 0, 0, 28, {transparent: true, opacity: .85}); w.name = 'water'; g.add(w); return g; }],
+  windmill:  ['Windmill', 'Farm',        () => { const g = new THREE.Group(); g.add(cyl(2.5, 5, 60, 0xe5e7eb, 0, 0, 0, 12)); const hub = new THREE.Group(); hub.name = 'spinner'; hub.position.set(0, 60, 6);
+               for (let i = 0; i < 4; i++){ const a = new THREE.Group(); const b = box(4, 28, 1.2, 0xf8fafc, 0, 0, 0); b.position.y = 14; a.add(b); a.rotation.z = i*Math.PI/2; hub.add(a); } hub.add(sph(3.5, 0xef4444, 0, 0, 0)); g.add(hub); return g; }],
+  cow:       ['Cow', 'Farm',             () => { const g = new THREE.Group(); g.add(box(24, 12, 11, 0xffffff, 0, 8, 0)); g.add(box(8, 8, 8, 0xffffff, 14, 14, 0)); g.add(box(6, 6, 9, 0x111111, -3, 16, 0)); for (const [x, z] of [[8, 4], [-8, 4], [8, -4], [-8, -4]]) g.add(cyl(1.5, 1.5, 8, 0x111111, x, 0, z, 8)); return g; }],
+  fence:     ['Fence', 'Farm',           () => { const g = new THREE.Group(); for (let x = -30; x <= 30; x += 10) g.add(box(2, 14, 2, 0x92400e, x, 0, 0)); g.add(box(62, 2, 1.5, 0xb45309, 0, 10, 0)); g.add(box(62, 2, 1.5, 0xb45309, 0, 4, 0)); return g; }],
+  car:       ['Car', 'Vehicles',         () => carMesh(0xef4444)],
+  bus:       ['School bus', 'Vehicles',  () => { const g = new THREE.Group(); g.add(box(50, 20, 18, 0xfacc15, 0, 4, 0)); g.add(box(44, 6, 18.4, 0x93c5fd, 0, 14, 0)); for (const [x, z] of [[16, 9], [-16, 9], [16, -9], [-16, -9]]){ const w = cyl(4.5, 4.5, 3, 0x111827, x, 0, z, 16); w.rotation.x = Math.PI/2; w.position.y = 4.5; g.add(w); } return g; }],
+  truck:     ['Truck', 'Vehicles',       () => { const g = new THREE.Group(); g.add(box(40, 20, 20, 0xe5e7eb, -8, 4, 0)); g.add(box(14, 15, 18, 0x0077b6, 20, 4, 0)); for (const [x, z] of [[18, 10], [-18, 10], [18, -10], [-18, -10]]){ const w = cyl(4.5, 4.5, 3, 0x111827, x, 0, z, 16); w.rotation.x = Math.PI/2; w.position.y = 4.5; g.add(w); } return g; }],
+  person:    ['Person', 'People',        () => person(0x2563eb, 0, 0)],
+  student:   ['Student', 'People',       () => { const p = person(0xf97316, 0, 0, 0xd9a066); p.scale.setScalar(.8); return p; }],
+  farmer:    ['Farmer', 'People',        () => { const p = person(0x16a34a, 0, 0); p.add(cyl(7, 7, 1.5, 0xfbbf24, 0, 33, 0, 16)); return p; }],
+  lamppost:  ['Lamp post (LED)', 'Electronics', () => { const g = new THREE.Group(); g.add(cyl(1.4, 2, 48, 0x4b5563, 0, 0, 0, 10)); g.add(box(14, 2, 3, 0x4b5563, 6, 48, 0)); const b = sph(3.5, 0xfff7d6, 13, 46, 0); b.name = 'bulb'; g.add(b); return g; }],
+  signal:    ['Signal light (LED)', 'Electronics', () => { const g = new THREE.Group(); g.add(cyl(1.4, 1.8, 40, 0x374151, 0, 0, 0, 10)); g.add(box(8, 10, 8, 0x111827, 0, 38, 0)); const b = sph(3, 0x22c55e, 0, 43, 4.5); b.name = 'bulb'; g.add(b); return g; }],
+  bigled:    ['Big LED', 'Electronics',  () => { const g = new THREE.Group(); g.add(cyl(5, 5, 3, 0xef4444, 0, 0, 0, 20)); g.add(cyl(4.4, 4.4, 8, 0xef4444, 0, 3, 0, 20)); g.add(sph(4.4, 0xef4444, 0, 11, 0)); g.add(box(.8, 6, .8, 0x9ca3af, -2, -6, 0)); return g; }],
+  buzzer:    ['Buzzer', 'Electronics',   () => { const g = new THREE.Group(); g.add(cyl(7, 7, 7, 0x111827, 0, 0, 0, 24)); g.add(cyl(1.5, 1.5, 7.2, 0x374151, 0, 0, 0, 12)); return g; }],
+  fan:       ['Fan (DC motor)', 'Electronics', () => { const g = new THREE.Group(); g.add(box(10, 30, 10, 0x334155, 0, 0, 0)); const hub = new THREE.Group(); hub.name = 'spinner'; hub.position.set(0, 34, 6);
+               for (let i = 0; i < 3; i++){ const a = new THREE.Group(); const b = box(4, 16, 1, 0x38bdf8, 0, 0, 0); b.position.y = 8; a.add(b); a.rotation.z = i*2*Math.PI/3; hub.add(a); } hub.add(sph(2.5, 0x111827, 0, 0, 0)); g.add(hub); return g; }],
+  gear:      ['Gear (motor)', 'Electronics', () => { const g = new THREE.Group(); const s = new THREE.Group(); s.name = 'spinner'; s.add(cyl(14, 14, 6, 0xf97316, 0, 0, 0, 40));
+               for (let i = 0; i < 12; i++){ const a = i*Math.PI/6, t = box(4, 6, 4, 0xf97316, 0, 0, 0); t.position.set(Math.cos(a)*16, 3, Math.sin(a)*16); t.rotation.y = -a; s.add(t); } s.add(box(3, 1, 12, 0xffffff, 0, 6, 6)); g.add(s); return g; }],
+  gate:      ['Gate (servo)', 'Electronics', () => { const g = new THREE.Group(); g.add(box(4, 14, 4, 0x1e293b, 0, 0, 0)); const s = new THREE.Group(); s.name = 'servo'; s.add(box(30, 10, 2, 0xd97706, 15, 2, 0)); g.add(s); return g; }],
+  conveyor:  ['Conveyor belt', 'Electronics', () => { const g = new THREE.Group(); g.add(box(80, 8, 20, 0x334155, 0, 0, 0)); g.add(box(78, 1, 17, 0x111827, 0, 8, 0)); const b = box(10, 10, 10, 0xd97706, -30, 9, 0); b.name = 'rider'; g.add(b); return g; }],
+  crane:     ['Crane (motor)', 'Electronics', () => { const g = new THREE.Group(); g.add(box(6, 56, 6, 0xeab308, 0, 0, 0)); const j = new THREE.Group(); j.name = 'spinner'; j.position.y = 56; j.add(box(54, 3, 3, 0xeab308, 18, 0, 0)); j.add(box(1, 18, 1, 0x111827, 40, -18, 0)); g.add(j); return g; }],
+};
+const ACTS = {glow: 'Glow (light)', spin: 'Spin (motor)', move: 'Move to and fro', fill: 'Fill with water', drain: 'Drain water', flow: 'Water flows', show: 'Appear', hide: 'Disappear', servo: 'Turn to servo angle'};
+const OUT_PINS = {uno: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], esp: [2, 4, 5, 12, 13, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 32, 33]};
+const CREATE_IN = {uno: {BTN_A: [2, '2'], BTN_B: [3, '3'], KNOB: [A0, 'A0']}, esp: {BTN_A: [27, '27'], BTN_B: [14, '14'], KNOB: [34, '34']}};
+let cparts = [], cid = 1, selected = null, cnodes = {};
+const DEMO = {
+  name: 'Smart street (demo)',
+  parts: [{kind: 'grass', x: 0, z: 0, s: 3.4}, {kind: 'road', x: 0, z: 30, s: 2.6}, {kind: 'lamppost', x: -70, z: 5, behs: [{act: 'glow', pin: 'uno9', when: 'HIGH'}]},
+          {kind: 'lamppost', x: 60, z: 5, behs: [{act: 'glow', pin: 'uno9', when: 'HIGH'}]}, {kind: 'car', x: -60, z: 35, behs: [{act: 'move', pin: 'uno5', when: 'HIGH', amt: 110}]},
+          {kind: 'house', x: -40, z: -55}, {kind: 'school', x: 50, z: -60}, {kind: 'windmill', x: 120, z: -40, behs: [{act: 'spin', pin: 'uno6', when: 'HIGH'}]},
+          {kind: 'student', x: 0, z: 10, behs: [{act: 'move', pin: 'uno10', when: 'HIGH', amt: 40}]}, {kind: 'tree', x: -120, z: -50}, {kind: 'tree', x: 110, z: 60}],
+  code: `// Smart street (demo) - Arduino Uno
+const int BTN_A = 2;     // button A: "night" switch
+const int BTN_B = 3;     // button B: "car" switch
+const int KNOB  = A0;    // knob: wind speed
+const int LAMPS = 9;     // lamp post LEDs  (behaviour: glow when pin 9 HIGH)
+const int CAR   = 5;     // car motor       (behaviour: move when pin 5 HIGH)
+const int MILL  = 6;     // windmill motor  (behaviour: spin when pin 6 HIGH)
+const int WALK  = 10;    // walk light      (behaviour: student moves when pin 10 HIGH)
+
+void setup() {
+  pinMode(BTN_A, INPUT);
+  pinMode(BTN_B, INPUT);
+  pinMode(LAMPS, OUTPUT);
+  pinMode(CAR, OUTPUT);
+  pinMode(MILL, OUTPUT);
+  pinMode(WALK, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  digitalWrite(LAMPS, digitalRead(BTN_A));        // night -> lamps on
+  if (digitalRead(BTN_B) == HIGH) {               // car switch
+    digitalWrite(CAR, HIGH);
+    digitalWrite(WALK, LOW);                      // cars moving: nobody crosses
+  } else {
+    digitalWrite(CAR, LOW);
+    digitalWrite(WALK, HIGH);                     // road is clear: student crosses
+  }
+  int wind = map(analogRead(KNOB), 0, 1023, 0, 255);
+  analogWrite(MILL, wind);                        // windmill speed follows the knob
+  delay(100);
+}`
+};
+function pinNum(tag){ return +String(tag).replace(/^(uno|esp)/, ''); }     // 'uno9' -> 9
+function pinTag(n){ return (board === 'uno' ? 'uno' : 'esp') + n; }
+function pinLabel(n){ return board === 'uno' ? (n >= 14 ? 'A' + (n - 14) : 'D' + n) : 'GPIO ' + n; }
+function levelPin(n){ const q = pins[n]; if (q) return q.pwm != null ? q.pwm/255 : q.v; const k = Object.keys(CREATE_IN[board]).find(k => CREATE_IN[board][k][0] === n);
+  if (k){ const i = CREATE_MODEL.inputs.find(i => i.pin === k); return i ? (i.type === 'range' ? (inputs[i.id]||0)/100 : (inputs[i.id] ? 1 : 0)) : 0; } return 0; }
+
+const CREATE_MODEL = {
+  id: 'create', name: '+ Create your own', sky: 0xdbeafe,
+  desc: 'Build your own working model: add parts, drag them on the table, then give each part a behaviour that runs when a pin is HIGH or LOW. Your Arduino or ESP32 code drives the pins. Press "Load demo" to see an example.',
+  get pins(){ const o = {uno: {...CREATE_IN.uno}, esp: {...CREATE_IN.esp}}; for (const p of cparts) for (const b of p.behs){ const n = pinNum(b.pin); o.uno['PIN' + n] = [n, String(n)]; o.esp['PIN' + n] = [n, String(n)]; } return o; },
+  get partsList(){ const l = [['BTN_A', 'Button A (input)'], ['BTN_B', 'Button B (input)'], ['KNOB', 'Knob / potentiometer (input)']]; const used = {};
+    for (const p of cparts) for (const b of p.behs){ const n = pinNum(b.pin); (used[n] = used[n] || []).push(KINDS[p.kind][0] + ' ' + b.act); }
+    for (const n in used) l.push(['PIN' + n, used[n].join(', ')]); return l; },
+  inputs: [{id: 'btna', type: 'toggle', label: 'Button A', pin: 'BTN_A', def: 0}, {id: 'btnb', type: 'toggle', label: 'Button B', pin: 'BTN_B', def: 0}, {id: 'knob', type: 'range', label: 'Knob', pin: 'KNOB', def: 50, unit: '%'}],
+  how: ['Every part can have behaviours. A behaviour has an ACTION (glow, spin, move...) and a PIN: it runs while that pin is HIGH (or LOW).', 'Your code sets the pins with digitalWrite() or analogWrite(). With analogWrite the speed or brightness follows the value.', 'Inputs: Button A and Button B are digital pins, the knob is an analog pin. Read them with digitalRead() and analogRead().', 'Build a real version: LEDs for glow, DC motors for spin and move, a servo for gates, a relay and pump for water.'],
+  code(b){ if (cparts.length && cparts._demo && b === 'uno') return DEMO.code;
+    const ins = CREATE_IN[b]; return `// My model - ${B(b)}
+const int BTN_A = ${ins.BTN_A[1]};     // button A
+const int BTN_B = ${ins.BTN_B[1]};     // button B
+const int KNOB  = ${ins.KNOB[1]};    // knob (analog)
+const int OUT1  = ${b === 'uno' ? 9 : 25};     // give a part a behaviour on this pin
+
+void setup() {
+  pinMode(BTN_A, INPUT);
+  pinMode(OUT1, OUTPUT);
+  Serial.begin(${b === 'uno' ? 9600 : 115200});
+}
+
+void loop() {
+  if (digitalRead(BTN_A) == HIGH) {
+    digitalWrite(OUT1, HIGH);
+  } else {
+    digitalWrite(OUT1, LOW);
+  }
+  delay(100);
+}`; },
+  reset(){},
+  build(){ world.add(ground(320, 220, 0xe2e8f0)); world.add(box(300, 2, 200, 0xf8fafc, 0, 0, 0)); controller(-130, -85); cnodes = {};
+    for (const p of cparts){ const g = KINDS[p.kind][2](); g.position.set(p.x, 2, p.z); g.rotation.y = (p.rot || 0)*Math.PI/4; g.scale.setScalar(p.s || 1); g.userData.pid = p.id;
+      g.traverse(o => { if (o.isMesh){ o.material = o.material.clone(); o.userData.pid = p.id; } }); world.add(g); cnodes[p.id] = {g, base: {x: p.x, z: p.z}, t: 0, lvl: .3};
+      const lights = []; g.traverse(o => { if (o.isMesh && o.name === 'bulb') lights.push(o); }); if (p.behs.some(b => b.act === 'glow')){ const pl = new THREE.PointLight(0xfff1b8, 0, 120); pl.position.y = 40; g.add(pl); cnodes[p.id].pl = pl; }
+      if (selected === p.id){ const ring = cyl(30*(p.s||1), 30*(p.s||1), .6, 0x7c3aed, p.x, 2.2, p.z, 40, {transparent: true, opacity: .35}); world.add(ring); } }
+    anim.push(dt => { for (const p of cparts){ const n = cnodes[p.id]; if (!n) continue; let glow = 0, show = true;
+      for (const b of p.behs){ const lv = levelPin(pinNum(b.pin)); const on = b.when === 'always' ? 1 : (b.when === 'LOW' ? (lv > 0 ? 0 : 1) : lv);
+        const spin = n.g.getObjectByName('spinner');
+        if (b.act === 'glow') glow = Math.max(glow, on);
+        if (b.act === 'spin' && on > 0){ if (spin) spin.rotation[(p.kind === 'gear' || p.kind === 'crane') ? 'y' : 'z'] -= dt*6*on; else n.g.rotation.y += dt*2*on; }
+        if (b.act === 'move'){ if (on > 0) n.t += dt*on*.6; const d = (b.amt || 60), ph = (n.t % 2), off = (ph < 1 ? ph : 2 - ph)*d; const a = n.g.rotation.y; n.g.position.x = n.base.x + Math.cos(a)*off; n.g.position.z = n.base.z - Math.sin(a)*off; }
+        if (b.act === 'fill' && on > 0) n.lvl = Math.min(1, n.lvl + dt*.15*on);
+        if (b.act === 'drain' && on > 0) n.lvl = Math.max(0, n.lvl - dt*.15*on);
+        if (b.act === 'show') show = show && on > 0; if (b.act === 'hide') show = show && !(on > 0);
+        if (b.act === 'servo'){ const sv = n.g.getObjectByName('servo'); const q = pins[pinNum(b.pin)]; const ang = q && q.servo != null ? q.servo : (on > 0 ? 90 : 0); if (sv) sv.rotation.y += (-ang*Math.PI/180 - sv.rotation.y)*Math.min(1, dt*4); }
+        if (b.act === 'flow'){ if (!n.drops){ n.drops = []; for (let i = 0; i < 5; i++){ const d = sph(1.4, 0x0284c7, 0, 0, 0); n.g.add(d); n.drops.push(d); } } n.drops.forEach((d, i) => { d.visible = on > 0; d.position.set(10 + ((clock*30 + i*8) % 40), 20 - ((clock*30 + i*8) % 40)*.4, 0); }); }
+      }
+      const water = n.g.getObjectByName('water'); if (water){ water.scale.y = Math.max(.01, n.lvl)*38; water.position.y = Math.max(.01, n.lvl)*19; }
+      const rider = n.g.getObjectByName('rider'); if (rider && p.behs.some(b => b.act === 'spin' && levelPin(pinNum(b.pin)) > 0)) { rider.position.x += dt*20; if (rider.position.x > 34) rider.position.x = -34; }
+      n.g.visible = show;
+      n.g.traverse(o => { if (o.isMesh && p.behs.some(b => b.act === 'glow')){ o.material.emissive = o.material.emissive || new THREE.Color(0); o.material.emissive.setHex(glow > 0 ? (o.name === 'bulb' ? 0xffe680 : 0x333300) : 0x000000); o.material.emissiveIntensity = glow; } });
+      if (n.pl) n.pl.intensity = 1.6*glow; } });
+  },
+  readout(){ return ''; },
+};
+MODELS.push(CREATE_MODEL);
+
+function rebuildCreate(keepCode){ if (model !== CREATE_MODEL) return; anim = []; if (has3D){ if (world) scene.remove(world); world = new THREE.Group(); scene.add(world); model.build(); }
+  renderParts(); renderBuilder(); }
+function renderParts(){ const m = CREATE_MODEL; document.getElementById('parts').innerHTML = '<tr><th>Part</th><th>' + B(board) + ' pin</th></tr>' +
+  m.partsList.map(([k, part]) => '<tr><td>' + part + '</td><td><code>' + pinLabel(m.pins[board][k][0]) + '</code></td></tr>').join('') + '<tr><td>Power</td><td><code>' + (board === 'uno' ? '5V + GND' : '3.3V + GND') + '</code></td></tr>'; }
+function addPart(kind){ const p = {id: cid++, kind, x: (Math.random() - .5)*120, z: (Math.random() - .5)*80, rot: 0, s: 1, behs: []}; cparts.push(p); selected = p.id; rebuildCreate(); }
+function renderBuilder(){ const el = document.getElementById('builder'); el.style.display = model === CREATE_MODEL ? 'block' : 'none'; if (model !== CREATE_MODEL) return;
+  const cats = {}; for (const k in KINDS) (cats[KINDS[k][1]] = cats[KINDS[k][1]] || []).push(k);
+  let h = '<div class="sh">Add parts <span><button class="btn" id="demoBtn">Load demo</button> <button class="btn" id="clearBtn">Clear</button> <button class="btn" id="saveBtn">Save</button> <button class="btn" id="loadBtn">Load</button></span></div>';
+  for (const c in cats) h += '<div class="cat">' + c + '</div><div class="kinds">' + cats[c].map(k => '<button data-k="' + k + '">' + KINDS[k][0] + '</button>').join('') + '</div>';
+  const p = cparts.find(x => x.id === selected);
+  if (p){ h += '<div class="insp"><div class="sh">Selected: ' + KINDS[p.kind][0] + ' <span><button class="btn" data-a="rotl">&#8634;</button> <button class="btn" data-a="rotr">&#8635;</button> <button class="btn" data-a="del" style="color:#dc2626">Delete</button></span></div>' +
+      '<label class="mini">Size <input type="range" min="40" max="300" value="' + Math.round((p.s||1)*100) + '" data-a="size"></label>' +
+      '<div class="sh" style="margin-top:8px">Behaviours</div>' + p.behs.map((b, i) => '<div class="beh"><b>' + ACTS[b.act] + '</b> when <code>' + pinLabel(pinNum(b.pin)) + '</code> is ' + b.when + (b.act === 'move' ? ' (' + (b.amt||60) + ' cm)' : '') + ' <button data-del="' + i + '">&times;</button></div>').join('') +
+      '<div class="addbeh"><select id="bAct">' + Object.keys(ACTS).map(a => '<option value="' + a + '">' + ACTS[a] + '</option>').join('') + '</select>' +
+      '<select id="bPin">' + OUT_PINS[board].concat(Object.values(CREATE_IN[board]).map(v => v[0])).map(n => '<option value="' + n + '">' + pinLabel(n) + '</option>').join('') + '</select>' +
+      '<select id="bWhen"><option>HIGH</option><option>LOW</option><option value="always">always</option></select><button class="btn run" id="bAdd">Add</button></div></div>'; }
+  else h += '<p class="tip">Tip: click a part in the 3D view to select it, then drag it to move it.</p>';
+  el.innerHTML = h;
+  el.querySelectorAll('[data-k]').forEach(b => b.onclick = () => addPart(b.dataset.k));
+  el.querySelector('#demoBtn').onclick = () => loadDemo();
+  el.querySelector('#clearBtn').onclick = () => { if (confirm('Remove all parts?')){ cparts = []; selected = null; rebuildCreate(); } };
+  el.querySelector('#saveBtn').onclick = () => { try { localStorage.setItem('lx_model', JSON.stringify({parts: cparts, code: code.value})); addSerial('Model saved in this browser.'); } catch(e){ addSerial('Could not save here (browser storage is blocked).', true); } };
+  el.querySelector('#loadBtn').onclick = () => { try { const j = JSON.parse(localStorage.getItem('lx_model') || 'null'); if (!j) return addSerial('No saved model yet.', true); cparts = j.parts; cid = Math.max(1, ...cparts.map(p => p.id)) + 1; selected = null; rebuildCreate(); code.value = j.code; } catch(e){ addSerial('Could not load (browser storage is blocked).', true); } };
+  if (p){ el.querySelectorAll('[data-a]').forEach(b => { const a = b.dataset.a;
+      if (a === 'size') b.oninput = e => { p.s = e.target.value/100; rebuildCreate(); };
+      else b.onclick = () => { if (a === 'rotl') p.rot = (p.rot||0) + 1; if (a === 'rotr') p.rot = (p.rot||0) - 1; if (a === 'del'){ cparts = cparts.filter(x => x !== p); selected = null; } rebuildCreate(); }; });
+    el.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { p.behs.splice(+b.dataset.del, 1); rebuildCreate(); });
+    el.querySelector('#bAdd').onclick = () => { const act = el.querySelector('#bAct').value; p.behs.push({act, pin: pinTag(+el.querySelector('#bPin').value), when: el.querySelector('#bWhen').value, amt: act === 'move' ? 60 : undefined}); rebuildCreate(); }; }
+}
+function loadDemo(){ board = 'uno'; cparts = DEMO.parts.map((p, i) => ({id: i + 1, rot: 0, s: 1, behs: [], ...p, behs: (p.behs || []).map(b => ({...b}))})); cid = cparts.length + 1; cparts._demo = true; selected = null;
+  loadModel(CREATE_MODEL); code.value = DEMO.code; addSerial('Demo loaded: press Upload & Run, then use Button A (night), Button B (car) and the Knob (wind).'); }
+
+// picking and dragging parts in the 3D view
+let dragPart = null; const ray = has3D ? new THREE.Raycaster() : null, plane = has3D ? new THREE.Plane(new THREE.Vector3(0, 1, 0), -2) : null;
+function ndc(e){ const r = renderer.domElement.getBoundingClientRect(); return new THREE.Vector2(((e.clientX - r.left)/r.width)*2 - 1, -((e.clientY - r.top)/r.height)*2 + 1); }
+function pickPart(e){ if (!has3D || model !== CREATE_MODEL) return null; ray.setFromCamera(ndc(e), camera); const hits = ray.intersectObjects(world.children, true);
+  for (const h of hits){ if (h.object.userData.pid) return cparts.find(p => p.id === h.object.userData.pid); } return null; }
+function dragTo(e){ ray.setFromCamera(ndc(e), camera); const pt = new THREE.Vector3(); if (ray.ray.intersectPlane(plane, pt) && dragPart){ dragPart.x = Math.max(-150, Math.min(150, pt.x)); dragPart.z = Math.max(-100, Math.min(100, pt.z));
+  const n = cnodes[dragPart.id]; if (n){ n.g.position.x = dragPart.x; n.g.position.z = dragPart.z; n.base = {x: dragPart.x, z: dragPart.z}; } } }
+// ---------------------------------------------------------------- 3D setup
+function setSky(c, light){ if (!has3D) return; scene.background.setHex(c); sun.intensity = .9*light; hemi.intensity = .35 + .55*light; }
+function init3D(){
+  renderer = new THREE.WebGLRenderer({antialias: true}); renderer.setPixelRatio(Math.min(2, window.devicePixelRatio||1)); renderer.shadowMap.enabled = true;
+  stage.insertBefore(renderer.domElement, stage.firstChild);
+  scene = new THREE.Scene(); scene.background = new THREE.Color(0xbfe3f7);
+  camera = new THREE.PerspectiveCamera(42, 1, 1, 4000);
+  hemi = new THREE.HemisphereLight(0xffffff, 0x64748b, .9); scene.add(hemi);
+  sun = new THREE.DirectionalLight(0xffffff, .9); sun.position.set(120, 220, 140); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
+  Object.assign(sun.shadow.camera, {left: -200, right: 200, top: 200, bottom: -200, far: 700}); scene.add(sun);
+  let drag = null; const c = renderer.domElement;
+  c.addEventListener('pointerdown', e => { c.setPointerCapture(e.pointerId); const hit = pickPart(e);
+    if (hit){ dragPart = hit; if (selected !== hit.id){ selected = hit.id; renderBuilder(); } return; }
+    drag = {x: e.clientX, y: e.clientY, t: camTheta, p: camPhi}; });
+  c.addEventListener('pointermove', e => { if (dragPart){ dragTo(e); return; } if (!drag) return; camTheta = drag.t - (e.clientX - drag.x)*.008; camPhi = Math.max(.25, Math.min(1.45, drag.p - (e.clientY - drag.y)*.006)); });
+  c.addEventListener('pointerup', () => { drag = null; if (dragPart){ dragPart = null; rebuildCreate(); } });
+  c.addEventListener('wheel', e => { e.preventDefault(); camDist = Math.max(140, Math.min(800, camDist*(e.deltaY > 0 ? 1.1 : .9))); }, {passive: false});
+  new ResizeObserver(resize).observe(stage); resize();
+}
+function resize(){ if (!has3D) return; const w = stage.clientWidth||600, h = stage.clientHeight||400; renderer.setSize(w, h, false); camera.aspect = w/h; camera.updateProjectionMatrix(); }
+
+// ---------------------------------------------------------------- panel
+const code = document.getElementById('code'), serialEl = document.getElementById('serial'), statusEl = document.getElementById('status');
+function setStatus(t, c){ statusEl.textContent = t; statusEl.className = c || ''; }
+function addSerial(t, err){ const d = document.createElement('div'); if (err) d.className = 'err'; d.textContent = t; serialEl.appendChild(d); while (serialEl.childNodes.length > 150) serialEl.removeChild(serialEl.firstChild); serialEl.scrollTop = serialEl.scrollHeight; }
+function clearSerial(){ serialEl.innerHTML = ''; serialLine = ''; }
+
+function loadModel(m, keepBoard){
+  stop(); model = m; anim = []; pins = {}; for (const k in sim) delete sim[k]; if (m.reset) m.reset();
+  for (const k in inputs) delete inputs[k]; m.inputs.forEach(i => inputs[i.id] = i.def);
+  if (has3D){ if (world) scene.remove(world); world = new THREE.Group(); scene.add(world); setSky(m.sky, 1); m.build(); }
+  document.getElementById('badge').textContent = m.name + '  ·  ' + B(board);
+  document.getElementById('title').textContent = m.name;
+  document.getElementById('desc').textContent = m.desc;
+  document.getElementById('how').innerHTML = m.how.map(t => '<li>' + t + '</li>').join('');
+  document.getElementById('warn').style.display = 'none';
+  document.getElementById('zola').style.display = 'none';
+  document.getElementById('bUno').classList.toggle('on', board === 'uno'); document.getElementById('bEsp').classList.toggle('on', board === 'esp');
+  document.getElementById('parts').innerHTML = '<tr><th>Part</th><th>' + B(board) + ' pin</th></tr>' +
+    m.partsList.map(([k, part]) => '<tr><td>' + part + '</td><td><code>' + (board === 'uno' ? (/^A/.test(m.pins.uno[k][1]) ? m.pins.uno[k][1] : 'D' + m.pins.uno[k][1]) : 'GPIO ' + m.pins.esp[k][1]) + '</code></td></tr>').join('') +
+    '<tr><td>Power</td><td><code>' + (board === 'uno' ? '5V + GND' : '3.3V + GND') + '</code></td></tr>';
+  const box = document.getElementById('inputs'); box.innerHTML = '';
+  m.inputs.forEach(i => { const d = document.createElement('div');
+    if (i.type === 'range'){ d.className = 'inp'; d.innerHTML = '<label><span>' + i.label + (i.pin ? ' <code style="font-size:11px">' + i.pin + '</code>' : '') + '</span><span id="v_' + i.id + '">' + i.def + i.unit + '</span></label><input type="range" min="0" max="100" value="' + i.def + '">';
+      d.querySelector('input').oninput = e => { inputs[i.id] = +e.target.value; document.getElementById('v_' + i.id).textContent = e.target.value + i.unit; }; }
+    else { d.className = 'tgl' + (i.def ? ' on' : ''); d.innerHTML = '<span>' + i.label + (i.pin ? ' <code style="font-size:11px">' + i.pin + '</code>' : '') + '</span><div class="tg"></div>';
+      d.onclick = () => { inputs[i.id] = inputs[i.id] ? 0 : 1; d.classList.toggle('on', !!inputs[i.id]); }; }
+    box.appendChild(d); });
+  code.value = m.code(board);
+  document.getElementById('codeTitle').textContent = (board === 'uno' ? 'Arduino Uno' : 'ESP32') + ' code (Arduino C++)';
+  clearSerial(); setStatus('Ready: press Upload & Run', ''); renderTabs(); renderBuilder();
+}
+function renderTabs(){ const t = document.getElementById('tabs'); t.innerHTML = '';
+  MODELS.forEach(m => { const b = document.createElement('button'); b.className = 'tab' + (m === model ? ' on' : '') + (m.id === 'create' ? ' create' : ''); b.textContent = m.name; b.onclick = () => loadModel(m); t.appendChild(b); }); }
+document.getElementById('bUno').onclick = () => { if (board !== 'uno'){ board = 'uno'; loadModel(model); } };
+document.getElementById('bEsp').onclick = () => { if (board !== 'esp'){ board = 'esp'; loadModel(model); } };
+document.getElementById('runBtn').onclick = () => run();
+document.getElementById('stopBtn').onclick = () => { stop(); setStatus('Stopped', ''); };
+document.getElementById('resetBtn').onclick = () => { if (confirm('Put the starter code back?')) code.value = model.code(board); };
+code.addEventListener('keydown', e => { if (e.key === 'Tab'){ e.preventDefault(); const s = code.selectionStart; code.value = code.value.slice(0, s) + '  ' + code.value.slice(code.selectionEnd); code.selectionStart = code.selectionEnd = s + 2; } });
+
+function pinsHtml(){ return model.partsList.map(([k, part]) => { const p = P(k), q = pins[p]; const inp = model.inputs.find(i => i.pin === k);
+    let st = '-';
+    if (q && q.servo != null) st = q.servo + '°';
+    else if (q && q.pwm != null) st = 'PWM ' + q.pwm;
+    else if (q && q.mode === OUTPUT) st = q.v ? 'HIGH' : 'LOW';
+    else if (inp) st = inp.type === 'range' ? 'in ' + Math.round((inputs[inp.id]||0)/100*ADC()) : (inputs[inp.id] ? 'HIGH' : 'LOW');
+    else if (model.read && model.read[k]) { const r = model.read[k](); st = typeof r === 'boolean' || r === 0 || r === 1 && k === 'IR' ? (r ? 'HIGH' : 'LOW') : 'in ' + Math.round(r*ADC()); }
+    const on = /HIGH|PWM [1-9]|°/.test(st) && !/PWM 0/.test(st);
+    return '<span class="lbl">' + (board === 'uno' ? (/^A/.test(model.pins.uno[k][1]) ? model.pins.uno[k][1] : 'D' + model.pins.uno[k][1]) : 'GPIO' + model.pins.esp[k][1]).padEnd(7) + '</span>' + k.padEnd(9) + ' <span class="' + (on ? 'on' : '') + '">' + st + '</span>'; }).join('<br>'); }
+
+// ---------------------------------------------------------------- frame: simulator time is shared with the student's delay()
+let last = performance.now(), busy = false;
+async function frame(now){ requestAnimationFrame(frame); if (busy) return; busy = true;
+  const dt = Math.min(.05, (now - last)/1000); last = now; clock += dt;
+  let budget = dt*1000, guard = 0;
+  while (budget > 0 && guard++ < 200){ const h = Math.min(5, budget); budget -= h; simT += h;
+    const due = waits.filter(w => w.until <= simT); if (due.length){ waits = waits.filter(w => w.until > simT); due.forEach(w => w.res()); await tick(); } }
+  anim.forEach(f => f(dt));
+  document.getElementById('pins').innerHTML = pinsHtml().replace(/ /g, '&nbsp;').replace(/<span&nbsp;class/g, '<span class');
+  if (has3D){ camera.position.set(camDist*Math.sin(camPhi)*Math.cos(camTheta), camDist*Math.cos(camPhi), camDist*Math.sin(camPhi)*Math.sin(camTheta)); camera.lookAt(0, 10, 0); renderer.render(scene, camera); }
+  busy = false; }
+
+// ---------------------------------------------------------------- Zola (through the app)
+function send(o){ const s = JSON.stringify(o); try { if (window.LxBridge) window.LxBridge.postMessage(s); else window.parent.postMessage(s, '*'); } catch(e) {} }
+document.getElementById('zbtn').onclick = () => {
+  const z = document.getElementById('zola'), zt = document.getElementById('zolaText'); z.style.display = 'block'; zt.textContent = 'Zola is looking at your circuit and code...';
+  const asked = Date.now(); window.__asked = asked;
+  setTimeout(() => { if (window.__asked === asked && zt.textContent.startsWith('Zola is looking')) zt.textContent = 'Zola is taking too long. Please check that the Learnix backend is running and try again.'; }, 45000);
+  send({type: 'zola', mode: 'model', model: model.name, board: B(board), desc: model.desc, how: model.how.join(' '),
+        parts: model.partsList.map(([k, part]) => k + ' = ' + part + ' on pin ' + model.pins[board][k][1]).join('; '),
+        pins: pinsHtml().replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' '), inputs: JSON.stringify(inputs), code: code.value,
+        serial: [...serialEl.childNodes].slice(-12).map(n => n.textContent).join('\n'), error: lastError, running,
+        question: document.getElementById('ask').value.trim()});
+};
+function onApp(s){ try { const m = JSON.parse(s); if (m.type === 'zola' && typeof m.text === 'string'){ window.__asked = 0; document.getElementById('zola').style.display = 'block'; document.getElementById('zolaText').textContent = m.text; } } catch(e) {} }
+window.__lxIn = onApp; window.addEventListener('message', e => { if (typeof e.data === 'string') onApp(e.data); });
+
+if (has3D) init3D(); else stage.insertAdjacentHTML('beforeend', '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center">The 3D view needs internet (three.js). The code still runs: watch the pin states.</div>');
+loadModel(MODELS[0]);
+requestAnimationFrame(frame);
+})();
+</script></body></html>

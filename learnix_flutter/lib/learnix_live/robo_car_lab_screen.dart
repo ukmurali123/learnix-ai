@@ -18,12 +18,19 @@ class _RoboCarLabScreenState extends State<RoboCarLabScreen> {
   late final Future<String> _page = rootBundle.loadString('assets/labs/robo_car_lab.html');
 
   static const _system = 'You are Zola, a friendly robotics tutor for school students aged 8 to 16. '
+      'Only safe, low-voltage robotics; if the student asks something not suitable for a child, gently refuse and bring them back to the mission. '
       'The student is programming a 4-wheel Arduino robot car in a simulator. Wiring: L298N driver, left motors ENA=5 IN1=8 IN2=9, '
       'right motors ENB=6 IN3=10 IN4=11; HC-SR04 ultrasonic TRIG=12 ECHO=13 (readDistance() gives cm); IR line sensors LEFT=2 RIGHT=3 '
       '(HIGH over the black line). Helpers: forward(speed), backward(speed), turnLeft(speed), turnRight(speed), stopCar(), speed 0-255; '
-      'turnLeft/turnRight spin on the spot. Rules: 1) First say one thing they did well. 2) Point to the ONE most important problem in '
-      'their code for this mission. 3) Give a hint as a question, then a short fix (max 6 lines of Arduino code) only if they are '
-      'stuck or ask. 4) Simple words, short sentences, under 130 words. No markdown headings.';
+      'turnLeft/turnRight spin on the spot. You get a logic checklist ([done] / [MISSING]) made by the app. '
+      'Answer in exactly this plain-text format, no markdown headings, no ** stars:\n'
+      'Great: <one thing they did well>\n'
+      'Missing logic, step by step:\n'
+      '1. <first missing or wrong logic, in simple words> - Hint: <a question that makes them think>\n'
+      '2. <next one> - Hint: <...>\n'
+      '(only the steps that are really missing or wrong, at most 4; if nothing is missing, give tuning steps such as speeds or delay times)\n'
+      'Try this: <at most 4 lines of Arduino code for step 1 only>\n'
+      'Use short sentences and simple words. Under 140 words.';
 
   @override
   void initState() {
@@ -46,12 +53,12 @@ class _RoboCarLabScreenState extends State<RoboCarLabScreen> {
     } catch (_) {
       return;
     }
-    if (m['type'] != 'zola') return;
+    if (m['type'] != 'zola' || m['mode'] == 'model') return;
     final prompt = 'Mission: ${m['mission']}\nGoal: ${m['goal']}\nResult so far: ${m['status']}\n'
         '${(m['error'] ?? '').toString().isNotEmpty ? 'Code error: ${m['error']}\n' : ''}'
-        'Sensor readings: ${jsonEncode(m['sensors'])}\nLast serial output:\n${m['serial']}\n\nStudent code:\n${m['code']}\n\n'
+        'Logic checklist from the app:\n${m['checklist'] ?? ''}\nSensor readings: ${jsonEncode(m['sensors'])}\nLast serial output:\n${m['serial']}\n\nStudent code:\n${m['code']}\n\n'
         '${(m['question'] ?? '').toString().isNotEmpty ? 'Student question: ${m['question']}' : 'The student asked for help with this mission.'}';
-    final r = await lxGeminiText(system: _system, prompt: prompt, temperature: 0.4, maxTokens: 700);
+    final r = await lxGeminiText(system: _system, prompt: prompt, temperature: 0.4, maxTokens: 700, checkText: '${m['question'] ?? ''}');
     String text = (r is Map && r['success'] == true) ? '${r['text']}'.trim() : '';
     if (text.isEmpty) text = _offlineHint('${m['mission']}', '${m['error'] ?? ''}');
     _bridge.send(jsonEncode({'type': 'zola', 'text': text}));

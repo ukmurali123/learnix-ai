@@ -111,77 +111,157 @@ double _rowY(double frac) => _bh / 2 - frac * _bh;
 
 Scene3 buildCircuitBoardScene({required bool running, required bool hasResistor, required bool switchClosed, required double ohms, required double progress}) {
   final sc = Scene3();
-  const depth = 14.0;
+  const depth = 16.0;
+  final pitch = _colX(1) - _colX(0); // hole spacing (2.54 mm on a real board)
+  final mm = pitch / 2.54; // world units per millimetre, so the parts have real proportions
   // board body (edges) and top
   for (final f in faces3(const Solid3('box', 0, 0, -depth / 2, _bw, _bh, depth, Color(0xFFE7E1D3)))) {
     sc.side.add(f);
   }
   P3 q(double x, double y, [double z = 0.05]) => (x, y, z);
   sc.decor.add(Poly3([q(-_bw / 2, -_bh / 2, 0.01), q(_bw / 2, -_bh / 2, 0.01), q(_bw / 2, _bh / 2, 0.01), q(-_bw / 2, _bh / 2, 0.01)], const Color(0xFFF3EFE6)));
-  // centre channel
   sc.decor.add(Poly3([q(-_bw / 2 + 14, _rowY(0.48)), q(_bw / 2 - 14, _rowY(0.48)), q(_bw / 2 - 14, _rowY(0.52)), q(-_bw / 2 + 14, _rowY(0.52))], const Color(0xFFC9C3AF)));
-  // rail stripes: red (+) and blue (-)
   for (final e in [(0.065, const Color(0xFFE53935)), (0.165, const Color(0xFF1E88E5)), (0.835, const Color(0xFFE53935)), (0.935, const Color(0xFF1E88E5))]) {
     final y = _rowY(e.$1);
-    sc.decor.add(Poly3([q(-_bw / 2 + 16, y - 0.9), q(_bw / 2 - 16, y - 0.9), q(_bw / 2 - 16, y + 0.9), q(-_bw / 2 + 16, y + 0.9)], e.$2.withOpacity(0.8)));
+    sc.decor.add(Poly3([q(-_bw / 2 + 16, y - 1.1), q(_bw / 2 - 16, y - 1.1), q(_bw / 2 - 16, y + 1.1), q(-_bw / 2 + 16, y + 1.1)], e.$2.withOpacity(0.85)));
   }
-  // holes
+  sc.labels.add(Label3((-_bw / 2 + 22, _rowY(0.09), 0.5), '+', const Color(0xFFE53935)));
+  sc.labels.add(Label3((-_bw / 2 + 22, _rowY(0.14), 0.5), '−', const Color(0xFF1E88E5)));
   for (var c = 0; c < _cols; c++) {
     for (final rf in _rowFracs) {
       final x = _colX(c), y = _rowY(rf);
-      sc.decor.add(Poly3([q(x - 2.3, y - 2.3, 0.08), q(x + 2.3, y - 2.3, 0.08), q(x + 2.3, y + 2.3, 0.08), q(x - 2.3, y + 2.3, 0.08)], const Color(0xFF3F3F46)));
+      sc.decor.add(Poly3([q(x - 2.4, y - 2.4, 0.08), q(x + 2.4, y - 2.4, 0.08), q(x + 2.4, y + 2.4, 0.08), q(x - 2.4, y + 2.4, 0.08)], const Color(0xFF3F3F46)));
     }
   }
 
-  final c1 = _colX(1), c3 = _colX(3), c5 = _colX(5), c7 = _colX(7), c9 = _colX(9);
-  final railPlus = _rowY(0.09), railMinus = _rowY(0.14), rowB = _rowY(0.31), rowC = _rowY(0.36);
+  // Circuit, centred on the board:  + rail -> jumper -> switch -> resistor -> LED (anode, cathode) -> jumper -> - rail
+  final cJ = _colX(10), cS2 = _colX(12), cR2 = _colX(15), cA = cR2, cK = _colX(16);
+  final railPlus = _rowY(0.09), railMinus = _rowY(0.14), rowA = _rowY(0.26), rowB = _rowY(0.31), rowC = _rowY(0.36), rowD = _rowY(0.41);
+  List<P3> arc(P3 a, P3 b, double h) => [for (var i = 0; i <= 14; i++) (a.$1 + (b.$1 - a.$1) * i / 14, a.$2 + (b.$2 - a.$2) * i / 14, a.$3 + (b.$3 - a.$3) * i / 14 + h * math.sin(math.pi * i / 14))];
+  List<P3> jumper(double x1, double y1, double x2, double y2, double h) => [(x1, y1, 0.3), (x1, y1, h), (x2, y2, h), (x2, y2, 0.3)];
+  final wireR = 0.75 * mm, legR = 0.45 * mm;
 
-  // battery pack in front of the board (5 V)
-  const packX = -200.0, packY = -_bh / 2 - 70;
-  sc.solids.add(const Solid3('box', packX, packY, 14, 110, 52, 28, Color(0xFF1F2937)));
-  sc.solids.add(const Solid3('box', packX - 18, packY, 29, 46, 40, 2, Color(0xFFF59E0B)));
-  sc.labels.add(Label3((packX - 18, packY, 34), '5 V', Colors.black87));
-  // supply leads (tubes) from the pack to the top rails
-  List<P3> arc(P3 a, P3 b, double h) => [for (var i = 0; i <= 12; i++) (a.$1 + (b.$1 - a.$1) * i / 12, a.$2 + (b.$2 - a.$2) * i / 12, a.$3 + (b.$3 - a.$3) * i / 12 + h * math.sin(math.pi * i / 12))];
-  sc.cables.add(Cable3(arc((packX + 30, packY + 26, 20), (c1, railMinus, 0.5), 40), const Color(0xFF1E293B), 2.2));
-  sc.cables.add(Cable3(arc((packX + 44, packY + 26, 20), (c1 + _colX(2) - _colX(1), railPlus, 0.5), 46), const Color(0xFFDC2626), 2.2));
-  // jumper: + rail to row b, column 3
-  sc.cables.add(Cable3(arc((c3, railPlus, 0.5), (c3, rowB, 0.5), 16), const Color(0xFFDC2626), 2.0));
+  // battery pack (5 V) in front of the board, leads onto the rails
+  const packX = -170.0, packY = -_bh / 2 - 80;
+  sc.solids.add(const Solid3('box', packX, packY, 18, 130, 64, 36, Color(0xFF1F2937)));
+  sc.solids.add(const Solid3('box', packX - 22, packY, 37, 56, 46, 2, Color(0xFFF59E0B)));
+  sc.labels.add(Label3((packX - 22, packY, 42), '5 V', Colors.black87));
+  sc.cables.add(Cable3(arc((packX + 40, packY + 30, 26), (_colX(2), railMinus, 0.5), 50), const Color(0xFF1E293B), wireR));
+  sc.cables.add(Cable3(arc((packX + 56, packY + 30, 26), (_colX(3), railPlus, 0.5), 58), const Color(0xFFDC2626), wireR));
 
-  // slide switch SW1 (columns 3 to 5, row c)
-  final swX = (c3 + c5) / 2;
-  sc.solids.add(Solid3('box', swX, rowC, 6, c5 - c3 + 14, 14, 12, const Color(0xFF475569)));
-  sc.solids.add(Solid3('box', switchClosed ? swX + (c5 - c3) / 4 : swX - (c5 - c3) / 4, rowC, 14, 8, 7, 6, switchClosed ? const Color(0xFF16A34A) : const Color(0xFFDC2626)));
-  sc.labels.add(Label3((swX, rowC - 14, 0.5), switchClosed ? 'SW ON' : 'SW OFF', const Color(0xFF334155)));
+  // red jumper: + rail -> column 10 (row a)
+  sc.cables.add(Cable3(jumper(cJ, railPlus, cJ, rowA, 4 * mm), const Color(0xFFDC2626), wireR));
 
-  // 330 ohm resistor (columns 5 to 7), standing a little above the board, legs bent into the holes
+  // slide switch SW1, pins in columns 10 to 12 (row c)
+  final swX = (cJ + cS2) / 2;
+  sc.solids.add(Solid3('box', swX, rowC, 3 * mm, cS2 - cJ + 4 * mm, 4.5 * mm, 6 * mm, const Color(0xFF334155)));
+  sc.solids.add(Solid3('box', switchClosed ? swX + (cS2 - cJ) / 4 : swX - (cS2 - cJ) / 4, rowC, 7.2 * mm, 2.5 * mm, 2.5 * mm, 3 * mm, switchClosed ? const Color(0xFF22C55E) : const Color(0xFFEF4444)));
+  sc.labels.add(Label3((swX, rowD - 4, 0.5), switchClosed ? 'SW1 ON' : 'SW1 OFF', switchClosed ? const Color(0xFF15803D) : const Color(0xFFB91C1C)));
+
+  // resistor, legs in column 12 (row b) and column 15 (row b), lying a little above the board
   if (hasResistor) {
-    final rx = (c5 + c7) / 2, ry = (rowC + rowB) / 2, rz = 9.0;
-    final ang = math.atan2(rowB - rowC, c7 - c5);
-    final len = math.sqrt(math.pow(c7 - c5, 2) + math.pow(rowB - rowC, 2));
-    sc.cables.add(Cable3([(c5, rowC, 0.5), (c5, rowC, rz), (rx - len * 0.3 * math.cos(ang), ry - len * 0.3 * math.sin(ang), rz)], const Color(0xFFB0BEC5), 0.7));
-    sc.cables.add(Cable3([(c7, rowB, 0.5), (c7, rowB, rz), (rx + len * 0.3 * math.cos(ang), ry + len * 0.3 * math.sin(ang), rz)], const Color(0xFFB0BEC5), 0.7));
-    sc.solids.add(Solid3('cylx', rx, ry, rz, len * 0.55, 6.5, 6.5, const Color(0xFFD8B38A), rot: ang));
+    final rz = 3.2 * mm, rx = (cS2 + cR2) / 2, ry = rowB;
+    final body = 6.3 * mm, dia = 2.5 * mm;
+    sc.cables.add(Cable3([(cS2, ry, 0.3), (cS2, ry, rz), (rx - body / 2, ry, rz)], const Color(0xFFB0BEC5), legR));
+    sc.cables.add(Cable3([(cR2, ry, 0.3), (cR2, ry, rz), (rx + body / 2, ry, rz)], const Color(0xFFB0BEC5), legR));
+    sc.solids.add(Solid3('cylx', rx, ry, rz, body, dia, dia, const Color(0xFFD8B38A)));
     final bands = resistorBands(ohms);
     for (var i = 0; i < 4; i++) {
-      final o = (-0.18 + i * 0.11 + (i == 3 ? 0.06 : 0)) * len;
-      sc.solids.add(Solid3('cylx', rx + o * math.cos(ang), ry + o * math.sin(ang), rz, 2.2, 6.9, 6.9, bands[i], rot: ang));
+      final o = (-0.32 + i * 0.18 + (i == 3 ? 0.1 : 0)) * body;
+      sc.solids.add(Solid3('cylx', rx + o, ry, rz, 0.7 * mm, dia + 0.2, dia + 0.2, bands[i]));
     }
-    sc.labels.add(Label3((rx, ry - 16, 0.5), '${ohms.round()} Ω', const Color(0xFF0F172A)));
+    sc.labels.add(Label3((rx, ry + 4.5 * mm, rz + 2 * mm), '${ohms.round()} Ω', const Color(0xFF0F172A)));
+  } else {
+    sc.labels.add(Label3(((cS2 + cR2) / 2, rowB, 4 * mm), 'add a resistor!', const Color(0xFFB91C1C)));
   }
 
-  // red LED (anode column 7, cathode column 9, row b)
+  // 5 mm red LED: anode (long leg) in column 15, cathode in column 16 (row a; each column strip a-e is connected)
   final lit = running && switchClosed && hasResistor;
-  final lx = (c7 + c9) / 2, ly = rowB + 6;
-  sc.cables.add(Cable3([(c7, rowB, 0.5), (c7, rowB, 8), (lx - 3, ly, 20)], const Color(0xFFB0BEC5), 0.7));
-  sc.cables.add(Cable3([(c9, rowB, 0.5), (c9, rowB, 8), (lx + 3, ly, 20)], const Color(0xFFB0BEC5), 0.7));
-  final ledCol = lit ? const Color(0xFFFF3B30) : const Color(0xFFE57373);
-  sc.solids.add(Solid3('cylz', lx, ly, 22, 13, 13, 4, ledCol));
-  sc.solids.add(Solid3('cylz', lx, ly, 29, 11, 11, 10, ledCol.withOpacity(0.92)));
-  sc.solids.add(Solid3('dome', lx, ly, 34, 11, 11, 6, ledCol));
-  sc.labels.add(Label3((lx, ly + 16, 46), 'LED1', const Color(0xFFB91C1C)));
-  if (lit) sc.glows.add(Glow3((lx, ly, 34), const Color(0xFFFF3B30), 46 + 6 * math.sin(progress * 2 * math.pi)));
+  final lx = (cA + cK) / 2, ly = rowA, base = 4.5 * mm;
+  sc.cables.add(Cable3([(cA, ly, 0.3), (cA, ly, base * 0.6), (lx - 0.6 * mm, ly, base)], const Color(0xFFB0BEC5), legR));
+  sc.cables.add(Cable3([(cK, ly, 0.3), (cK, ly, base * 0.6), (lx + 0.6 * mm, ly, base)], const Color(0xFFB0BEC5), legR));
+  final ledCol = lit ? const Color(0xFFFF2D20) : const Color(0xFFD45A5A);
+  sc.solids.add(Solid3('cylz', lx, ly, base + 0.5 * mm, 5.8 * mm, 5.8 * mm, 1 * mm, ledCol));
+  sc.solids.add(Solid3('cylz', lx, ly, base + 3.5 * mm, 5 * mm, 5 * mm, 5 * mm, ledCol));
+  sc.solids.add(Solid3('dome', lx, ly, base + 6 * mm, 5 * mm, 5 * mm, 2.5 * mm, ledCol));
+  sc.labels.add(Label3((lx, ly + 5 * mm, base + 11 * mm), 'LED1', const Color(0xFFB91C1C)));
+  if (lit) sc.glows.add(Glow3((lx, ly, base + 6 * mm), const Color(0xFFFF3B30), 16 * mm + 2 * mm * math.sin(progress * 2 * math.pi)));
+
+  // black jumper: LED cathode column 16 (row c) -> - rail at column 18, closing the loop
+  sc.cables.add(Cable3(jumper(cK, rowC, _colX(18), railMinus, 9 * mm), const Color(0xFF111827), wireR));
+
+  // current flow dots along the loop while lit
+  if (lit) {
+    final loop = <P3>[(_colX(3), railPlus, 2), (cJ, railPlus, 2), (cJ, rowA, 2), (cJ, rowC, 2), (cS2, rowC, 2), (cS2, rowB, 2), (cR2, rowB, 2), (cA, rowA, 2), (cK, rowA, 2), (cK, rowC, 2), (_colX(18), railMinus, 2)];
+    for (var i = 0; i < 12; i++) {
+      final t = ((progress + i / 12) % 1.0) * (loop.length - 1);
+      final k = t.floor(), f = t - k;
+      final a = loop[k], b = loop[math.min(k + 1, loop.length - 1)];
+      sc.glows.add(Glow3((a.$1 + (b.$1 - a.$1) * f, a.$2 + (b.$2 - a.$2) * f, 6), const Color(0xFFFACC15), 2.2 * mm));
+    }
+  }
   return sc;
+}
+
+/// Full-screen 3D view: drag to rotate, scroll or pinch to zoom.
+class Board3DFullScreen extends StatefulWidget {
+  final Scene3 Function() build;
+  final Listenable? repaint;
+  final double yaw, pitch;
+  const Board3DFullScreen({super.key, required this.build, this.repaint, this.yaw = -0.3, this.pitch = 0.95});
+  @override
+  State<Board3DFullScreen> createState() => _Board3DFullScreenState();
+}
+
+class _Board3DFullScreenState extends State<Board3DFullScreen> {
+  late double yaw = widget.yaw, pitch = widget.pitch;
+  double zoom = 1.25, _startZoom = 1.25;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF262626),
+      body: Stack(children: [
+        Positioned.fill(
+          child: Listener(
+            onPointerSignal: (e) {
+              final dy = (e as dynamic).scrollDelta?.dy as double?;
+              if (dy != null) setState(() => zoom = (zoom * (dy > 0 ? 0.9 : 1.1)).clamp(0.5, 4.0));
+            },
+            child: GestureDetector(
+              onScaleStart: (_) => _startZoom = zoom,
+              onScaleUpdate: (d) => setState(() {
+                yaw += d.focalPointDelta.dx * 0.006;
+                pitch = (pitch - d.focalPointDelta.dy * 0.005).clamp(0.25, 1.5);
+                if (d.scale != 1.0) zoom = (_startZoom * d.scale).clamp(0.5, 4.0);
+              }),
+              child: CustomPaint(painter: Scene3Painter(build: widget.build, yaw: yaw, pitch: pitch, zoom: zoom, repaint: widget.repaint)),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 16,
+          left: 16,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(10)),
+            child: const Text('Drag to rotate  ·  scroll or pinch to zoom', style: TextStyle(color: Colors.white70, fontSize: 12.5, fontWeight: FontWeight.w600)),
+          ),
+        ),
+        Positioned(
+          top: 12,
+          right: 12,
+          child: Row(children: [
+            IconButton.filledTonal(tooltip: 'Zoom in', onPressed: () => setState(() => zoom = (zoom * 1.15).clamp(0.5, 4.0)), icon: const Icon(Icons.zoom_in)),
+            const SizedBox(width: 6),
+            IconButton.filledTonal(tooltip: 'Zoom out', onPressed: () => setState(() => zoom = (zoom / 1.15).clamp(0.5, 4.0)), icon: const Icon(Icons.zoom_out)),
+            const SizedBox(width: 6),
+            IconButton.filled(tooltip: 'Exit full screen', onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.fullscreen_exit_rounded)),
+          ]),
+        ),
+      ]),
+    );
+  }
 }
 
 /// Draws a [Scene3] with the live app's lighting, depth sorting and tube wires.
@@ -194,11 +274,11 @@ class Scene3Painter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..shader = const RadialGradient(center: Alignment(0, -0.2), radius: 1.1, colors: [Color(0xFF4A4A4A), Color(0xFF262626)]).createShader(Offset.zero & size));
     final scene = build();
-    final sc = math.max(0.2, math.min(size.width / 760, size.height / 470)) * zoom;
+    final sc = math.max(0.2, math.min(size.width / 700, size.height / 430)) * zoom;
     final cy = math.cos(yaw), sy = math.sin(yaw), ce = math.cos(pitch), se = math.sin(pitch);
     const dist = 2100.0;
     (Offset, double) pr(P3 p) {
-      final x1 = p.$1 * cy - (p.$2 + 40) * sy, y1 = p.$1 * sy + (p.$2 + 40) * cy;
+      final x1 = p.$1 * cy - (p.$2 + 20) * sy, y1 = p.$1 * sy + (p.$2 + 20) * cy;
       final up = y1 * se + p.$3 * ce, depth = y1 * ce - p.$3 * se;
       final k = dist / math.max(dist + depth, 80);
       return (Offset(size.width / 2 + x1 * sc * k, size.height * 0.5 - up * sc * k), depth);
