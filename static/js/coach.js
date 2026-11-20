@@ -84,7 +84,7 @@ function renderLabErrors(labErrors) {
         <span class="error-name">⚠️ ${escapeHtml(meta.label)}</span>
         <span class="error-count-pill">${err.error_count}x detected</span>
       </div>
-      <p class="error-tip-text"><strong>Coach Advice:</strong> ${escapeHtml(meta.tip)}</p>
+      <p class="error-tip-text"><strong>Tutor Advice:</strong> ${escapeHtml(meta.tip)}</p>
     `;
     container.appendChild(card);
   });
