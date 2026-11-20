@@ -38,6 +38,10 @@ app.include_router(coach.router)
 app.include_router(reports.router)
 app.include_router(path.router)
 
+flutter_dir = pathlib.Path(__file__).resolve().parent.parent / "learnix_flutter" / "build" / "web"
+if flutter_dir.exists():
+    app.mount("/flutter", StaticFiles(directory=str(flutter_dir), html=True), name="flutter")
+
 static_dir = pathlib.Path(__file__).resolve().parent.parent / "static"
 static_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")

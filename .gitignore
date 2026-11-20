@@ -26,3 +26,8 @@ Thumbs.db
 scratch/
 *.log
 *.db
+
+# Flutter
+learnix_flutter/.dart_tool/
+learnix_flutter/.pub/
+learnix_flutter/.pub-cache/
