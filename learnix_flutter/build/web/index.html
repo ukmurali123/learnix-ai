@@ -15,6 +15,10 @@
   <link rel="manifest" href="manifest.json">
   <!-- start downloading the rendering engine while the page is still loading -->
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <!-- start the big app download straight away, in parallel with the loader -->
+  <link rel="preload" href="main.dart.js" as="script">
   <title>Learnix AI</title>
   <style>
     html, body { margin: 0; height: 100%; background: #ffffff; }

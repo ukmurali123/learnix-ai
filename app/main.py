@@ -25,6 +25,25 @@ app.add_middleware(
 )
 
 
+# Browser caching: big files that rarely change are kept for 7 days; app code and
+# manifests are re-checked each visit (cheap 304 replies) so a new deploy shows at once.
+_REVALIDATE = (".html", ".json", "/", "flutter_bootstrap.js", "flutter_service_worker.js", "main.dart.js")
+_LONG_CACHE = (".wasm", ".otf", ".ttf", ".woff2", ".png", ".jpg", ".jpeg", ".webp", ".svg", ".symbols")
+
+
+@app.middleware("http")
+async def cache_headers(request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path.startswith("/api") or path == "/health" or "cache-control" in response.headers:
+        return response
+    if path.startswith("/canvaskit/") or path.endswith(_LONG_CACHE):
+        response.headers["Cache-Control"] = "public, max-age=604800"
+    elif path.endswith(_REVALIDATE) or path.endswith(".js"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 @app.get("/health")
 def health_check():
     row = db.fetch_one("SELECT current_database() AS db, count(*) AS students_count FROM students")
